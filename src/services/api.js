@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get the API URL from environment variables
-const baseURL = 'https://personal-finance-dashboard-api.vercel.app';
+const baseURL = 'https://personal-finance-dashboard-gxslmpvop-josiah-devines-projects.vercel.app';
 
 console.log('API Base URL:', baseURL);
 console.log('Environment:', process.env.NODE_ENV);

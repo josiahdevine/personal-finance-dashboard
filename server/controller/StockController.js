@@ -30,12 +30,11 @@ const isDuringMarketHours = () => {
 
 // Schedule the next update
 const scheduleNextUpdate = async () => {
+    if (updateJob) {
+        clearTimeout(updateJob);
+        updateJob = null;
+    }
     try {
-        // Clear any existing job
-        if (updateJob) {
-            clearTimeout(updateJob);
-        }
-
         // Calculate next update time
         const now = new Date();
         let nextUpdate = new Date();
@@ -316,6 +315,13 @@ const updateAllStockPrices = async (req, res) => {
         });
     }
 };
+
+// Add cleanup on process exit
+process.on('SIGTERM', () => {
+    if (updateJob) {
+        clearTimeout(updateJob);
+    }
+});
 
 module.exports = {
     getStockPrice,

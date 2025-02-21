@@ -25,6 +25,32 @@ router.post('/sync-balances', async (req, res) => {
         const items = await PlaidModel.getPlaidItemsByUserId(userId);
         const allBalances = [];
 
+        const BATCH_SIZE = 50;
+
+        const processBatchedAccounts = async (accounts, userId) => {
+            for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
+                const batch = accounts.slice(i, i + BATCH_SIZE);
+                await Promise.all(batch.map(account => 
+                    PlaidModel.recordBalanceHistory(
+                        userId,
+                        account.type,
+                        account.account_id,
+                        account.balances.current,
+                        account.type.toLowerCase().includes('credit') || 
+                        account.type.toLowerCase().includes('loan'),
+                        'plaid',
+                        {
+                            institution_name: item.institution_name,
+                            account_name: account.name,
+                            subtype: account.subtype
+                        }
+                    )
+                ));
+                // Add small delay between batches
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        };
+
         for (const item of items) {
             try {
                 const response = await plaidClient.accountsBalanceGet({
@@ -32,33 +58,17 @@ router.post('/sync-balances', async (req, res) => {
                 });
 
                 // Record each account's balance in history
-                for (const account of response.data.accounts) {
-                    const balance = account.balances.current;
-                    const isLiability = account.type.toLowerCase().includes('credit') || 
-                                      account.type.toLowerCase().includes('loan');
-                    
-                    await PlaidModel.recordBalanceHistory(
-                        userId,
-                        account.type,
-                        account.account_id,
-                        balance,
-                        isLiability,
-                        'plaid',
-                        {
-                            institution_name: item.institution_name,
-                            account_name: account.name,
-                            subtype: account.subtype
-                        }
-                    );
+                await processBatchedAccounts(response.data.accounts, userId);
 
+                response.data.accounts.forEach(account => {
                     allBalances.push({
                         account_id: account.account_id,
                         account_name: account.name,
                         account_type: account.type,
-                        current_balance: balance,
+                        current_balance: account.balances.current,
                         institution_name: item.institution_name
                     });
-                }
+                });
             } catch (error) {
                 console.error(`Error fetching balances for item ${item.plaid_item_id}:`, error);
             }

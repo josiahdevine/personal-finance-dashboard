@@ -1,19 +1,23 @@
 import axios from 'axios';
 
 // Get the API URL from environment variables
-const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const baseURL = 'https://personal-finance-dashboard-api.vercel.app';
 
 console.log('API Base URL:', baseURL);
 console.log('Environment:', process.env.NODE_ENV);
 
 const api = axios.create({
   baseURL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 // Add request logging
 api.interceptors.request.use((config) => {
-  console.log('Making request to:', config.url);
+  console.log('Making request to:', `${baseURL}${config.url}`);
   console.log('Request data:', config.data);
+  console.log('Request headers:', config.headers);
   
   const token = localStorage.getItem('authToken');
   if (token) {
@@ -33,6 +37,12 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('Response error:', error.response || error);
+    console.error('Full error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers
+    });
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       window.location.href = '/login';
@@ -48,8 +58,13 @@ export const auth = {
   },
   register: async (userData) => {
     console.log('Registering with data:', userData);
-    const response = await api.post('/api/auth/register', userData);
-    return response.data;
+    try {
+      const response = await api.post('/api/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
   }
 };
 

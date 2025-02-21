@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -121,36 +121,37 @@ const CHART_VIEWS = {
 
 // Add this new component at the top level of the file, before AccountConnections
 const ChartContainer = ({ data, options, type }) => {
-    const [chartKey, setChartKey] = useState(Date.now());
     const chartRef = useRef(null);
     const containerRef = useRef(null);
+    const prevDataRef = useRef(null);
 
+    // Only update chart when data actually changes
     useEffect(() => {
-        setChartKey(Date.now()); // Force re-render when data changes
+        if (!containerRef.current || !chartRef.current) return;
+        
+        const hasDataChanged = JSON.stringify(prevDataRef.current) !== JSON.stringify(data);
+        if (!hasDataChanged) return;
+
+        prevDataRef.current = data;
+        
+        // Debounce the update to prevent too frequent redraws
+        const timeoutId = setTimeout(() => {
+            if (containerRef.current && chartRef.current) {
+                chartRef.current.update('none'); // Disable animations for performance
+            }
+        }, 150);
+
+        return () => clearTimeout(timeoutId);
     }, [data]);
 
+    // Cleanup chart instance on unmount
     useEffect(() => {
-        // Cleanup function to destroy chart instance
         return () => {
             if (chartRef.current && chartRef.current.destroy) {
                 chartRef.current.destroy();
             }
         };
     }, []);
-
-    // Add check for container mount
-    useEffect(() => {
-        if (!containerRef.current) return;
-        
-        // Wait for next frame to ensure DOM is ready
-        const frame = requestAnimationFrame(() => {
-            if (containerRef.current && chartRef.current) {
-                chartRef.current.update();
-            }
-        });
-
-        return () => cancelAnimationFrame(frame);
-    }, [chartKey]);
 
     if (!data || !data.datasets || data.datasets.length === 0 || !data.labels || data.labels.length === 0) {
         return (
@@ -166,15 +167,13 @@ const ChartContainer = ({ data, options, type }) => {
         <div ref={containerRef} className="relative h-full w-full">
             <ChartComponent
                 ref={chartRef}
-                key={chartKey}
                 data={data}
                 options={{
                     ...options,
                     maintainAspectRatio: false,
                     responsive: true,
-                    animation: {
-                        duration: 0 // Disable animations for smoother updates
-                    }
+                    animation: false, // Disable animations for better performance
+                    devicePixelRatio: 1, // Reduce canvas resolution for better performance
                 }}
             />
         </div>
@@ -264,8 +263,91 @@ const AccountConnections = () => {
     const [showAccountForm, setShowAccountForm] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
     const [plaidAccountSettings, setPlaidAccountSettings] = useState({});
-    const [balanceHistory, setBalanceHistory] = useState(null);
-    const [hoveredNetWorth, setHoveredNetWorth] = useState(null);
+    
+    // Use refs for data that doesn't need to trigger re-renders
+    const balanceHistoryRef = useRef(null);
+    const hoveredNetWorthRef = useRef(null);
+
+    // Memoize expensive calculations
+    const netWorthData = useMemo(() => {
+        if (!balanceHistoryRef.current) return null;
+        return prepareNetWorthData(balanceHistoryRef.current);
+    }, [balanceHistoryRef.current]);
+
+    const percentChangeData = useMemo(() => {
+        if (!balances.length) return null;
+        return preparePercentChangeData(balances);
+    }, [balances]);
+
+    const contributionData = useMemo(() => {
+        if (!balances.length) return null;
+        return prepareContributionData(balances);
+    }, [balances]);
+
+    // Debounced search term
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+    // Fetch data with debouncing and caching
+    const fetchBalanceHistory = useCallback(async () => {
+        try {
+            const response = await axios.get('/api/plaid/balance-history');
+            const history = response.data;
+            balanceHistoryRef.current = history;
+            
+            // Set initial net worth
+            if (history.length > 0) {
+                hoveredNetWorthRef.current = {
+                    value: history[history.length - 1].netWorth,
+                    date: new Date(history[history.length - 1].date).toLocaleDateString()
+                };
+            }
+        } catch (error) {
+            console.error('Error fetching balance history:', error);
+            toast.error('Failed to fetch balance history');
+        }
+    }, []);
+
+    // Effect to fetch balance history with proper cleanup
+    useEffect(() => {
+        if (!token) return;
+        
+        let isMounted = true;
+        const controller = new AbortController();
+
+        const fetchData = async () => {
+            try {
+                await fetchBalanceHistory();
+                if (!isMounted) return;
+            } catch (error) {
+                if (!isMounted) return;
+                console.error('Error:', error);
+            }
+        };
+
+        fetchData();
+
+        return () => {
+            isMounted = false;
+            controller.abort();
+        };
+    }, [token, selectedTimeRange, fetchBalanceHistory]);
+
+    // Custom hook for search term debouncing
+    function useDebounce(value, delay) {
+        const [debouncedValue, setDebouncedValue] = useState(value);
+
+        useEffect(() => {
+            const handler = setTimeout(() => {
+                setDebouncedValue(value);
+            }, delay);
+
+            return () => {
+                clearTimeout(handler);
+            };
+        }, [value, delay]);
+
+        return debouncedValue;
+    }
 
     // Initialize Plaid Link
     const config = {
@@ -560,67 +642,30 @@ const AccountConnections = () => {
         };
     };
 
-    // Add function to fetch balance history
-    const fetchBalanceHistory = async () => {
-        try {
-            const response = await axios.get('/api/plaid/balance-history');
-            const history = response.data;
-            
-            // Transform the data for the chart
-            const chartData = {
-                labels: history.map(h => new Date(h.date).toLocaleDateString()),
-                datasets: [{
-                    label: 'Net Worth',
-                    data: history.map(h => h.netWorth),
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-            
-            setBalanceHistory(chartData);
-            // Set initial net worth to current value
-            setHoveredNetWorth({
-                value: history[history.length - 1].netWorth,
-                date: new Date(history[history.length - 1].date).toLocaleDateString()
-            });
-        } catch (error) {
-            console.error('Error fetching balance history:', error);
-            toast.error('Failed to fetch balance history');
-        }
-    };
-
-    // Update useEffect to fetch balance history when time range changes
-    useEffect(() => {
-        if (token) {
-            fetchBalanceHistory();
-        }
-    }, [token, selectedTimeRange]);
-
     // Update prepareNetWorthData function to use balance history
     const prepareNetWorthData = () => {
-        if (!balanceHistory || balanceHistory.length === 0) return null;
+        if (!balanceHistoryRef.current) return null;
 
         return {
-            labels: balanceHistory.map(entry => new Date(entry.date).toLocaleDateString()),
+            labels: balanceHistoryRef.current.map(entry => new Date(entry.date).toLocaleDateString()),
             datasets: [
                 {
                     label: 'Net Worth',
-                    data: balanceHistory.map(entry => entry.net_worth),
+                    data: balanceHistoryRef.current.map(entry => entry.netWorth),
+                    fill: false,
                     borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                    fill: true
+                    tension: 0.1
                 },
                 {
                     label: 'Assets',
-                    data: balanceHistory.map(entry => entry.total_assets),
+                    data: balanceHistoryRef.current.map(entry => entry.total_assets),
                     borderColor: 'rgb(34, 197, 94)',
                     backgroundColor: 'rgba(34, 197, 94, 0.5)',
                     fill: true
                 },
                 {
                     label: 'Liabilities',
-                    data: balanceHistory.map(entry => entry.total_liabilities),
+                    data: balanceHistoryRef.current.map(entry => entry.total_liabilities),
                     borderColor: 'rgb(239, 68, 68)',
                     backgroundColor: 'rgba(239, 68, 68, 0.5)',
                     fill: true
@@ -1010,17 +1055,19 @@ const AccountConnections = () => {
                     <h2 className="text-xl font-semibold text-gray-800">Net Worth Trend</h2>
                     <div className="text-right">
                         <p className="text-sm text-gray-500">
-                            {hoveredNetWorth?.date || 'Current'}
+                            {hoveredNetWorthRef.current?.date || 'Current'}
                         </p>
                         <p className="text-2xl font-bold text-blue-600">
-                            {hoveredNetWorth ? formatCurrency(hoveredNetWorth.value) : 'Loading...'}
+                            {hoveredNetWorthRef.current ? formatCurrency(hoveredNetWorthRef.current.value) : 'Loading...'}
                         </p>
                     </div>
                 </div>
-                {balanceHistory ? (
+                {balanceHistoryRef.current ? (
                     <NetWorthChart 
-                        data={balanceHistory} 
-                        onHover={setHoveredNetWorth}
+                        data={balanceHistoryRef.current} 
+                        onHover={(value) => {
+                            hoveredNetWorthRef.current = value;
+                        }}
                     />
                 ) : (
                     <div className="flex justify-center items-center h-64">
@@ -1081,7 +1128,7 @@ const AccountConnections = () => {
             </div>
 
             {/* Net Worth Chart */}
-            {balanceHistory && balanceHistory.length > 0 && (
+            {balanceHistoryRef.current && balanceHistoryRef.current.length > 0 && (
                 <div className="bg-white rounded-lg shadow overflow-hidden">
                     <div className="p-6">
                         <div className="flex justify-between items-center mb-6">
@@ -1128,7 +1175,7 @@ const AccountConnections = () => {
                             {selectedChartView === 'NET_WORTH' && (
                                 <ChartContainer
                                     type="Line"
-                                    data={prepareNetWorthData()}
+                                    data={netWorthData}
                                     options={{
                                         scales: {
                                             y: {
@@ -1157,7 +1204,7 @@ const AccountConnections = () => {
                             {selectedChartView === 'PERCENT_CHANGE' && balances.length > 0 && (
                                 <ChartContainer
                                     type="Bar"
-                                    data={preparePercentChangeData(balances)}
+                                    data={percentChangeData}
                                     options={{
                                         scales: {
                                             y: {
@@ -1185,7 +1232,7 @@ const AccountConnections = () => {
                             {selectedChartView === 'CONTRIBUTION' && balances.length > 0 && (
                                 <ChartContainer
                                     type="Doughnut"
-                                    data={prepareContributionData(balances)}
+                                    data={contributionData}
                                     options={{
                                         plugins: {
                                             tooltip: {

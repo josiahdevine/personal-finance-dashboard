@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 
@@ -9,6 +9,18 @@ const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('authToken') || null);
     const [userId, setUserId] = useState(null);
     const [username, setUsername] = useState(null);
+    const [logoutTimer, setLogoutTimer] = useState(null);
+
+    // Memoize logout function to prevent unnecessary re-renders
+    const logout = useCallback(() => {
+        if (logoutTimer) {
+            clearTimeout(logoutTimer);
+        }
+        setToken(null);
+        setUserId(null);
+        setUsername(null);
+        localStorage.removeItem('authToken');
+    }, [logoutTimer]);
 
     // Update user info when token changes
     useEffect(() => {
@@ -31,14 +43,20 @@ const AuthProvider = ({ children }) => {
 
                 // Set up auto-logout when token expires
                 const timeUntilExpiry = (decoded.exp - currentTime) * 1000;
-                const logoutTimer = setTimeout(() => {
+                const timer = setTimeout(() => {
                     console.log('Token expired, logging out');
                     toast.error('Your session has expired. Please log in again.');
                     logout();
                 }, timeUntilExpiry);
 
+                setLogoutTimer(timer);
+
                 // Cleanup timer on unmount or token change
-                return () => clearTimeout(logoutTimer);
+                return () => {
+                    if (timer) {
+                        clearTimeout(timer);
+                    }
+                };
             } catch (error) {
                 console.error('Error decoding token:', error);
                 toast.error('Authentication error. Please log in again.');
@@ -49,20 +67,12 @@ const AuthProvider = ({ children }) => {
             setUserId(null);
             setUsername(null);
         }
-    }, [token]);
+    }, [token, logout]);
 
     // Login function to set token
-    const login = (newToken) => {
+    const login = useCallback((newToken) => {
         setToken(newToken);
-    };
-
-    // Logout function to clear everything
-    const logout = () => {
-        setToken(null);
-        setUserId(null);
-        setUsername(null);
-        localStorage.removeItem('authToken');
-    };
+    }, []);
 
     const contextValue = {
         token,

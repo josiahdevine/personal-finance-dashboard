@@ -1,51 +1,56 @@
 import axios from 'axios';
 
-// Get the API URL from environment variables
-const baseURL = 'https://personal-finance-dashboard-gxslmpvop-josiah-devines-projects.vercel.app';
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://personal-finance-dashboard-gv4s030m3-josiah-devines-projects.vercel.app'
+  : 'http://localhost:5000';
 
-console.log('API Base URL:', baseURL);
+console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);
 
 const api = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Add request logging
-api.interceptors.request.use((config) => {
-  console.log('Making request to:', `${baseURL}${config.url}`);
-  console.log('Request data:', config.data);
-  console.log('Request headers:', config.headers);
-  
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  console.error('Request error:', error);
-  return Promise.reject(error);
-});
-
-// Add response logging
-api.interceptors.response.use(
-  (response) => {
-    console.log('Response:', response.data);
-    return response;
+// Add request interceptor for authentication
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
   },
   (error) => {
-    console.error('Response error:', error.response || error);
-    console.error('Full error details:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers
-    });
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Handle specific error cases
+      switch (error.response.status) {
+        case 401:
+          // Unauthorized - clear token and redirect to login
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          break;
+        case 403:
+          // Forbidden
+          console.error('Access forbidden:', error.response.data);
+          break;
+        case 500:
+          // Server error
+          console.error('Server error:', error.response.data);
+          break;
+        default:
+          console.error('API error:', error.response.data);
+      }
     }
     return Promise.reject(error);
   }

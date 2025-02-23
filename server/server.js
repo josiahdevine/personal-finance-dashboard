@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
 const dns = require('dns');
+const path = require('path');
 dotenv.config();
 
 const config = require(`./config/${process.env.NODE_ENV === 'production' ? 'production' : 'development'}.js`);
@@ -63,7 +64,7 @@ async function testDatabaseConnection() {
     }
 }
 
-// Mount routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/plaid', authenticateToken, plaidRoutes);
 app.use('/api/salary', authenticateToken, salaryRoutes);
@@ -80,6 +81,29 @@ app.get('/health', async (req, res) => {
         database: dbConnected ? 'connected' : 'error'
     });
 });
+
+// Root route handler
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Personal Finance Dashboard API',
+        version: '1.0.0',
+        status: 'running',
+        environment: process.env.NODE_ENV,
+        endpoints: {
+            auth: '/api/auth',
+            plaid: '/api/plaid',
+            salary: '/api/salary',
+            manualAccounts: '/api/manual-accounts',
+            stocks: '/api/stocks',
+            health: '/health'
+        }
+    });
+});
+
+// Handle salary journal routes
+app.get('/api/salary-journal/:userId', authenticateToken, SalaryJournalController.getSalaryJournal);
+app.put('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.updateSalaryEntry);
+app.delete('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.deleteSalaryEntry);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -111,11 +135,6 @@ app.use((err, req, res, next) => {
         message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
     });
 });
-
-// Handle salary journal routes
-app.get('/api/salary-journal/:userId', authenticateToken, SalaryJournalController.getSalaryJournal);
-app.put('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.updateSalaryEntry);
-app.delete('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.deleteSalaryEntry);
 
 // Start server
 const port = process.env.PORT || 5000;

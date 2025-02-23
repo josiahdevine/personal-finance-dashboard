@@ -7,6 +7,8 @@ const pool = require('../db'); // Import the database connection pool
 
 // Secret key for JWT (should be in environment variables)
 const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+console.log('JWT Secret available:', !!secretKey);
+console.log('Environment:', process.env.NODE_ENV);
 
 // Test the database connection - Add this!
 pool.query('SELECT NOW()', (err, res) => {
@@ -71,7 +73,11 @@ router.post('/register', async (req, res, next) => {
 // Login Route
 router.post('/login', async (req, res, next) => {
     try {
-        console.log('Login request received:', req.body);
+        console.log('Login request received:', { 
+            body: req.body,
+            headers: req.headers,
+            method: req.method
+        });
         
         if (!req.body.username || !req.body.password) {
             console.log('Missing username or password');
@@ -84,6 +90,8 @@ router.post('/login', async (req, res, next) => {
         console.log('Executing query:', query, 'with username:', username);
         
         const { rows } = await pool.query(query, [username]);
+        console.log('Query result:', { found: !!rows[0], rowCount: rows.length });
+        
         const user = rows[0];
 
         if (!user) {
@@ -93,6 +101,7 @@ router.post('/login', async (req, res, next) => {
 
         console.log('Checking password for user:', username);
         const passwordMatch = await bcrypt.compare(password, user.password);
+        console.log('Password match result:', passwordMatch);
         
         if (!passwordMatch) {
             console.log('Password mismatch for user:', username);
@@ -122,6 +131,11 @@ router.post('/login', async (req, res, next) => {
 
     } catch (error) {
         console.error('Login error:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
         next(error);
     }
 });

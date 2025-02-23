@@ -17,9 +17,10 @@ const SalaryJournalController = require('./controller/SalaryJournalController');
 
 const app = express();
 
-// Configure CORS with the config
+// Configure CORS
 app.use(cors(config.cors));
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -28,27 +29,39 @@ dns.setDefaultResultOrder('ipv4first');
 
 // Initialize Plaid client
 const plaidConfig = new Configuration({
-  basePath: PlaidEnvironments[process.env.PLAID_ENV || 'sandbox'],
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-      'PLAID-SECRET': process.env.PLAID_SECRET,
+    basePath: PlaidEnvironments[process.env.PLAID_ENV || 'sandbox'],
+    baseOptions: {
+        headers: {
+            'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
+            'PLAID-SECRET': process.env.PLAID_SECRET,
+        },
+        timeout: 10000,
     },
-    timeout: 10000,
-  },
 });
 
 const plaidClient = new PlaidApi(plaidConfig);
 app.locals.plaidClient = plaidClient;
 
-// Test database connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Error connecting to PostgreSQL:', err);
-  } else {
-    console.log('Database connection successful:', res.rows[0].now);
-  }
+// Log environment variables (excluding sensitive data)
+console.log('Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+    DATABASE_URL: process.env.DATABASE_URL ? '**present**' : '**missing**',
+    JWT_SECRET: process.env.JWT_SECRET ? '**present**' : '**missing**',
+    PLAID_ENV: process.env.PLAID_ENV
 });
+
+// Test database connection
+async function testDatabaseConnection() {
+    try {
+        const result = await pool.query('SELECT NOW()');
+        console.log('Database connection successful:', result.rows[0].now);
+        return true;
+    } catch (error) {
+        console.error('Database connection error:', error.message);
+        return false;
+    }
+}
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -57,25 +70,67 @@ app.use('/api/salary', authenticateToken, salaryRoutes);
 app.use('/api/manual-accounts', authenticateToken, manualAccountRoutes);
 app.use('/api/stocks', authenticateToken, stockRoutes);
 
+// Health check endpoint
+app.get('/health', async (req, res) => {
+    const dbConnected = await testDatabaseConnection();
+    res.json({
+        status: dbConnected ? 'ok' : 'database_error',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        database: dbConnected ? 'connected' : 'error'
+    });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+    console.error('Error:', {
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+        path: req.path,
+        method: req.method
+    });
+
+    // Handle specific error types
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({
+            error: 'Validation Error',
+            message: err.message
+        });
+    }
+
+    if (err.name === 'UnauthorizedError') {
+        return res.status(401).json({
+            error: 'Unauthorized',
+            message: 'Invalid or missing authentication token'
+        });
+    }
+
+    // Default error response
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+    });
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-const port = process.env.PORT || 5000;
-app.listen(port, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
-});
-
+// Handle salary journal routes
 app.get('/api/salary-journal/:userId', authenticateToken, SalaryJournalController.getSalaryJournal);
 app.put('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.updateSalaryEntry);
 app.delete('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.deleteSalaryEntry);
+
+// Start server
+const port = process.env.PORT || 5000;
+const server = app.listen(port, () => {
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
+    testDatabaseConnection();
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err);
+    // Don't exit the process in production, just log the error
+    if (process.env.NODE_ENV !== 'production') {
+        server.close(() => process.exit(1));
+    }
+});
+
+module.exports = app;

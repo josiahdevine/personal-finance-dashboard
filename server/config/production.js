@@ -1,7 +1,10 @@
 module.exports = {
     database: {
         url: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+        ssl: {
+            rejectUnauthorized: false,
+            require: true
+        }
     },
     cors: {
         origin: [
@@ -11,7 +14,8 @@ module.exports = {
             'https://personal-finance-dashboard-josiahs-projects.vercel.app'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        credentials: true
     },
     jwt: {
         secret: process.env.JWT_SECRET,

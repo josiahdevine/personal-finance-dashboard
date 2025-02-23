@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://personal-finance-dashboard-gv4s030m3-josiah-devines-projects.vercel.app'
+  ? 'https://personal-finance-dashboard-ctnhgtu27-josiah-devines-projects.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Base URL:', API_BASE_URL);
@@ -11,7 +11,8 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
 
 // Add request interceptor for authentication

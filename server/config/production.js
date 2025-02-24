@@ -7,18 +7,9 @@ module.exports = {
         }
     },
     cors: {
-        origin: '*',  // Allow all origins temporarily for debugging
-        methods: ['GET', 'POST', 'PUT', DELETE, 'OPTIONS', 'PATCH'],
-        allowedHeaders: [
-            'Content-Type',
-            'Authorization',
-            'X-Requested-With',
-            'Accept',
-            'Origin',
-            'Access-Control-Request-Method',
-            'Access-Control-Request-Headers'
-        ],
-        exposedHeaders: ['Content-Length', 'X-Requested-With'],
+        origin: true,  // Allow all origins
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
         credentials: true,
         maxAge: 86400,
         preflightContinue: false,

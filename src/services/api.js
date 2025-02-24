@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use the actual backend URL where your server is deployed
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://personal-finance-dashboard-hxpiz7ksm-josiah-devines-projects.vercel.app'
+  ? 'https://personal-finance-dashboard-ln8kglw6q-josiah-devines-projects.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Base URL:', API_BASE_URL);

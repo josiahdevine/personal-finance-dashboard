@@ -52,11 +52,12 @@ const corsOptions = {
 
         const allowedOrigins = [
             'https://personal-finance-dashboard-topaz.vercel.app',
-            'https://personal-finance-dashboard-rh1ji1d2k-josiah-devines-projects.vercel.app',
+            'https://personal-finance-dashboard-kekmb9rwo-josiah-devines-projects.vercel.app',
+            'https://personal-finance-dashboard-bt1nqm5f3-josiah-devines-projects.vercel.app',
             'http://localhost:3000'
         ];
 
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
+        if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -65,6 +66,7 @@ const corsOptions = {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Authorization'],
     maxAge: 86400
 };
 

@@ -3,19 +3,16 @@
     "builds": [
         {
             "src": "server.js",
-            "use": "@vercel/node",
-            "config": {
-                "maxDuration": 60,
-                "memory": 1024
-            }
+            "use": "@vercel/node"
         }
     ],
     "routes": [
         {
             "src": "/(.*)",
-            "dest": "/server.js"
+            "dest": "server.js"
         }
     ],
+    "buildCommand": "npm run migrate:prod",
     "env": {
         "NODE_ENV": "production"
     }

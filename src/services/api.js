@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { auth } from './firebase';
 
 // Use the actual backend URL where your server is deployed
-const API_BASE_URL = 'https://personal-finance-dashboard-8013ngwob-josiah-devines-projects.vercel.app';
+const API_BASE_URL = 'https://personal-finance-dashboard-19ve5bigx-josiah-devines-projects.vercel.app';
 
 console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);
@@ -18,10 +19,18 @@ const api = axios.create({
 
 // Add request interceptor for authentication
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
+  async (config) => {
+    // Get Firebase token
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      const token = await firebaseUser.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Fallback to JWT token if Firebase auth is not available
+      const jwtToken = localStorage.getItem('authToken');
+      if (jwtToken) {
+        config.headers.Authorization = `Bearer ${jwtToken}`;
+      }
     }
 
     // Log request details in development
@@ -76,6 +85,8 @@ api.interceptors.response.use(
     // Handle specific status codes
     switch (error.response.status) {
       case 401:
+        // Handle both Firebase and JWT authentication
+        auth.signOut().catch(console.error);
         localStorage.removeItem('authToken');
         window.location.href = '/login';
         break;
@@ -94,22 +105,59 @@ api.interceptors.response.use(
 );
 
 // Auth service
-export const auth = {
-  login: async (credentials) => {
+export const authService = {
+  // Firebase Authentication
+  signupWithFirebase: async (email, password) => {
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const token = await userCredential.user.getIdToken();
+      return { user: userCredential.user, token };
+    } catch (error) {
+      console.error('Firebase signup error:', error);
+      throw error;
+    }
+  },
+
+  loginWithFirebase: async (email, password) => {
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const token = await userCredential.user.getIdToken();
+      return { user: userCredential.user, token };
+    } catch (error) {
+      console.error('Firebase login error:', error);
+      throw error;
+    }
+  },
+
+  // Legacy JWT Authentication
+  loginWithJWT: async (credentials) => {
     try {
       const response = await api.post('/api/auth/login', credentials);
       return response.data;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('JWT login error:', error);
       throw error;
     }
   },
-  register: async (userData) => {
+
+  registerWithJWT: async (userData) => {
     try {
       const response = await api.post('/api/auth/register', userData);
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('JWT registration error:', error);
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    try {
+      // Sign out from Firebase
+      await auth.signOut();
+      // Clear JWT token
+      localStorage.removeItem('authToken');
+    } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   }

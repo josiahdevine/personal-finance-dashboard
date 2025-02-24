@@ -1,93 +1,145 @@
 // src/context/AuthContext.js
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { auth } from '../services/firebase';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile,
+  updateEmail,
+  updatePassword
+} from 'firebase/auth';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
-const AuthProvider = ({ children }) => {
-    const [token, setToken] = useState(localStorage.getItem('authToken') || null);
-    const [userId, setUserId] = useState(null);
-    const [username, setUsername] = useState(null);
-    const [logoutTimer, setLogoutTimer] = useState(null);
+export function useAuth() {
+  return useContext(AuthContext);
+}
 
-    // Memoize logout function to prevent unnecessary re-renders
-    const logout = useCallback(() => {
-        if (logoutTimer) {
-            clearTimeout(logoutTimer);
-        }
-        setToken(null);
-        setUserId(null);
-        setUsername(null);
-        localStorage.removeItem('authToken');
-    }, [logoutTimer]);
+export function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    // Update user info when token changes
-    useEffect(() => {
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                
-                // Check if token is expired
-                const currentTime = Date.now() / 1000;
-                if (decoded.exp < currentTime) {
-                    console.log('Token expired, logging out');
-                    toast.error('Your session has expired. Please log in again.');
-                    logout();
-                    return;
-                }
+  async function signup(email, password, username) {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: username });
+      toast.success('Account created successfully!');
+      return userCredential;
+    } catch (error) {
+      console.error('Signup error:', error);
+      let errorMessage = 'Failed to create account';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email is already registered';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password should be at least 6 characters';
+      }
+      toast.error(errorMessage);
+      throw error;
+    }
+  }
 
-                setUserId(decoded.userId);
-                setUsername(decoded.username);
-                localStorage.setItem('authToken', token);
+  async function login(email, password) {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      toast.success('Logged in successfully!');
+      return result;
+    } catch (error) {
+      console.error('Login error:', error);
+      let errorMessage = 'Failed to log in';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'Invalid email or password';
+      }
+      toast.error(errorMessage);
+      throw error;
+    }
+  }
 
-                // Set up auto-logout when token expires
-                const timeUntilExpiry = (decoded.exp - currentTime) * 1000;
-                const timer = setTimeout(() => {
-                    console.log('Token expired, logging out');
-                    toast.error('Your session has expired. Please log in again.');
-                    logout();
-                }, timeUntilExpiry);
+  async function logout() {
+    try {
+      await signOut(auth);
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Failed to log out');
+      throw error;
+    }
+  }
 
-                setLogoutTimer(timer);
+  async function resetPassword(email) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success('Password reset email sent');
+    } catch (error) {
+      console.error('Reset password error:', error);
+      toast.error('Failed to send password reset email');
+      throw error;
+    }
+  }
 
-                // Cleanup timer on unmount or token change
-                return () => {
-                    if (timer) {
-                        clearTimeout(timer);
-                    }
-                };
-            } catch (error) {
-                console.error('Error decoding token:', error);
-                toast.error('Authentication error. Please log in again.');
-                logout();
-            }
-        } else {
-            localStorage.removeItem('authToken');
-            setUserId(null);
-            setUsername(null);
-        }
-    }, [token, logout]);
+  async function updateUserEmail(email) {
+    try {
+      await updateEmail(currentUser, email);
+      toast.success('Email updated successfully');
+    } catch (error) {
+      console.error('Update email error:', error);
+      toast.error('Failed to update email');
+      throw error;
+    }
+  }
 
-    // Login function to set token
-    const login = useCallback((newToken) => {
-        setToken(newToken);
-    }, []);
+  async function updateUserPassword(newPassword) {
+    try {
+      await updatePassword(currentUser, newPassword);
+      toast.success('Password updated successfully');
+    } catch (error) {
+      console.error('Update password error:', error);
+      toast.error('Failed to update password');
+      throw error;
+    }
+  }
 
-    const contextValue = {
-        token,
-        userId,
-        username,
-        login,
-        logout,
-        isAuthenticated: !!token
-    };
+  async function updateUserProfile(displayName) {
+    try {
+      await updateProfile(currentUser, { displayName });
+      setCurrentUser({ ...currentUser, displayName });
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Update profile error:', error);
+      toast.error('Failed to update profile');
+      throw error;
+    }
+  }
 
-    return (
-        <AuthContext.Provider value={contextValue}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
 
-export { AuthContext, AuthProvider };
+    return unsubscribe;
+  }, []);
+
+  const value = {
+    currentUser,
+    loading,
+    error,
+    signup,
+    login,
+    logout,
+    resetPassword,
+    updateUserEmail,
+    updateUserPassword,
+    updateUserProfile
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+}

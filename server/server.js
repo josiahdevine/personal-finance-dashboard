@@ -51,6 +51,9 @@ const corsOptions = {
         }
 
         const allowedOrigins = [
+            'https://trypersonalfinance.com',
+            'https://www.trypersonalfinance.com',
+            'https://api.trypersonalfinance.com',
             'https://personal-finance-dashboard-topaz.vercel.app',
             'https://personal-finance-dashboard-kekmb9rwo-josiah-devines-projects.vercel.app',
             'https://personal-finance-dashboard-bt1nqm5f3-josiah-devines-projects.vercel.app',

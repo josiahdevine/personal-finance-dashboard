@@ -8,6 +8,9 @@ module.exports = {
     },
     cors: {
         origin: [
+            'https://trypersonalfinance.com',
+            'https://www.trypersonalfinance.com',
+            'https://api.trypersonalfinance.com',
             'https://personal-finance-dashboard-toaas.vercel.app',
             'https://personal-finance-dashboard-topaz.vercel.app'
         ],

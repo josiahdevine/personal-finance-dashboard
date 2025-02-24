@@ -42,37 +42,27 @@ app.use((req, res, next) => {
     next();
 });
 
-// Configure CORS
-app.use(cors({
-    origin: 'https://personal-finance-dashboard-topaz.vercel.app',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Requested-With',
-        'Accept',
-        'Origin',
-        'Access-Control-Request-Method',
-        'Access-Control-Request-Headers',
-        'Accept-Encoding',
-        'Accept-Language',
-        'Cache-Control',
-        'Connection',
-        'Cookie',
-        'Host',
-        'Pragma',
-        'Referer',
-        'Sec-Fetch-Dest',
-        'Sec-Fetch-Mode',
-        'Sec-Fetch-Site',
-        'User-Agent'
-    ],
-    exposedHeaders: ['Set-Cookie'],
-    credentials: true,
-    maxAge: 86400,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-}));
+// Manual CORS handling
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // Only allow requests from our frontend
+    if (origin === 'https://personal-finance-dashboard-topaz.vercel.app') {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Max-Age', '86400');
+    }
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS request for:', req.path);
+        return res.status(204).end();
+    }
+
+    next();
+});
 
 // Middleware
 app.use(express.json());

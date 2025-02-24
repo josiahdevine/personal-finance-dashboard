@@ -18,13 +18,24 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            const data = await auth.login({ username, password });
-            login(data.token);
-            toast.success('Login successful!');
-            navigate('/');
+            console.log('Attempting login with:', { username });
+            const response = await auth.login({ username, password });
+            console.log('Login response:', response);
+            
+            if (response.token) {
+                // Store the token in localStorage
+                localStorage.setItem('authToken', response.token);
+                // Update the auth context
+                login(response.token);
+                toast.success('Login successful!');
+                navigate('/');
+            } else {
+                throw new Error('No token received from server');
+            }
         } catch (error) {
             console.error('Login error:', error);
-            toast.error(error.response?.data?.message || 'Login failed. Please check your credentials.');
+            const errorMessage = error.response?.data?.message || 'Login failed. Please check your credentials.';
+            toast.error(errorMessage);
         } finally {
             setIsLoading(false);
         }

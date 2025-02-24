@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://personal-finance-dashboard-ctnhgtu27-josiah-devines-projects.vercel.app'
+  ? 'https://personal-finance-dashboard-mdpa0d0sn-josiah-devines-projects.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Base URL:', API_BASE_URL);
@@ -13,14 +13,14 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  withCredentials: true,
+  withCredentials: false,
   timeout: 10000
 });
 
 // Add request interceptor for authentication
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -66,7 +66,7 @@ api.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           // Unauthorized - clear token and redirect to login
-          localStorage.removeItem('token');
+          localStorage.removeItem('authToken');
           window.location.href = '/login';
           break;
         case 403:

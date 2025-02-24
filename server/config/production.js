@@ -10,7 +10,8 @@ module.exports = {
         origin: [
             'https://personal-finance-dashboard-topaz.vercel.app',
             'https://personal-finance-dashboard.vercel.app',
-            'https://personal-finance-dashboard-bwqbafd47-josiah-devines-projects.vercel.app'
+            'https://personal-finance-dashboard-bwqbafd47-josiah-devines-projects.vercel.app',
+            'https://personal-finance-dashboard-topaz.vercel.app'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],

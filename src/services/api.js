@@ -2,7 +2,9 @@ import axios from 'axios';
 import { auth } from './firebase';
 
 // Use the actual backend URL where your server is deployed
-const API_BASE_URL = 'https://personal-finance-dashboard-19ve5bigx-josiah-devines-projects.vercel.app';
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://api.trypersonalfinance.com'
+  : 'http://localhost:5000';
 
 console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);

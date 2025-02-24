@@ -54,15 +54,13 @@ const corsOptions = {
             'https://trypersonalfinance.com',
             'https://www.trypersonalfinance.com',
             'https://api.trypersonalfinance.com',
-            'https://personal-finance-dashboard-topaz.vercel.app',
-            'https://personal-finance-dashboard-kekmb9rwo-josiah-devines-projects.vercel.app',
-            'https://personal-finance-dashboard-bt1nqm5f3-josiah-devines-projects.vercel.app',
             'http://localhost:3000'
         ];
 
         if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
             callback(null, true);
         } else {
+            console.log('Origin not allowed by CORS:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },

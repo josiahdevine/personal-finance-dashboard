@@ -7,11 +7,20 @@ module.exports = {
         }
     },
     cors: {
-        origin: ['https://personal-finance-dashboard-topaz.vercel.app', 'https://personal-finance-dashboard.vercel.app'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-        credentials: false,
-        maxAge: 86400, // 24 hours
+        origin: '*',  // Allow all origins temporarily for debugging
+        methods: ['GET', 'POST', 'PUT', DELETE, 'OPTIONS', 'PATCH'],
+        allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'X-Requested-With',
+            'Accept',
+            'Origin',
+            'Access-Control-Request-Method',
+            'Access-Control-Request-Headers'
+        ],
+        exposedHeaders: ['Content-Length', 'X-Requested-With'],
+        credentials: true,
+        maxAge: 86400,
         preflightContinue: false,
         optionsSuccessStatus: 204
     },

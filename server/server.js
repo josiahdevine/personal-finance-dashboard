@@ -27,25 +27,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // Global middleware to handle CORS preflight
 app.use((req, res, next) => {
-    const allowedOrigins = [
-        'https://personal-finance-dashboard-topaz.vercel.app',
-        'https://personal-finance-dashboard.vercel.app'
-    ];
-    
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-    
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    
-    // Log CORS details
-    console.log('CORS Request:', {
-        origin: req.headers.origin,
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+    res.header('Access-Control-Expose-Headers', 'Content-Length, X-Requested-With');
+    res.header('Access-Control-Max-Age', '86400');
+
+    // Log request details
+    console.log('Request details:', {
         method: req.method,
         path: req.path,
-        allowed: allowedOrigins.includes(req.headers.origin)
+        origin: req.headers.origin,
+        headers: req.headers
     });
     
     // Handle preflight

@@ -35,7 +35,11 @@ app.use((req, res, next) => {
         headers: req.headers
     });
 
-    const allowedOrigins = ['https://personal-finance-dashboard-topaz.vercel.app', 'https://personal-finance-dashboard.vercel.app'];
+    const allowedOrigins = [
+        'https://personal-finance-dashboard-topaz.vercel.app',
+        'https://personal-finance-dashboard.vercel.app',
+        'https://personal-finance-dashboard-bwqbafd47-josiah-devines-projects.vercel.app'
+    ];
     const origin = req.headers.origin;
     
     if (allowedOrigins.includes(origin)) {

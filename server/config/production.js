@@ -7,12 +7,11 @@ module.exports = {
         }
     },
     cors: {
-        origin: '*', // Allow all origins in production
+        origin: true, // Allow all origins
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
         credentials: false,
         maxAge: 86400, // 24 hours
-        exposedHeaders: ['Authorization'],
         preflightContinue: false,
         optionsSuccessStatus: 204
     },

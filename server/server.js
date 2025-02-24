@@ -25,21 +25,18 @@ app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Handle OPTIONS requests
-app.options('*', cors(config.cors));
-
-// Add pre-flight handling for all routes
+// Global middleware to handle CORS preflight
 app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    
+    // Handle preflight
     if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS request');
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        res.header('Access-Control-Max-Age', '86400');
-        res.sendStatus(200);
-    } else {
-        next();
+        console.log('Handling OPTIONS request for:', req.path);
+        return res.status(204).end();
     }
+    next();
 });
 
 // Set DNS resolution options

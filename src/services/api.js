@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use the actual backend URL where your server is deployed
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://personal-finance-dashboard-p9ext09kp-josiah-devines-projects.vercel.app'
+  ? 'https://personal-finance-dashboard-topaz.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Base URL:', API_BASE_URL);
@@ -12,7 +12,8 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    'Origin': window.location.origin
   },
   withCredentials: false,
   timeout: 30000

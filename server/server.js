@@ -27,9 +27,26 @@ app.use(express.urlencoded({ extended: true }));
 
 // Global middleware to handle CORS preflight
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = [
+        'https://personal-finance-dashboard-topaz.vercel.app',
+        'https://personal-finance-dashboard.vercel.app'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    
+    // Log CORS details
+    console.log('CORS Request:', {
+        origin: req.headers.origin,
+        method: req.method,
+        path: req.path,
+        allowed: allowedOrigins.includes(req.headers.origin)
+    });
     
     // Handle preflight
     if (req.method === 'OPTIONS') {

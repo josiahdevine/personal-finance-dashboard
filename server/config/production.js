@@ -7,7 +7,7 @@ module.exports = {
         }
     },
     cors: {
-        origin: true, // Allow all origins
+        origin: ['https://personal-finance-dashboard-topaz.vercel.app', 'https://personal-finance-dashboard.vercel.app'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
         credentials: false,

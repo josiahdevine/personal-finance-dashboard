@@ -19,46 +19,19 @@ const SalaryJournalController = require('./controller/SalaryJournalController');
 const app = express();
 
 // Configure CORS
-app.use(cors(config.cors));
+app.use(cors({
+    origin: 'https://personal-finance-dashboard-topaz.vercel.app',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    credentials: true,
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+}));
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Global middleware to handle CORS preflight
-app.use((req, res, next) => {
-    // Log request details
-    console.log('Request details:', {
-        method: req.method,
-        path: req.path,
-        origin: req.headers.origin,
-        headers: req.headers
-    });
-
-    const allowedOrigins = [
-        'https://personal-finance-dashboard-topaz.vercel.app',
-        'https://personal-finance-dashboard.vercel.app',
-        'https://personal-finance-dashboard-bwqbafd47-josiah-devines-projects.vercel.app'
-    ];
-    const origin = req.headers.origin;
-    
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-
-    // Handle preflight
-    if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS request for:', req.path);
-        return res.status(204).end();
-    }
-
-    next();
-});
 
 // Set DNS resolution options
 dns.setDefaultResultOrder('ipv4first');

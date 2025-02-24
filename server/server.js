@@ -42,27 +42,16 @@ app.use((req, res, next) => {
     next();
 });
 
-// Manual CORS handling
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    
-    // Only allow requests from our frontend
-    if (origin === 'https://personal-finance-dashboard-topaz.vercel.app') {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Max-Age', '86400');
-    }
+// CORS configuration
+const corsOptions = {
+    origin: ['https://personal-finance-dashboard-toaas.vercel.app', 'https://personal-finance-dashboard-topaz.vercel.app', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    credentials: true,
+    maxAge: 86400
+};
 
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS request for:', req.path);
-        return res.status(204).end();
-    }
-
-    next();
-});
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(express.json());

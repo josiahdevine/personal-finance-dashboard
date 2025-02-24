@@ -12,8 +12,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Access-Control-Allow-Origin': '*'
+    'Accept': 'application/json'
   },
   withCredentials: false,
   timeout: 10000
@@ -22,10 +21,20 @@ const api = axios.create({
 // Add request interceptor for authentication
 api.interceptors.request.use(
   (config) => {
+    // Add CORS headers for all requests
+    config.headers['Access-Control-Allow-Origin'] = '*';
+    
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // For OPTIONS requests, ensure proper CORS headers
+    if (config.method === 'options') {
+      config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+      config.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, Accept, Origin';
+    }
+
     // Log request details in development
     if (process.env.NODE_ENV === 'development') {
       console.log('Request:', {

@@ -25,6 +25,23 @@ app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Handle OPTIONS requests
+app.options('*', cors(config.cors));
+
+// Add pre-flight handling for all routes
+app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS request');
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+        res.header('Access-Control-Max-Age', '86400');
+        res.sendStatus(200);
+    } else {
+        next();
+    }
+});
+
 // Set DNS resolution options
 dns.setDefaultResultOrder('ipv4first');
 

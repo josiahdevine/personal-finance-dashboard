@@ -15,6 +15,8 @@ const manualAccountRoutes = require('./routes/manualAccountRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const { authenticateToken } = require('./middleware/auth');
 const SalaryJournalController = require('./controller/SalaryJournalController');
+const loanRoutes = require('./routes/loanRoutes');
+const investmentRoutes = require('./routes/investmentRoutes');
 
 const app = express();
 
@@ -122,6 +124,8 @@ app.use('/api/plaid', authenticateToken, plaidRoutes);
 app.use('/api/salary', authenticateToken, salaryRoutes);
 app.use('/api/manual-accounts', authenticateToken, manualAccountRoutes);
 app.use('/api/stocks', authenticateToken, stockRoutes);
+app.use('/api/loans', loanRoutes);
+app.use('/api/investments', investmentRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

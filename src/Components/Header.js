@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import AskAIButton from './AskAIButton';
 
 function Header() {
     const { user, logout } = useContext(AuthContext);
@@ -20,6 +21,13 @@ function Header() {
                     </div>
 
                     <div className="flex items-center space-x-4">
+                        <div className="group relative">
+                            <AskAIButton className="opacity-75 hover:opacity-100" />
+                            <div className="hidden group-hover:block absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded p-2 z-50">
+                                Get AI-powered financial insights and advice
+                            </div>
+                        </div>
+                        
                         <button
                             onClick={handleHelpClick}
                             className="text-gray-500 hover:text-gray-700 transition-colors"

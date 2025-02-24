@@ -5,6 +5,7 @@ import { useAuth } from './contexts/AuthContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/Dashboard';
+import AskAI from './components/AskAI';
 import './App.css';
 
 // Protected Route component
@@ -30,6 +31,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ask-ai"
+            element={
+              <PrivateRoute>
+                <AskAI />
               </PrivateRoute>
             }
           />

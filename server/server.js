@@ -18,11 +18,56 @@ const SalaryJournalController = require('./controller/SalaryJournalController');
 
 const app = express();
 
+// Debug middleware
+app.use((req, res, next) => {
+    console.log('Request:', {
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        body: req.body,
+        query: req.query
+    });
+
+    // Capture the original send
+    const originalSend = res.send;
+    res.send = function(data) {
+        console.log('Response:', {
+            statusCode: res.statusCode,
+            headers: res._headers,
+            body: data
+        });
+        return originalSend.apply(res, arguments);
+    };
+
+    next();
+});
+
 // Configure CORS
 app.use(cors({
     origin: 'https://personal-finance-dashboard-topaz.vercel.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'Access-Control-Request-Method',
+        'Access-Control-Request-Headers',
+        'Accept-Encoding',
+        'Accept-Language',
+        'Cache-Control',
+        'Connection',
+        'Cookie',
+        'Host',
+        'Pragma',
+        'Referer',
+        'Sec-Fetch-Dest',
+        'Sec-Fetch-Mode',
+        'Sec-Fetch-Site',
+        'User-Agent'
+    ],
+    exposedHeaders: ['Set-Cookie'],
     credentials: true,
     maxAge: 86400,
     preflightContinue: false,

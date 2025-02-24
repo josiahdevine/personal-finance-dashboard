@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use the actual backend URL where your server is deployed
-const API_BASE_URL = 'https://personal-finance-dashboard-10aeyrb89-josiah-devines-projects.vercel.app';
+const API_BASE_URL = 'https://personal-finance-dashboard-8013ngwob-josiah-devines-projects.vercel.app';
 
 console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);

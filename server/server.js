@@ -43,39 +43,32 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
-app.use((req, res, next) => {
-    const allowedOrigins = [
-        'https://personal-finance-dashboard-topaz.vercel.app',
-        'https://personal-finance-dashboard-5f30qihnn-josiah-devines-projects.vercel.app',
-        'http://localhost:3000'
-    ];
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+            return callback(null, true);
+        }
 
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
+        const allowedOrigins = [
+            'https://personal-finance-dashboard-topaz.vercel.app',
+            'https://personal-finance-dashboard-rh1ji1d2k-josiah-devines-projects.vercel.app',
+            'http://localhost:3000'
+        ];
 
-    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400');
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    maxAge: 86400
+};
 
-    // Handle preflight
-    if (req.method === 'OPTIONS') {
-        res.status(204).end();
-        return;
-    }
-
-    next();
-});
-
-// Security headers (after CORS)
-app.use((req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    next();
-});
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(express.json());

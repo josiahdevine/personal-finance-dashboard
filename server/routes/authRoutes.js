@@ -20,123 +20,106 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // Registration Route
-router.post('/register', async (req, res, next) => {
+router.post('/register', async (req, res) => {
     try {
-        console.log('Registration request received:', req.body);
+        const { username, email, password } = req.body;
 
-        // Validate request body
-        if (!req.body.username || !req.body.password) {
-            return res.status(400).json({ message: 'Username and password are required' });
+        // Validate input
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
         }
 
-        const { username, password } = req.body;
-
-        // Validate username and password
-        if (username.length < 3) {
-            return res.status(400).json({ message: 'Username must be at least 3 characters long' });
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'Invalid email format' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ message: 'Password must be at least 6 characters long' });
-        }
+        // Check if username or email already exists
+        const userExists = await pool.query(
+            'SELECT * FROM users WHERE username = $1 OR email = $2',
+            [username, email]
+        );
 
-        // Check if username exists
-        const existingUser = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-        if (existingUser.rows.length > 0) {
-            return res.status(400).json({ message: 'Username already exists' });
+        if (userExists.rows.length > 0) {
+            return res.status(400).json({ message: 'Username or email already exists' });
         }
 
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
 
         // Insert new user
         const result = await pool.query(
-            'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username',
-            [username, hashedPassword]
+            'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email',
+            [username, email, passwordHash]
         );
 
-        console.log('User registered successfully:', username);
         res.status(201).json({
-            message: 'Registration successful',
+            message: 'User registered successfully',
             user: {
                 id: result.rows[0].id,
-                username: result.rows[0].username
+                username: result.rows[0].username,
+                email: result.rows[0].email
             }
         });
-
     } catch (error) {
         console.error('Registration error:', error);
-        next(error); // Pass error to error handling middleware
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
 // Login Route
-router.post('/login', async (req, res, next) => {
+router.post('/login', async (req, res) => {
     try {
-        console.log('Login request received:', { 
-            body: req.body,
-            headers: req.headers,
-            method: req.method
-        });
-        
-        if (!req.body.username || !req.body.password) {
-            console.log('Missing username or password');
-            return res.status(400).json({ message: 'Username and password are required' });
+        const { email, password } = req.body;
+
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        const { username, password } = req.body;
+        // Find user by email
+        const result = await pool.query(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
+        );
 
-        const query = 'SELECT * FROM users WHERE username = $1';
-        console.log('Executing query:', query, 'with username:', username);
-        
-        const { rows } = await pool.query(query, [username]);
-        console.log('Query result:', { found: !!rows[0], rowCount: rows.length });
-        
-        const user = rows[0];
-
-        if (!user) {
-            console.log('User not found:', username);
+        if (result.rows.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        console.log('Checking password for user:', username);
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        console.log('Password match result:', passwordMatch);
-        
-        if (!passwordMatch) {
-            console.log('Password mismatch for user:', username);
+        const user = result.rows[0];
+
+        // Check password
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Generate token with longer expiration (7 days)
-        console.log('Generating token for user:', username);
+        // Generate JWT token
         const token = jwt.sign(
             { 
-                userId: user.id, 
-                username: user.username 
-            }, 
-            secretKey, 
+                userId: user.id,
+                username: user.username,
+                email: user.email
+            },
+            secretKey,
             { expiresIn: '7d' }
         );
 
-        console.log('Login successful for user:', username);
         res.json({
             message: 'Login successful',
             token,
             user: {
                 id: user.id,
-                username: user.username
+                username: user.username,
+                email: user.email
             }
         });
-
     } catch (error) {
         console.error('Login error:', error);
-        console.error('Error details:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack
-        });
-        next(error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 

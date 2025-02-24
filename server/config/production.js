@@ -17,8 +17,8 @@ module.exports = {
             /\.vercel\.app$/
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+        credentials: false,
         maxAge: 86400, // 24 hours
         exposedHeaders: ['Authorization']
     },

@@ -27,12 +27,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Global middleware to handle CORS preflight
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
-    res.header('Access-Control-Expose-Headers', 'Content-Length, X-Requested-With');
-    res.header('Access-Control-Max-Age', '86400');
-
     // Log request details
     console.log('Request details:', {
         method: req.method,
@@ -40,12 +34,20 @@ app.use((req, res, next) => {
         origin: req.headers.origin,
         headers: req.headers
     });
-    
+
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+
     // Handle preflight
     if (req.method === 'OPTIONS') {
         console.log('Handling OPTIONS request for:', req.path);
         return res.status(204).end();
     }
+
     next();
 });
 

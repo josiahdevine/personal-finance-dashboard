@@ -10,15 +10,20 @@ const createPool = () => {
         ssl: config.database.ssl,
         max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-        query_timeout: 10000
+        connectionTimeoutMillis: 15000,
+        query_timeout: 20000
     });
 
     // Log connection events
     pool.on('connect', () => {
         console.log('Database connection established successfully');
-        console.log('Environment:', process.env.NODE_ENV || 'development');
-        console.log('SSL enabled:', !!config.database.ssl);
+        console.log('Connection details:', {
+            environment: process.env.NODE_ENV || 'development',
+            ssl: !!config.database.ssl,
+            connectionTimeout: pool.options.connectionTimeoutMillis,
+            queryTimeout: pool.options.query_timeout,
+            maxConnections: pool.options.max
+        });
     });
 
     pool.on('error', (err) => {
@@ -26,7 +31,10 @@ const createPool = () => {
         console.error('Connection details:', {
             environment: process.env.NODE_ENV || 'development',
             ssl: !!config.database.ssl,
-            error: err.message
+            error: err.message,
+            code: err.code,
+            detail: err.detail,
+            hint: err.hint
         });
 
         // Don't exit the process in production

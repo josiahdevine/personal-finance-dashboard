@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use the actual backend URL where your server is deployed
-const API_BASE_URL = 'https://personal-finance-dashboard-myneg6zkl-josiah-devines-projects.vercel.app';
+const API_BASE_URL = 'https://personal-finance-dashboard-l0aeyrb89-josiah-devines-projects.vercel.app';
 
 console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);
@@ -54,43 +54,46 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response) {
-      // Log error details
-      console.error('API Error:', {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error:', error.message);
+      return Promise.reject({
+        message: 'Network error occurred. Please check your connection.',
+        originalError: error
       });
-
-      // Handle specific error cases
-      switch (error.response.status) {
-        case 401:
-          // Unauthorized - clear token and redirect to login
-          localStorage.removeItem('authToken');
-          window.location.href = '/login';
-          break;
-        case 403:
-          // Forbidden
-          console.error('Access forbidden:', error.response.data);
-          break;
-        case 500:
-          // Server error
-          console.error('Server error:', error.response.data);
-          break;
-        default:
-          console.error('API error:', error.response.data);
-      }
-    } else if (error.request) {
-      // Request was made but no response received
-      console.error('No response received:', error.request);
-    } else {
-      // Error in request configuration
-      console.error('Request configuration error:', error.message);
     }
-    return Promise.reject(error);
+
+    // Handle API errors
+    const errorResponse = {
+      status: error.response.status,
+      data: error.response.data,
+      message: error.response.data?.message || 'An error occurred'
+    };
+
+    // Log error details
+    console.error('API Error:', errorResponse);
+
+    // Handle specific status codes
+    switch (error.response.status) {
+      case 401:
+        localStorage.removeItem('authToken');
+        window.location.href = '/login';
+        break;
+      case 403:
+        console.error('Access forbidden:', errorResponse.message);
+        break;
+      case 500:
+        console.error('Server error:', errorResponse.message);
+        break;
+      default:
+        console.error('API error:', errorResponse.message);
+    }
+
+    return Promise.reject(errorResponse);
   }
 );
 
+// Auth service
 export const auth = {
   login: async (credentials) => {
     try {
@@ -112,6 +115,7 @@ export const auth = {
   }
 };
 
+// Plaid service
 export const plaid = {
   createLinkToken: async () => {
     try {

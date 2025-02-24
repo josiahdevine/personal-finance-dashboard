@@ -43,15 +43,39 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
-const corsOptions = {
-    origin: ['https://personal-finance-dashboard-toaas.vercel.app', 'https://personal-finance-dashboard-topaz.vercel.app', 'http://localhost:3000'],
+const allowedOrigins = [
+    'https://personal-finance-dashboard-topaz.vercel.app',
+    'https://personal-finance-dashboard-ci3zcv7h4-josiah-devines-projects.vercel.app',
+    'http://localhost:3000'
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('Origin not allowed:', origin);
+            callback(null, false);
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-    credentials: true,
-    maxAge: 86400
-};
+    maxAge: 86400,
+    optionsSuccessStatus: 204
+}));
 
-app.use(cors(corsOptions));
+// Security headers
+app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.vercel.app");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
 
 // Middleware
 app.use(express.json());

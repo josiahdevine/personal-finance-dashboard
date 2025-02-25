@@ -1,15 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
-const SalaryJournalController = require('../controller/SalaryJournalController');
+const SalaryController = require('../controllers/SalaryController');
 
-// Protect all routes with authentication
+// Protect all routes
 router.use(authenticateToken);
 
-// Define route handlers
-router.post('/salary-entries', SalaryJournalController.createSalaryEntry);
-router.get('/salary-entries', SalaryJournalController.getSalaryJournal);
-router.put('/salary-entries/:id', SalaryJournalController.updateSalaryEntry);
-router.delete('/salary-entries/:id', SalaryJournalController.deleteSalaryEntry);
+// Get monthly salary summary
+router.get('/monthly-summary', SalaryController.getMonthlySummary);
+
+// Add salary entry
+router.post('/', SalaryController.addSalaryEntry);
+
+// Update salary entry
+router.put('/:id', SalaryController.updateSalaryEntry);
+
+// Delete salary entry
+router.delete('/:id', SalaryController.deleteSalaryEntry);
 
 module.exports = router;

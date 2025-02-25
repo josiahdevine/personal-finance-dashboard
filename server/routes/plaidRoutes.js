@@ -18,6 +18,9 @@ router.post('/exchange-token', PlaidController.exchangePublicToken);
 // Get accounts
 router.get('/accounts', PlaidController.getAccounts);
 
+// Get balance history
+router.get('/balance-history', PlaidController.getBalanceHistory);
+
 // Sync balances
 router.post('/sync-balances', async (req, res) => {
     try {

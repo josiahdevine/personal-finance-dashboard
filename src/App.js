@@ -6,6 +6,8 @@ import Login from './Components/auth/Login';
 import Register from './Components/auth/Register';
 import Dashboard from './Components/Dashboard';
 import AskAI from './Components/AskAI';
+import LandingPage from './pages/LandingPage';
+import Header from './Components/Header';
 import './App.css';
 
 // Protected Route component
@@ -20,10 +22,14 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+  const { user } = useAuth();
+
   return (
     <AuthProvider>
       <Router>
+        {user && <Header />}
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -42,7 +48,6 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </Router>
     </AuthProvider>

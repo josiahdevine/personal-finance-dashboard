@@ -13,6 +13,8 @@ const plaidRoutes = require('./routes/plaidRoutes');
 const salaryRoutes = require('./routes/salaryRoutes');
 const manualAccountRoutes = require('./routes/manualAccountRoutes');
 const stockRoutes = require('./routes/stockRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
+const goalRoutes = require('./routes/goalRoutes');
 const { authenticateToken } = require('./middleware/auth');
 const SalaryJournalController = require('./controller/SalaryJournalController');
 const loanRoutes = require('./routes/loanRoutes');
@@ -145,6 +147,8 @@ app.use('/api/plaid', authenticateToken, plaidRoutes);
 app.use('/api/salary', authenticateToken, salaryRoutes);
 app.use('/api/manual-accounts', authenticateToken, manualAccountRoutes);
 app.use('/api/stocks', authenticateToken, stockRoutes);
+app.use('/api/transactions', authenticateToken, transactionRoutes);
+app.use('/api/goals', authenticateToken, goalRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/investments', investmentRoutes);
 

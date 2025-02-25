@@ -3,7 +3,7 @@ import { usePlaidLink } from 'react-plaid-link';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
-const PlaidContext = createContext();
+export const PlaidContext = createContext();
 
 export function usePlaid() {
   return useContext(PlaidContext);

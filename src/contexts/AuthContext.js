@@ -16,7 +16,7 @@ import ErrorBoundary from '../Components/ErrorBoundary';
 log('AuthContext', 'Initializing AuthContext module');
 
 // Create the Auth Context
-const AuthContext = createContext();
+export const AuthContext = createContext();
 log('AuthContext', 'AuthContext created', { contextCreated: !!AuthContext });
 
 // Custom hook to use the Auth Context

@@ -13,7 +13,7 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
-import AuthMenu from '../Components/AuthMenu';
+import AuthMenu from '../components/AuthMenu';
 
 // Register ChartJS components
 ChartJS.register(

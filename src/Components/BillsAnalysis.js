@@ -27,15 +27,30 @@ function BillsAnalysis() {
     const [timeframe, setTimeframe] = useState('month');
     const [loading, setLoading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
+    const [error, setError] = useState(null);
 
     // Define fetchTransactions with useCallback before using it in useEffect
     const fetchTransactions = React.useCallback(async () => {
         try {
             setLoading(true);
+            setError(null);
             const response = await axios.get(`/api/transactions/spending-summary?timeframe=${timeframe}`);
-            setTransactions(response.data.categories);
+            
+            // Safely handle the response data
+            if (response.data && response.data.categories && Array.isArray(response.data.categories)) {
+                setTransactions(response.data.categories);
+            } else if (response.data && Array.isArray(response.data)) {
+                // If the API directly returns an array instead of an object with categories
+                setTransactions(response.data);
+            } else {
+                console.warn('Unexpected API response format:', response.data);
+                setTransactions([]);
+                setError('Received unexpected data format from server');
+            }
         } catch (error) {
             console.error('Error fetching transactions:', error);
+            setError('Failed to load transactions data');
+            setTransactions([]);
         } finally {
             setLoading(false);
         }
@@ -66,16 +81,48 @@ function BillsAnalysis() {
         }
     };
 
-    const chartData = {
-        labels: transactions.map(t => t.category),
-        datasets: [{
-            label: 'Spending by Category',
-            data: transactions.map(t => t.amount),
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-            borderColor: 'rgb(59, 130, 246)',
-            borderWidth: 1
-        }]
+    // Safely prepare chart data, handling potential missing or malformed data
+    const prepareChartData = () => {
+        try {
+            if (!Array.isArray(transactions) || transactions.length === 0) {
+                return {
+                    labels: [],
+                    datasets: [{
+                        label: 'Spending by Category',
+                        data: [],
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1
+                    }]
+                };
+            }
+
+            return {
+                labels: transactions.map(t => t.category || 'Unknown'),
+                datasets: [{
+                    label: 'Spending by Category',
+                    data: transactions.map(t => typeof t.amount === 'number' ? t.amount : 0),
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                }]
+            };
+        } catch (err) {
+            console.error('Error preparing chart data:', err);
+            return {
+                labels: [],
+                datasets: [{
+                    label: 'Spending by Category',
+                    data: [],
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                }]
+            };
+        }
     };
+
+    const chartData = prepareChartData();
 
     const chartOptions = {
         responsive: true,
@@ -97,6 +144,21 @@ function BillsAnalysis() {
             }
         }
     };
+
+    if (error) {
+        return (
+            <div className="p-4 bg-red-50 text-red-700 rounded-md">
+                <p className="font-semibold">Error loading transactions data</p>
+                <p className="text-sm mt-1">{error}</p>
+                <button 
+                    onClick={fetchTransactions} 
+                    className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -145,33 +207,39 @@ function BillsAnalysis() {
                         <Bar data={chartData} options={chartOptions} />
                     </div>
 
-                    <div className="mt-8">
-                        <h3 className="text-lg font-semibold mb-4">Spending Breakdown</h3>
-                        <div className="space-y-4">
-                            {transactions.map((transaction) => (
-                                <div
-                                    key={transaction.category}
-                                    className="flex justify-between items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-                                    onClick={() => console.log(`Selected category: ${transaction.category}`)}
-                                >
-                                    <div>
-                                        <h4 className="font-medium">{transaction.category}</h4>
-                                        <p className="text-sm text-gray-500">
-                                            {transaction.count} transactions
-                                        </p>
+                    {Array.isArray(transactions) && transactions.length > 0 ? (
+                        <div className="mt-8">
+                            <h3 className="text-lg font-semibold mb-4">Spending Breakdown</h3>
+                            <div className="space-y-4">
+                                {transactions.map((transaction, index) => (
+                                    <div
+                                        key={transaction.category || index}
+                                        className="flex justify-between items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                                        onClick={() => console.log(`Selected category: ${transaction.category || 'Unknown'}`)}
+                                    >
+                                        <div>
+                                            <h4 className="font-medium">{transaction.category || 'Unknown'}</h4>
+                                            <p className="text-sm text-gray-500">
+                                                {typeof transaction.count === 'number' ? transaction.count : 0} transactions
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-semibold">
+                                                ${typeof transaction.amount === 'number' ? transaction.amount.toLocaleString() : '0'}
+                                            </p>
+                                            <p className="text-sm text-gray-500">
+                                                {typeof transaction.percentage === 'number' ? transaction.percentage : 0}% of total
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-semibold">
-                                            ${transaction.amount.toLocaleString()}
-                                        </p>
-                                        <p className="text-sm text-gray-500">
-                                            {transaction.percentage}% of total
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="mt-8 text-center text-gray-500">
+                            <p>No transaction data available for the selected period.</p>
+                        </div>
+                    )}
                 </>
             )}
         </div>

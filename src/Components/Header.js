@@ -1,11 +1,11 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import AskAIButton from './AskAIButton';
 
 function Header() {
-    const { user, logout } = useContext(AuthContext);
+    const { currentUser, logout } = useAuth();
 
     const handleHelpClick = () => {
         window.location.href = 'mailto:support@example.com?subject=Help%20Request';
@@ -22,7 +22,7 @@ function Header() {
                     </div>
 
                     <div className="flex items-center space-x-4">
-                        {user ? (
+                        {currentUser ? (
                             <>
                                 <div className="group relative">
                                     <AskAIButton className="opacity-75 hover:opacity-100" />

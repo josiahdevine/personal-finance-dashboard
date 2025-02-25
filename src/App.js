@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
-import Login from './Components/auth/Login';
-import Register from './Components/auth/Register';
+import Login from './Components/Login';
+import Register from './Components/Register';
 import Dashboard from './Components/Dashboard';
 import AskAI from './Components/AskAI';
 import LandingPage from './pages/LandingPage';
@@ -12,26 +12,26 @@ import './App.css';
 
 // Protected Route component
 const PrivateRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { currentUser, loading } = useAuth();
   
   if (loading) {
     return <div>Loading...</div>;
   }
   
-  return user ? children : <Navigate to="/login" />;
+  return currentUser ? children : <Navigate to="/login" />;
 };
 
 // HeaderWithAuth component to conditionally render Header
 const HeaderWithAuth = () => {
-  const { user } = useAuth();
-  return user ? <Header /> : null;
+  const { currentUser } = useAuth();
+  return currentUser ? <Header /> : null;
 };
 
 function App() {
   return (
-    <AuthProvider>
-      <PlaidProvider>
-        <Router>
+    <Router>
+      <AuthProvider>
+        <PlaidProvider>
           <HeaderWithAuth />
           <Routes>
             <Route path="/" element={<LandingPage />} />
@@ -54,9 +54,9 @@ function App() {
               }
             />
           </Routes>
-        </Router>
-      </PlaidProvider>
-    </AuthProvider>
+        </PlaidProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

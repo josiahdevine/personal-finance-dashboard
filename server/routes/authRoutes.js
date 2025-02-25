@@ -22,6 +22,11 @@ pool.query('SELECT NOW()', (err, res) => {
 // Registration Route
 router.post('/register', async (req, res) => {
     try {
+        console.log('Registration request received:', {
+            headers: req.headers,
+            body: { ...req.body, password: '***REDACTED***' }
+        });
+
         const { username, email, password } = req.body;
 
         // Validate input
@@ -55,6 +60,12 @@ router.post('/register', async (req, res) => {
             [username, email, passwordHash]
         );
 
+        console.log('User registered successfully:', {
+            id: result.rows[0].id,
+            username: result.rows[0].username,
+            email: result.rows[0].email
+        });
+
         res.status(201).json({
             message: 'User registered successfully',
             user: {
@@ -65,13 +76,27 @@ router.post('/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        
+        // Provide more detailed error information
+        const errorDetails = {
+            message: error.message,
+            code: error.code,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        };
+        
+        console.error('Registration error details:', errorDetails);
+        res.status(500).json({ message: 'Internal server error', error: errorDetails.message });
     }
 });
 
 // Login Route
 router.post('/login', async (req, res) => {
     try {
+        console.log('Login request received:', {
+            headers: req.headers,
+            body: { ...req.body, password: '***REDACTED***' }
+        });
+
         const { email, password } = req.body;
 
         // Validate input
@@ -86,6 +111,7 @@ router.post('/login', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
+            console.log('Login failed: User not found for email:', email);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -94,6 +120,7 @@ router.post('/login', async (req, res) => {
         // Check password
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
+            console.log('Login failed: Invalid password for user:', email);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -108,6 +135,12 @@ router.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        console.log('Login successful for user:', {
+            id: user.id,
+            username: user.username,
+            email: user.email
+        });
+
         res.json({
             message: 'Login successful',
             token,
@@ -119,7 +152,16 @@ router.post('/login', async (req, res) => {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        
+        // Provide more detailed error information
+        const errorDetails = {
+            message: error.message,
+            code: error.code,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        };
+        
+        console.error('Login error details:', errorDetails);
+        res.status(500).json({ message: 'Internal server error', error: errorDetails.message });
     }
 });
 

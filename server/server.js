@@ -76,10 +76,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS configuration with error handling
+// CORS configuration with improved error handling
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
+        // Allow requests with no origin (like mobile apps, curl requests, or same-origin requests)
         if (!origin) {
             return callback(null, true);
         }
@@ -87,25 +87,25 @@ const corsOptions = {
         const allowedOrigins = [
             'https://trypersonalfinance.com',
             'https://www.trypersonalfinance.com',
-            'https://api.trypersonalfinance.com',
-            'https://personal-finance-dashboard.vercel.app',
             'http://localhost:3000'
         ];
 
-        // Allow all Vercel app domains or specific allowed origins
+        // Check if origin exactly matches our allowed domains or is a Vercel preview
         if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
-            console.log('Origin allowed by CORS:', origin);
-            callback(null, true);
+            // Use the actual requesting origin as the allowed origin in the response
+            callback(null, origin);
         } else {
-            console.log('Origin not allowed by CORS:', origin);
-            callback(new Error('Not allowed by CORS'));
+            console.error('CORS error: Origin not allowed:', origin);
+            callback(new Error('Not allowed by CORS policy'));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['Authorization'],
-    maxAge: 86400
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 };
 
 // Middleware with error handling
@@ -119,6 +119,32 @@ app.use(async (req, res, next) => {
     }
 });
 
+// We need to handle OPTIONS requests specifically
+app.options('*', (req, res) => {
+    const origin = req.headers.origin;
+    
+    // Set CORS headers based on the requesting origin
+    if (origin) {
+        const allowedOrigins = [
+            'https://trypersonalfinance.com',
+            'https://www.trypersonalfinance.com',
+            'http://localhost:3000'
+        ];
+        
+        if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+            res.header('Access-Control-Allow-Origin', origin);
+            res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+            res.header('Access-Control-Allow-Credentials', 'true');
+            res.header('Access-Control-Max-Age', '86400');
+        }
+    }
+    
+    // Respond OK to all OPTIONS requests
+    res.status(204).end();
+});
+
+// Apply CORS middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

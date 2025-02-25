@@ -1,12 +1,13 @@
 // src/components/Register.js
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { authService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -33,14 +34,13 @@ const Register = () => {
     }
 
     try {
-      const response = await authService.registerWithJWT({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
-      });
+      console.log('Attempting registration with email:', formData.email);
+      await register(formData.username, formData.email, formData.password);
+      console.log('Registration successful');
       toast.success('Registration successful! Please log in.');
       navigate('/login');
     } catch (error) {
+      console.error('Registration error:', error);
       toast.error(error.message || 'Failed to register. Please try again.');
     } finally {
       setIsLoading(false);
@@ -119,12 +119,20 @@ const Register = () => {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || authLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Creating Account...' : 'Create Account'}
+            {isLoading || authLoading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
+        <div className="mt-6 text-center">
+          <p className="text-gray-400">
+            Already have an account?{' '}
+            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-semibold">
+              Sign in
+            </Link>
+          </p>
+        </div>
       </motion.div>
     </div>
   );

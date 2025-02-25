@@ -2,11 +2,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { authService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -25,11 +26,13 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await authService.loginWithJWT(formData);
-      localStorage.setItem('authToken', response.token);
+      console.log('Attempting login with email:', formData.email);
+      await login(formData.email, formData.password);
+      console.log('Login successful');
       toast.success('Successfully logged in!');
       navigate('/dashboard');
     } catch (error) {
+      console.error('Login error:', error);
       toast.error(error.message || 'Failed to login. Please try again.');
     } finally {
       setIsLoading(false);
@@ -78,10 +81,10 @@ const Login = () => {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || authLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading || authLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         <div className="mt-6 text-center">

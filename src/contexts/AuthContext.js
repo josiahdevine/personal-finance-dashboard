@@ -1,149 +1,139 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth } from '../services/firebase';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updateProfile,
-  updateEmail,
-  updatePassword
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
 } from 'firebase/auth';
+// Import Firebase initialization
+import { auth } from '../services/firebase';
 import { toast } from 'react-toastify';
+import apiService from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
+// Create the Auth Context
 const AuthContext = createContext();
 
-export { AuthContext };
-
-export function useAuth() {
+// Custom hook to use the Auth Context
+export const useAuth = () => {
   return useContext(AuthContext);
-}
+};
 
-export function AuthProvider({ children }) {
+// Auth Context Provider Component
+export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
+  // Use the imported auth instance instead of creating a new one
+  // const auth = getAuth();
 
-  async function signup(email, password, username) {
+  // Register a new user
+  const register = async (username, email, password) => {
     try {
-      setError(''); // Clear any previous errors
+      setLoading(true);
+      
+      // First, create the user in Firebase
+      console.log('Creating Firebase user with email:', email);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: username });
-      toast.success('Account created successfully!');
-      return userCredential;
-    } catch (error) {
-      console.error('Signup error:', error);
-      let errorMessage = 'Failed to create account';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email is already registered';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password should be at least 6 characters';
-      }
-      setError(errorMessage); // Set the error state
-      toast.error(errorMessage);
-      throw error;
-    }
-  }
+      console.log('Firebase user created:', userCredential.user.uid);
 
-  async function login(email, password) {
+      // Then, register the user in our backend
+      console.log('Registering user in backend');
+      await apiService.register({
+        username,
+        email,
+        password, // Password will be hashed in the backend
+        firebaseUid: userCredential.user.uid
+      });
+      
+      toast.success('Registration successful! You can now log in.');
+      return userCredential.user;
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Failed to register. Please try again.');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login a user
+  const login = async (email, password) => {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      toast.success('Logged in successfully!');
-      return result;
+      setLoading(true);
+      
+      console.log('Logging in with Firebase, email:', email);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Firebase login successful, user:', userCredential.user.uid);
+      
+      // We'll also authenticate with our backend
+      console.log('Authenticating with backend');
+      const backendResponse = await apiService.login({
+        email,
+        password,
+        firebaseUid: userCredential.user.uid
+      });
+      
+      console.log('Backend authentication successful', backendResponse);
+      setIsAuthenticated(true);
+      toast.success('Login successful!');
+      return userCredential.user;
     } catch (error) {
       console.error('Login error:', error);
-      let errorMessage = 'Failed to log in';
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = 'Invalid email or password';
-      }
-      toast.error(errorMessage);
+      toast.error(error.message || 'Failed to log in. Please check your credentials.');
       throw error;
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  async function logout() {
+  // Logout the user
+  const logout = async () => {
     try {
+      setLoading(true);
       await signOut(auth);
-      toast.success('Logged out successfully');
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      toast.info('You have been logged out.');
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      toast.error('Failed to log out');
-      throw error;
+      toast.error('Failed to log out.');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  async function resetPassword(email) {
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success('Password reset email sent');
-    } catch (error) {
-      console.error('Reset password error:', error);
-      toast.error('Failed to send password reset email');
-      throw error;
-    }
-  }
-
-  async function updateUserEmail(email) {
-    try {
-      await updateEmail(currentUser, email);
-      toast.success('Email updated successfully');
-    } catch (error) {
-      console.error('Update email error:', error);
-      toast.error('Failed to update email');
-      throw error;
-    }
-  }
-
-  async function updateUserPassword(newPassword) {
-    try {
-      await updatePassword(currentUser, newPassword);
-      toast.success('Password updated successfully');
-    } catch (error) {
-      console.error('Update password error:', error);
-      toast.error('Failed to update password');
-      throw error;
-    }
-  }
-
-  async function updateUserProfile(displayName) {
-    try {
-      await updateProfile(currentUser, { displayName });
-      setCurrentUser({ ...currentUser, displayName });
-      toast.success('Profile updated successfully');
-    } catch (error) {
-      console.error('Update profile error:', error);
-      toast.error('Failed to update profile');
-      throw error;
-    }
-  }
-
+  // Set up the authentication state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Auth state changed, user:', user);
       setCurrentUser(user);
+      setIsAuthenticated(!!user);
       setLoading(false);
     });
 
+    // Clean up the listener on component unmount
     return unsubscribe;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The context value that will be provided
   const value = {
-    user: currentUser, // Keep the 'user' property name for compatibility
-    currentUser,       // Also expose as currentUser for new components
+    currentUser,
+    isAuthenticated,
     loading,
-    error,
-    signup,
+    register,
     login,
-    logout,
-    resetPassword,
-    updateUserEmail,
-    updateUserPassword,
-    updateUserProfile
+    logout
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!loading ? children : <div>Loading authentication...</div>}
     </AuthContext.Provider>
   );
-} 
+};
+
+export default AuthContext; 

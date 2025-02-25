@@ -2,42 +2,28 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
-import Login from './Components/Login';
-import Register from './Components/Register';
-import Dashboard from './Components/Dashboard';
-import AskAI from './Components/AskAI';
+import { FinanceDataProvider } from './contexts/FinanceDataContext';
+import Login from './Components/auth/Login';
+import Register from './Components/auth/Register';
 import LandingPage from './pages/LandingPage';
-import Header from './Components/Header';
+import Sidebar from './Components/Sidebar';
+import HeaderWithAuth from './Components/HeaderWithAuth';
 import ErrorBoundary from './Components/ErrorBoundary';
 import { log, logError, logRender } from './utils/logger';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+
+// Import page components
+import Dashboard from './pages/Dashboard';
 import SalaryJournal from './Components/SalaryJournal';
 import BillsAnalysis from './Components/BillsAnalysis';
 import Goals from './Components/Goals';
 import LinkAccounts from './Components/LinkAccounts';
 import Transactions from './Components/Transactions';
+import AskAI from './Components/AskAI';
 
 log('App', 'Initializing App component');
-
-// Log component imports
-log('App', 'Component imports check', {
-  Login: typeof Login === 'function' ? 'Function Component' : typeof Login,
-  Register: typeof Register === 'function' ? 'Function Component' : typeof Register,
-  Dashboard: typeof Dashboard === 'function' ? 'Function Component' : typeof Dashboard,
-  AskAI: typeof AskAI === 'function' ? 'Function Component' : typeof AskAI,
-  LandingPage: typeof LandingPage === 'function' ? 'Function Component' : typeof LandingPage,
-  Header: typeof Header === 'function' ? 'Function Component' : typeof Header,
-  ErrorBoundary: typeof ErrorBoundary === 'function' ? 'Component Class/Function' : typeof ErrorBoundary
-});
-
-// Log context providers
-log('App', 'Context providers check', {
-  AuthProvider: typeof AuthProvider === 'function' ? 'Function Component' : typeof AuthProvider,
-  PlaidProvider: typeof PlaidProvider === 'function' ? 'Function Component' : typeof PlaidProvider,
-  useAuth: typeof useAuth === 'function' ? 'Hook Function' : typeof useAuth
-});
 
 // Protected Route component
 const PrivateRoute = ({ children }) => {
@@ -61,11 +47,6 @@ const PrivateRoute = ({ children }) => {
       </div>
     );
   }
-  
-  log('App', 'PrivateRoute - Auth loaded, user exists', { 
-    isAuthenticated: !!currentUser,
-    hasError: !!authError
-  });
   
   // Show error state if there's an auth error
   if (authError) {
@@ -100,24 +81,27 @@ const PrivateRoute = ({ children }) => {
   return currentUser ? children : <Navigate to="/login" />;
 };
 
-// HeaderWithAuth component to conditionally render Header
-const HeaderWithAuth = () => {
-  logRender('HeaderWithAuth');
-  const { currentUser, loading } = useAuth();
+// Adds layout with sidebar for authenticated routes
+function AuthenticatedLayout({ children }) {
+  const { currentUser } = useAuth();
   
-  log('App', 'HeaderWithAuth state', { 
-    authenticated: !!currentUser,
-    loading
-  });
+  // Log for analysis purposes
+  log('App', 'Rendering AuthenticatedLayout', { userId: currentUser?.uid });
   
-  if (loading) return null;
-  
-  return currentUser ? (
-    <ErrorBoundary componentName="Header">
-      <Header />
-    </ErrorBoundary>
-  ) : null;
-};
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      <Sidebar />
+      <div className={`flex-1 flex flex-col md:ml-16 lg:ml-64 transition-all duration-300`}>
+        <HeaderWithAuth />
+        <main className="flex-1 p-4 md:p-6">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </main>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   logRender('App');
@@ -149,15 +133,6 @@ function App() {
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     window.addEventListener('error', handleError);
     
-    // Log environment information
-    log('App', 'Environment info', {
-      nodeEnv: process.env.NODE_ENV,
-      reactAppApiUrl: process.env.REACT_APP_API_URL,
-      firebaseConfigExists: !!process.env.REACT_APP_FIREBASE_API_KEY,
-      plaidConfigExists: !!process.env.REACT_APP_PLAID_CLIENT_ID,
-      browserInfo: navigator.userAgent
-    });
-    
     return () => {
       log('App', 'App component unmounting');
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
@@ -166,192 +141,112 @@ function App() {
   }, []);
 
   // Validate all required components are loaded
-  if (
-    !Login || !Register || !Dashboard || 
-    !AskAI || !LandingPage || !Header || 
-    !AuthProvider || !PlaidProvider || !ErrorBoundary
-  ) {
-    const missingComponents = {
-      Login: !Login,
-      Register: !Register,
-      Dashboard: !Dashboard,
-      AskAI: !AskAI,
-      LandingPage: !LandingPage,
-      Header: !Header,
-      AuthProvider: !AuthProvider,
-      PlaidProvider: !PlaidProvider,
-      ErrorBoundary: !ErrorBoundary
-    };
-    
-    logError('App', 'Critical component import failure', 
-      new Error('One or more critical components failed to load'), missingComponents);
-      
-    return (
-      <div className="bg-red-50 p-6 rounded-lg shadow-md max-w-md mx-auto mt-20">
-        <h2 className="text-red-600 text-xl font-bold mb-4">Application Error</h2>
-        <p className="text-gray-700 mb-4">The application failed to load critical components.</p>
-        <div className="bg-white p-3 rounded border border-red-200 mb-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Missing Components:</h3>
-          <ul className="list-disc list-inside text-sm text-gray-600">
-            {Object.entries(missingComponents)
-              .filter(([_, isMissing]) => isMissing)
-              .map(([name]) => (
-                <li key={name}>{name}</li>
-              ))}
-          </ul>
-        </div>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Reload Application
-        </button>
-      </div>
-    );
+  const requiredComponents = [
+    Dashboard, SalaryJournal, BillsAnalysis, 
+    Goals, LinkAccounts, Transactions, AskAI
+  ];
+
+  if (requiredComponents.some(comp => !comp)) {
+    console.error('Some required components are not available');
   }
 
   return (
-    <ErrorBoundary componentName="AppRoot" showDetails={process.env.NODE_ENV !== 'production'}>
-      <ToastContainer position="top-right" autoClose={5000} />
+    <ErrorBoundary componentName="AppRoot">
       <Router>
-        <ErrorBoundary componentName="RouterContainer">
-          <AuthProvider>
-            <ErrorBoundary componentName="AuthProviderContainer">
-              <PlaidProvider>
-                <div className="app-container">
-                  <HeaderWithAuth />
-                  <main className="main-content">
-                    <Routes>
-                      <Route 
-                        path="/" 
-                        element={
-                          <ErrorBoundary componentName="LandingPage">
-                            <LandingPage />
-                          </ErrorBoundary>
-                        } 
-                      />
-                      <Route 
-                        path="/login" 
-                        element={
-                          <ErrorBoundary componentName="Login">
-                            <Login />
-                          </ErrorBoundary>
-                        } 
-                      />
-                      <Route 
-                        path="/register" 
-                        element={
-                          <ErrorBoundary componentName="Register">
-                            <Register />
-                          </ErrorBoundary>
-                        } 
-                      />
-                      <Route
-                        path="/dashboard"
-                        element={
-                          <ErrorBoundary componentName="DashboardRoute">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="Dashboard">
-                                <Dashboard />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/ask-ai"
-                        element={
-                          <ErrorBoundary componentName="AskAIRoute">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="AskAI">
-                                <AskAI />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/salary-journal"
-                        element={
-                          <ErrorBoundary componentName="SalaryJournal">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="SalaryJournal">
-                                <SalaryJournal />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/bills-analysis"
-                        element={
-                          <ErrorBoundary componentName="BillsAnalysisRoute">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="BillsAnalysis">
-                                <BillsAnalysis />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/goals"
-                        element={
-                          <ErrorBoundary componentName="GoalsRoute">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="Goals">
-                                <Goals />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/link-accounts"
-                        element={
-                          <ErrorBoundary componentName="LinkAccountsRoute">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="LinkAccounts">
-                                <LinkAccounts />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="/transactions"
-                        element={
-                          <ErrorBoundary componentName="TransactionsRoute">
-                            <PrivateRoute>
-                              <ErrorBoundary componentName="Transactions">
-                                <Transactions />
-                              </ErrorBoundary>
-                            </PrivateRoute>
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route 
-                        path="*" 
-                        element={
-                          <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-                            <h1 className="text-4xl font-bold text-gray-800 mb-4">404</h1>
-                            <p className="text-xl text-gray-600 mb-6">Page not found</p>
-                            <a 
-                              href="/" 
-                              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-                            >
-                              Go Home
-                            </a>
-                          </div>
-                        } 
-                      />
-                    </Routes>
-                  </main>
-                </div>
-              </PlaidProvider>
-            </ErrorBoundary>
-          </AuthProvider>
-        </ErrorBoundary>
+        <AuthProvider>
+          <PlaidProvider>
+            <FinanceDataProvider>
+              <ToastContainer position="top-right" autoClose={5000} />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/landing" element={<LandingPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                
+                {/* Authenticated routes with layout */}
+                <Route 
+                  path="/" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <Dashboard />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/salary-journal" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <SalaryJournal />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/bills-analysis" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <BillsAnalysis />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/goals" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <Goals />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/link-accounts" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <LinkAccounts />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/transactions" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <Transactions />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/ask-ai" 
+                  element={
+                    <PrivateRoute>
+                      <AuthenticatedLayout>
+                        <AskAI />
+                      </AuthenticatedLayout>
+                    </PrivateRoute>
+                  } 
+                />
+                
+                {/* Redirect all other routes to dashboard */}
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </FinanceDataProvider>
+          </PlaidProvider>
+        </AuthProvider>
       </Router>
     </ErrorBoundary>
   );

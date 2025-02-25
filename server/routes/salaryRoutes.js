@@ -9,6 +9,9 @@ router.use(authenticateToken);
 // Get monthly salary summary
 router.get('/monthly-summary', SalaryController.getMonthlySummary);
 
+// Get all salary entries
+router.get('/entries', SalaryController.getSalaryEntries);
+
 // Add salary entry
 router.post('/', SalaryController.addSalaryEntry);
 

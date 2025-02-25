@@ -378,12 +378,30 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 setSalaryEntries(parsedEntries);
             }
             
-            // Then try the API
+            // Then try the API with proper authentication
             try {
-                const response = await fetch(`/api/salary/entries?userId=${userId}&userProfileId=${activeUserId}`);
+                // Get the current user's token
+                const token = await currentUser.getIdToken();
+                
+                // Build the API URL using the environment variable
+                const apiUrl = process.env.REACT_APP_API_URL || 'https://api.trypersonalfinance.com';
+                const endpoint = `/api/salary/entries?userProfileId=${activeUserId}`;
+                const fullUrl = `${apiUrl}${endpoint}`;
+                
+                console.log('Fetching salary data from:', endpoint);
+                
+                const response = await fetch(fullUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
                 
                 if (!response.ok) {
-                    console.warn(`API error (${response.status}): Using localStorage data instead`);
+                    const errorData = await response.json().catch(() => ({}));
+                    console.warn(`API error (${response.status}):`, errorData);
+                    toast.warning(`Using localStorage data (API returned ${response.status})`);
                     return; // Keep using localStorage data
                 }
                 
@@ -393,9 +411,10 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 
                 // Update localStorage with the latest data
                 localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(data));
+                toast.success('Salary data loaded from database');
             } catch (apiError) {
                 console.error('API Error fetching salary entries:', apiError);
-                toast.warning('Using locally stored salary data');
+                toast.warning('Using locally stored salary data - API connection error');
             }
         } catch (error) {
             console.error('Error in fetchSalaryEntries:', error);
@@ -450,19 +469,44 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
         setLoading(true);
 
         try {
+            // Calculate the actual bonus amount based on the type
+            const finalBonusAmount = bonusIsPercentage 
+                ? (parseFloat(salaryAmount) * parseFloat(bonusAmount) / 100) 
+                : parseFloat(bonusAmount) || 0;
+                
+            // Get current user's token
+            const token = await currentUser.getIdToken();
+            
+            // Prepare data for the API
             const newEntry = {
                 company,
                 position,
+                user_profile_id: activeUserId,
                 salary_amount: parseFloat(salaryAmount),
-                date_of_change: dateOfChange,
+                pay_type: payType,
+                pay_frequency: payFrequency,
+                hours_per_week: payType === 'hourly' ? parseFloat(hoursPerWeek) : null,
+                date_of_change: dateOfChange || new Date().toISOString().split('T')[0],
                 notes,
-                bonus_amount: parseFloat(bonusAmount) || 0,
+                bonus_amount: finalBonusAmount,
+                bonus_is_percentage: bonusIsPercentage,
                 commission_amount: parseFloat(commissionAmount) || 0,
+                health_insurance: parseFloat(healthInsurance) || 0,
+                dental_insurance: parseFloat(dentalInsurance) || 0,
+                vision_insurance: parseFloat(visionInsurance) || 0,
+                retirement_401k: parseFloat(retirement401k) || 0,
+                state: selectedState,
+                city: selectedCity
             };
 
             console.log('Sending data to server:', newEntry);
 
-            const response = await fetch('/api/salary/salary-entries', {
+            // Build the API URL using the environment variable
+            const apiUrl = process.env.REACT_APP_API_URL || 'https://api.trypersonalfinance.com';
+            const endpoint = '/api/salary';
+            const fullUrl = `${apiUrl}${endpoint}`;
+
+            const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -484,7 +528,21 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 fetchSalaryEntries(); // Refresh the list
             } else {
                 console.error('Server error response:', responseData);
-                toast.error(`Failed to create salary entry: ${responseData?.message || response.statusText}`);
+                
+                // Fall back to local storage if API fails
+                const entryWithId = {
+                    ...newEntry,
+                    id: `local_${Date.now()}`,
+                    created_at: new Date().toISOString()
+                };
+                
+                const existingEntries = JSON.parse(localStorage.getItem(`salary_entries_${activeUserId}`) || '[]');
+                const updatedEntries = [entryWithId, ...existingEntries];
+                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
+                
+                setSalaryEntries(updatedEntries);
+                toast.warning('Saved to local storage (API unavailable)');
+                resetForm();
             }
         } catch (error) {
             console.error('Error creating salary entry:', error);

@@ -1,5 +1,5 @@
 import React, { useEffect, createContext, useState, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
 import { FinanceDataProvider } from './contexts/FinanceDataContext';
@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage';
 import Sidebar from './Components/Sidebar';
 import HeaderWithAuth from './Components/HeaderWithAuth';
 import ErrorBoundary from './Components/ErrorBoundary';
+import ResponsiveWrapper from './Components/ResponsiveWrapper';
 import { log, logError, logRender } from './utils/logger';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -22,8 +23,20 @@ import Goals from './Components/Goals';
 import LinkAccounts from './Components/LinkAccounts';
 import Transactions from './Components/Transactions';
 import AskAI from './Components/AskAI';
+import SubscriptionPlans from './Components/SubscriptionPlans';
+
+// Import mobile versions of components
+import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
+import SubscriptionPlansMobile from './mobile/SubscriptionPlansMobile';
+
+// Import Stripe context provider
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 
 log('App', 'Initializing App component');
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
 // Create sidebar context for managing sidebar state
 export const SidebarContext = createContext();
@@ -31,6 +44,20 @@ export const SidebarContext = createContext();
 export function useSidebar() {
   return useContext(SidebarContext);
 }
+
+// Desktop layout component
+const DesktopLayout = ({ children }) => {
+  const { isSidebarOpen } = useSidebar();
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-16'}`}>
+        <HeaderWithAuth />
+        <main className="p-6">{children}</main>
+      </div>
+    </div>
+  );
+};
 
 // Protected Route component
 const PrivateRoute = ({ children }) => {
@@ -88,34 +115,53 @@ const PrivateRoute = ({ children }) => {
   return currentUser ? children : <Navigate to="/login" />;
 };
 
-// Adds layout with sidebar for authenticated routes
-function AuthenticatedLayout({ children }) {
-  const { currentUser } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  // Log for analysis purposes
-  log('App', 'Rendering AuthenticatedLayout', { userId: currentUser?.uid });
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(prevState => !prevState);
+// Determine if the route should use a mobile component version
+const useMobileComponentFor = (path) => {
+  const components = {
+    '/link-accounts': AccountConnectionsMobile,
+    '/subscription': SubscriptionPlansMobile,
+    // Add more mobile components here as they're created
   };
   
+  return components[path];
+};
+
+// AuthenticatedLayout that handles the responsive layout
+const AuthenticatedLayout = ({ children }) => {
+  const location = useLocation();
+  const MobileComponent = useMobileComponentFor(location.pathname);
+  
+  // Store sidebar open/closed state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  const toggleSidebar = (forceState) => {
+    if (typeof forceState === 'boolean') {
+      setIsSidebarOpen(forceState);
+    } else {
+      setIsSidebarOpen(prev => !prev);
+    }
+  };
+  
+  // If we have a specific mobile component for this route, use it
+  if (MobileComponent) {
+    return (
+      <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
+        <ResponsiveWrapper desktopLayout={DesktopLayout}>
+          <MobileComponent />
+        </ResponsiveWrapper>
+      </SidebarContext.Provider>
+    );
+  }
+  
+  // Otherwise just use the responsive wrapper with children
   return (
     <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
-          <HeaderWithAuth />
-          <main className="flex-1 p-4 md:p-6">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </main>
-        </div>
-      </div>
+      <ResponsiveWrapper desktopLayout={DesktopLayout}>
+        {children}
+      </ResponsiveWrapper>
     </SidebarContext.Provider>
   );
-}
+};
 
 function App() {
   logRender('App');
@@ -157,7 +203,7 @@ function App() {
   // Validate all required components are loaded
   const requiredComponents = [
     Dashboard, SalaryJournal, BillsAnalysis, 
-    Goals, LinkAccounts, Transactions, AskAI
+    Goals, LinkAccounts, Transactions, AskAI, SubscriptionPlans
   ];
 
   if (requiredComponents.some(comp => !comp)) {
@@ -170,94 +216,107 @@ function App() {
         <AuthProvider>
           <PlaidProvider>
             <FinanceDataProvider>
-              <ToastContainer position="top-right" autoClose={5000} />
-              <Routes>
-                {/* Public routes */}
-                <Route path="/landing" element={<LandingPage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                
-                {/* Authenticated routes with layout */}
-                <Route 
-                  path="/" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <Dashboard />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/salary-journal" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <SalaryJournal />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/bills-analysis" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <BillsAnalysis />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/goals" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <Goals />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/link-accounts" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <LinkAccounts />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/transactions" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <Transactions />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/ask-ai" 
-                  element={
-                    <PrivateRoute>
-                      <AuthenticatedLayout>
-                        <AskAI />
-                      </AuthenticatedLayout>
-                    </PrivateRoute>
-                  } 
-                />
-                
-                {/* Redirect all other routes to dashboard */}
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
+              <Elements stripe={stripePromise}>
+                <ToastContainer position="top-right" autoClose={5000} />
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/landing" element={<LandingPage />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  
+                  {/* Authenticated routes with layout */}
+                  <Route 
+                    path="/" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <Dashboard />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/salary-journal" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <SalaryJournal />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/bills-analysis" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <BillsAnalysis />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/goals" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <Goals />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/link-accounts" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <LinkAccounts />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/transactions" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <Transactions />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/ask-ai" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <AskAI />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  <Route 
+                    path="/subscription" 
+                    element={
+                      <PrivateRoute>
+                        <AuthenticatedLayout>
+                          <SubscriptionPlans />
+                        </AuthenticatedLayout>
+                      </PrivateRoute>
+                    } 
+                  />
+                  
+                  {/* Redirect all other routes to dashboard */}
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </Elements>
             </FinanceDataProvider>
           </PlaidProvider>
         </AuthProvider>

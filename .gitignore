@@ -43,3 +43,20 @@ Thumbs.db
 
 # Local Netlify folder
 .netlify
+
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Mac OS
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/

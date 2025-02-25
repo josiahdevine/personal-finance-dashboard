@@ -509,33 +509,70 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
 
             // Build the API URL using the environment variable
             const apiUrl = process.env.REACT_APP_API_URL || 'https://api.trypersonalfinance.com';
-            const endpoint = '/api/salary';
+            const endpoint = '/api/salary'; // This is correct - matches how routes are mounted
             const fullUrl = `${apiUrl}${endpoint}`;
+            
+            console.log('Sending POST request to:', fullUrl);
 
-            const response = await fetch(fullUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newEntry),
-            });
+            try {
+                const response = await fetch(fullUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newEntry),
+                });
 
-            const responseData = await response.json().catch(e => {
-                console.error('Error parsing response:', e);
-                return null;
-            });
+                let responseData;
+                try {
+                    responseData = await response.json();
+                } catch (parseError) {
+                    console.error('Error parsing response:', parseError);
+                    responseData = { error: 'Could not parse server response' };
+                }
 
-            console.log('Server response:', response.status, responseData);
+                console.log('Server response status:', response.status);
+                console.log('Server response data:', responseData);
 
-            if (response.ok) {
-                toast.success('Salary entry created successfully!');
-                resetForm();
-                fetchSalaryEntries(); // Refresh the list
-            } else {
-                console.error('Server error response:', responseData);
+                if (response.ok) {
+                    toast.success('Salary entry created successfully!');
+                    resetForm();
+                    fetchSalaryEntries(); // Refresh the list
+                } else {
+                    console.error('Server error response:', responseData);
+                    
+                    // More detailed error message
+                    let errorMessage = 'Failed to create salary entry: ';
+                    if (responseData?.message) {
+                        errorMessage += responseData.message;
+                    } else if (responseData?.error) {
+                        errorMessage += responseData.error;
+                    } else {
+                        errorMessage += response.statusText || 'Unknown error';
+                    }
+                    toast.error(errorMessage);
+                    
+                    // Fall back to local storage if API fails
+                    const entryWithId = {
+                        ...newEntry,
+                        id: `local_${Date.now()}`,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const existingEntries = JSON.parse(localStorage.getItem(`salary_entries_${activeUserId}`) || '[]');
+                    const updatedEntries = [entryWithId, ...existingEntries];
+                    localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
+                    
+                    setSalaryEntries(updatedEntries);
+                    toast.warning('Saved to local storage (API unavailable)');
+                    resetForm();
+                }
+            } catch (networkError) {
+                console.error('Network error:', networkError);
+                toast.error(`Network error: ${networkError.message || 'Could not connect to server'}`);
                 
-                // Fall back to local storage if API fails
+                // Fall back to local storage for network errors too
                 const entryWithId = {
                     ...newEntry,
                     id: `local_${Date.now()}`,
@@ -547,7 +584,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
                 
                 setSalaryEntries(updatedEntries);
-                toast.warning('Saved to local storage (API unavailable)');
+                toast.warning('Saved to local storage (network error)');
                 resetForm();
             }
         } catch (error) {

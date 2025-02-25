@@ -34,15 +34,80 @@ class SalaryController {
     static async addSalaryEntry(req, res) {
         try {
             const userId = req.user.id;
-            const { amount, date, description } = req.body;
+            const { 
+                company, 
+                position, 
+                user_profile_id, 
+                salary_amount, 
+                pay_type, 
+                pay_frequency, 
+                hours_per_week, 
+                date_of_change, 
+                notes, 
+                bonus_amount, 
+                bonus_is_percentage, 
+                commission_amount,
+                health_insurance,
+                dental_insurance,
+                vision_insurance,
+                retirement_401k,
+                state,
+                city
+            } = req.body;
+
+            console.log('Adding salary entry with data:', req.body);
 
             const query = `
-                INSERT INTO salary_entries (user_id, amount, date, description)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO salary_entries (
+                    user_id, 
+                    user_profile_id,
+                    company, 
+                    position, 
+                    salary_amount, 
+                    pay_type, 
+                    pay_frequency, 
+                    hours_per_week, 
+                    date, 
+                    notes, 
+                    bonus_amount, 
+                    bonus_is_percentage, 
+                    commission_amount,
+                    health_insurance,
+                    dental_insurance,
+                    vision_insurance,
+                    retirement_401k,
+                    state,
+                    city
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+                )
                 RETURNING *
             `;
 
-            const result = await pool.query(query, [userId, amount, date, description]);
+            const result = await pool.query(query, [
+                userId, 
+                user_profile_id || 'primary',
+                company || '', 
+                position || '', 
+                salary_amount || 0, 
+                pay_type || 'annual', 
+                pay_frequency || 'biweekly', 
+                hours_per_week || null, 
+                date_of_change || new Date().toISOString().split('T')[0], 
+                notes || '', 
+                bonus_amount || 0, 
+                bonus_is_percentage || false, 
+                commission_amount || 0,
+                health_insurance || 0,
+                dental_insurance || 0,
+                vision_insurance || 0,
+                retirement_401k || 0,
+                state || null,
+                city || null
+            ]);
+            
+            console.log('Salary entry added successfully:', result.rows[0]);
             res.status(201).json(result.rows[0]);
         } catch (error) {
             console.error('Error adding salary entry:', error);

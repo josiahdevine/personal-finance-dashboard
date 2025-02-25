@@ -43,7 +43,6 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.trypersonalfinance.com https://*.netlify.app https://generativelanguage.googleapis.com www.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"
     Access-Control-Allow-Origin = "*"
     # Add custom headers for better debugging
     X-Environment = "production"

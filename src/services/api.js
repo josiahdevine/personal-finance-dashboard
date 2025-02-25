@@ -3,7 +3,7 @@ import { auth } from './firebase';
 
 // Use the actual backend URL where your server is deployed
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://personal-finance-dashboard-mj8ff5648-josiah-devines-projects.vercel.app'
+  ? 'https://personal-finance-dashboard-q1z3e7xku-josiah-devines-projects.vercel.app'
   : 'http://localhost:5000';
 
 console.log('API Base URL:', API_BASE_URL);

@@ -11,8 +11,8 @@ module.exports = {
             'https://trypersonalfinance.com',
             'https://www.trypersonalfinance.com',
             'https://api.trypersonalfinance.com',
-            'https://personal-finance-dashboard-e53xoxh7s-josiah-devines-projects.vercel.app',
-            'https://personal-finance-dashboard-mj8ff5648-josiah-devines-projects.vercel.app',
+            'https://personal-finance-dashboard-q1z3e7xku-josiah-devines-projects.vercel.app',
+            'https://personal-finance-dashboard.vercel.app',
             'http://localhost:3000'
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],

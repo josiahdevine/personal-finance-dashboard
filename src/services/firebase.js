@@ -4,12 +4,17 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  connectAuthEmulator
 } from 'firebase/auth';
 import { log, logError, timeOperation } from '../utils/logger';
 
 // Production mode should be less verbose
 const isProduction = process.env.NODE_ENV === 'production';
+const isNetlify = !!process.env.NETLIFY || window.location.hostname.includes('netlify.app');
 
 // Add logging for environment variables but only when not in production
 if (!isProduction) {
@@ -24,6 +29,12 @@ if (!isProduction) {
     measurementIdExists: !!process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
   });
 }
+
+// Enhanced logging for environment info
+console.log(`[Firebase] Environment: ${process.env.NODE_ENV}`);
+console.log(`[Firebase] Netlify: ${isNetlify ? 'Yes' : 'No'}`);
+console.log(`[Firebase] Hostname: ${window.location.hostname}`);
+console.log(`[Firebase] Origin: ${window.location.origin}`);
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U",
@@ -79,21 +90,51 @@ try {
   
   auth = getAuth(app);
   
+  // Set persistence to LOCAL - This will keep the user logged in even after browser restart
+  if (auth) {
+    // Always force LOCAL persistence for better user experience
+    console.log('[Firebase] Setting auth persistence to LOCAL');
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        log('Firebase', 'Auth persistence set to LOCAL successfully');
+      })
+      .catch((error) => {
+        logError('Firebase', 'Failed to set auth persistence', error);
+        // Fall back to session persistence if local fails
+        console.log('[Firebase] Falling back to SESSION persistence');
+        setPersistence(auth, browserSessionPersistence).catch(e => {
+          console.error('[Firebase] Failed to set SESSION persistence', e);
+        });
+      });
+  }
+  
   if (!isProduction) {
     log('Firebase', 'Firebase auth initialized successfully');
   }
 
-  // Check if we're on the production domain to avoid CORS issues with Firebase Auth
-  const isCustomDomain = window.location.hostname === 'trypersonalfinance.com' || 
-                        window.location.hostname === 'www.trypersonalfinance.com';
-
-  if (isCustomDomain) {
-    console.log('[Firebase Config] Running on custom domain, updating Firebase Auth configuration');
+  // Check if we're on Netlify
+  if (isNetlify) {
+    console.log('[Firebase] Running on Netlify, ensuring Firebase Auth configuration is correct');
     
-    // When on custom domain, make sure we're using the proper settings
+    // When on Netlify, ensure auth domain is correct
     if (auth) {
+      // Store original auth domain for reference
+      const originalAuthDomain = auth.config.authDomain;
+      
+      // Force set auth domain to the Firebase project's domain
       auth.config.authDomain = 'personal-finance-dashboa-f76f6.firebaseapp.com';
-      console.log('[Firebase Config] Updated Auth domain for custom domain use');
+      
+      console.log(`[Firebase] Updated Auth domain from ${originalAuthDomain} to ${auth.config.authDomain}`);
+    }
+  }
+  
+  // Check if we're on development for emulator connection
+  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_AUTH_EMULATOR === 'true') {
+    try {
+      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+      console.log('[Firebase] Connected to Firebase Auth Emulator');
+    } catch (emulatorError) {
+      console.error('[Firebase] Failed to connect to Auth Emulator:', emulatorError);
     }
   }
   
@@ -112,12 +153,15 @@ try {
       if (!auth) {
         auth = getAuth(app);
 
-        // Check for custom domain after recovery
-        const isCustomDomain = window.location.hostname === 'trypersonalfinance.com' || 
-                             window.location.hostname === 'www.trypersonalfinance.com';
+        // Force persistence for fallback initialization
+        setPersistence(auth, browserLocalPersistence).catch(e => {
+          console.error('[Firebase] Failed to set persistence in fallback mode:', e);
+        });
 
-        if (isCustomDomain && auth) {
+        // Force auth domain for Netlify
+        if (isNetlify) {
           auth.config.authDomain = 'personal-finance-dashboa-f76f6.firebaseapp.com';
+          console.log('[Firebase] Fallback mode: Updated auth domain for Netlify');
         }
       }
     } catch (fallbackError) {
@@ -139,6 +183,10 @@ export const registerUser = async (email, password) => {
     }
     
     try {
+      // Ensure LOCAL persistence before registration
+      await setPersistence(auth, browserLocalPersistence);
+      log('Firebase', 'Set persistence to LOCAL for registration');
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       log('Firebase', 'User registration successful', { uid: userCredential.user.uid });
       return userCredential.user;
@@ -184,11 +232,19 @@ export const loginUser = async (email, password) => {
     }
     
     try {
+      // First set persistence to LOCAL for this specific login attempt
+      await setPersistence(auth, browserLocalPersistence);
+      log('Firebase', 'Set persistence to LOCAL for login attempt');
+      
+      // Then proceed with sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       log('Firebase', 'User login successful', { 
         uid: userCredential.user.uid,
         emailVerified: userCredential.user.emailVerified 
       });
+      
+      // Store a timestamp in localStorage to help track session
+      localStorage.setItem('auth_timestamp', Date.now());
       return userCredential.user;
     } catch (error) {
       // Map Firebase error codes to more user-friendly messages

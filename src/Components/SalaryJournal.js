@@ -201,7 +201,7 @@ const RSU_VESTING_SCHEDULES = {
     CUSTOM: 'Custom'
 };
 
-const SalaryJournal = () => {
+const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [salaryEntries, setSalaryEntries] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [company, setCompany] = useState('');
@@ -280,6 +280,18 @@ const SalaryJournal = () => {
     // Update state variables
     const [selectedState, setSelectedState] = useState('');
     const [selectedCity, setSelectedCity] = useState('');
+    const [cityTaxRate, setCityTaxRate] = useState(0);
+    
+    // What If Tool state variables
+    const [whatIfScenario, setWhatIfScenario] = useState('salary_increase');
+    const [whatIfAdjustmentType, setWhatIfAdjustmentType] = useState('percentage');
+    const [whatIfValue, setWhatIfValue] = useState('');
+    const [whatIfNewState, setWhatIfNewState] = useState('');
+    const [whatIfNewCity, setWhatIfNewCity] = useState('');
+    const [whatIfHealthInsurance, setWhatIfHealthInsurance] = useState('');
+    const [whatIfDentalInsurance, setWhatIfDentalInsurance] = useState('');
+    const [whatIfResult, setWhatIfResult] = useState(null);
+    
     const [incomeBreakdown, setIncomeBreakdown] = useState([
         { type: INCOME_TYPES.REGULAR, amount: 0 },
         { type: INCOME_TYPES.OVERTIME, hours: 0, rate: 1.5 },
@@ -306,6 +318,8 @@ const SalaryJournal = () => {
         performanceMetrics: [],
         notes: ''
     });
+
+    const [bonusIsPercentage, setBonusIsPercentage] = useState(false);
 
     useEffect(() => {
         fetchSalaryEntries();
@@ -356,16 +370,35 @@ const SalaryJournal = () => {
     const fetchSalaryEntries = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/salary/entries?userId=${userId}&userProfileId=${activeUserId}`);
-            const data = await response.json();
+            // First try to load from localStorage as a fallback
+            const storedEntries = localStorage.getItem(`salary_entries_${activeUserId}`);
+            if (storedEntries) {
+                const parsedEntries = JSON.parse(storedEntries);
+                console.log('Loaded salary entries from localStorage:', parsedEntries);
+                setSalaryEntries(parsedEntries);
+            }
             
-            if (response.ok) {
+            // Then try the API
+            try {
+                const response = await fetch(`/api/salary/entries?userId=${userId}&userProfileId=${activeUserId}`);
+                
+                if (!response.ok) {
+                    console.warn(`API error (${response.status}): Using localStorage data instead`);
+                    return; // Keep using localStorage data
+                }
+                
+                const data = await response.json();
+                console.log('Loaded salary entries from API:', data);
                 setSalaryEntries(data);
-            } else {
-                toast.error(data.message || 'Failed to load salary entries');
+                
+                // Update localStorage with the latest data
+                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(data));
+            } catch (apiError) {
+                console.error('API Error fetching salary entries:', apiError);
+                toast.warning('Using locally stored salary data');
             }
         } catch (error) {
-            console.error('Error fetching salary entries:', error);
+            console.error('Error in fetchSalaryEntries:', error);
             toast.error('An error occurred while loading salary data');
         } finally {
             setLoading(false);
@@ -643,38 +676,52 @@ const SalaryJournal = () => {
     };
 
     const calculateStateTax = (taxableIncome) => {
-        if (!selectedState || !STATE_TAX_RATES[selectedState]) return 0;
-
-        const stateConfig = STATE_TAX_RATES[selectedState];
-        const annualTaxableIncome = taxableIncome * PAY_FREQUENCIES[payFrequency].periodsPerYear;
-
-        // Handle flat rate states
-        if (stateConfig.flatRate !== undefined) {
-            return (annualTaxableIncome * stateConfig.flatRate) / PAY_FREQUENCIES[payFrequency].periodsPerYear;
+        if (!selectedState || !STATE_TAX_RATES[selectedState]) {
+            return 0;
         }
 
-        // Handle progressive tax brackets
-        if (stateConfig.brackets) {
-            let tax = 0;
-            let remainingIncome = annualTaxableIncome;
-
-            for (let i = 0; i < stateConfig.brackets.length; i++) {
-                const bracket = stateConfig.brackets[i];
-                const prevBracket = i > 0 ? stateConfig.brackets[i - 1].upTo : 0;
-                const bracketIncome = Math.min(remainingIncome, bracket.upTo - prevBracket);
-                
-                if (bracketIncome <= 0) break;
-                
-                tax += bracketIncome * bracket.rate;
-                remainingIncome -= bracketIncome;
-            }
-
-            return tax / PAY_FREQUENCIES[payFrequency].periodsPerYear;
-        }
-
-        return 0;
+        const stateTaxRate = STATE_TAX_RATES[selectedState].rate;
+        return taxableIncome * stateTaxRate;
     };
 
+    // Calculate city tax based on selected city
+    const calculateCityTax = (taxableIncome) => {
+        if (!selectedState || !selectedCity || 
+            !STATE_TAX_RATES[selectedState] || 
+            !STATE_TAX_RATES[selectedState].cities || 
+            !STATE_TAX_RATES[selectedState].cities[selectedCity]) {
+            return 0;
+        }
+
+        const cityTaxRate = STATE_TAX_RATES[selectedState].cities[selectedCity].rate;
+        return taxableIncome * cityTaxRate;
+    };
+
+    // Helper function to calculate progressive tax based on brackets
+    const calculateTaxProgressive = (taxableIncome, payFrequency, brackets) => {
+        // Convert to annual amount for calculation
+        const periodsPerYear = PAY_FREQUENCIES[payFrequency].periodsPerYear;
+        const annualizedIncome = taxableIncome * periodsPerYear;
+        
+        let tax = 0;
+        let remainingIncome = annualizedIncome;
+        
+        for (let i = 0; i < brackets.length; i++) {
+            const bracket = brackets[i];
+            const nextBracketThreshold = i < brackets.length - 1 ? brackets[i + 1].threshold : Infinity;
+            const incomeInBracket = Math.min(remainingIncome, nextBracketThreshold - bracket.threshold);
+            
+            if (incomeInBracket <= 0) break;
+            
+            tax += incomeInBracket * bracket.rate;
+            remainingIncome -= incomeInBracket;
+        }
+        
+        // Convert back to per-period amount
+        return tax / periodsPerYear;
+    };
+
+    // Calculate local tax if applicable
     const calculateLocalTax = (taxableIncome) => {
         if (!selectedState || !selectedCity || 
             !STATE_TAX_RATES[selectedState]?.cities?.[selectedCity]) return 0;
@@ -734,18 +781,52 @@ const SalaryJournal = () => {
 
     const handleSave = async () => {
         const paycheck = calculatePaycheck();
+        const newEntry = {
+            ...paycheck,
+            payType,
+            basePay,
+            payFrequency,
+            date: new Date().toISOString(),
+            id: Date.now().toString(), // Generate a local ID
+            userProfileId: activeUserId
+        };
+        
         try {
-            await axios.post('/api/salary/save', {
-                ...paycheck,
-                payType,
-                basePay,
-                payFrequency,
-                date: new Date().toISOString()
-            });
-            toast.success('Paycheck saved successfully');
-            fetchSalaryEntries();
+            // Optimistically update UI first
+            const updatedEntries = [...salaryEntries, newEntry];
+            
+            // Save locally first
+            localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
+            
+            // Update state
+            setSalaryEntries(updatedEntries);
+            
+            // Notify the parent component if the callback is provided
+            if (typeof onSalaryAdded === 'function') {
+                onSalaryAdded(newEntry);
+            }
+            
+            // Then try to save to API
+            try {
+                const response = await axios.post('/api/salary/save', newEntry);
+                if (response.status === 200 || response.status === 201) {
+                    toast.success('Paycheck saved successfully');
+                    
+                    // Update with the server-generated ID if provided
+                    if (response.data && response.data.id) {
+                        const entriesWithServerIds = updatedEntries.map(entry => 
+                            entry.id === newEntry.id ? { ...entry, id: response.data.id } : entry
+                        );
+                        localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(entriesWithServerIds));
+                        setSalaryEntries(entriesWithServerIds);
+                    }
+                }
+            } catch (apiError) {
+                console.error('API Error saving paycheck:', apiError);
+                toast.warning('Paycheck saved locally. Will sync when connection is restored.');
+            }
         } catch (error) {
-            console.error('Error saving paycheck:', error);
+            console.error('Error in handleSave:', error);
             toast.error('Failed to save paycheck');
         }
     };
@@ -1082,6 +1163,131 @@ const SalaryJournal = () => {
         return totalCompensation - totalTax;
     };
 
+    // Calculate bonus amount based on whether it's a percentage or flat amount
+    const calculateBonusAmount = () => {
+        if (bonusIsPercentage) {
+            const baseAmount = parseFloat(salaryAmount) || 0;
+            const percentage = parseFloat(bonusAmount) || 0;
+            return (baseAmount * percentage) / 100;
+        } else {
+            return parseFloat(bonusAmount) || 0;
+        }
+    };
+
+    const calculateNetPay = () => {
+        // Return calculated net pay
+        return calculateGrossPay() - calculateFederalTax() - calculateStateTax() - calculateCityTax() - calculateFICA() - calculatePreTaxDeductions();
+    };
+    
+    // Calculate What If Scenario
+    const calculateWhatIfScenario = () => {
+        let newGrossPay = calculateGrossPay();
+        let newStateTaxRate = selectedState ? STATE_TAX_RATES[selectedState].rate : 0;
+        let newCityTaxRate = 0;
+        let new401kContribution = preTaxDeductions.find(d => d.name === '401(k)')?.amount || 0;
+        let newHealthInsurance = preTaxDeductions.find(d => d.name === 'Health Insurance')?.amount || 0;
+        let newDentalInsurance = preTaxDeductions.find(d => d.name === 'Dental Insurance')?.amount || 0;
+        
+        // Handle different scenario types
+        switch(whatIfScenario) {
+            case 'salary_increase':
+                if (whatIfAdjustmentType === 'percentage') {
+                    const percentIncrease = parseFloat(whatIfValue) || 0;
+                    newGrossPay = calculateGrossPay() * (1 + percentIncrease / 100);
+                } else {
+                    const amountIncrease = parseFloat(whatIfValue) || 0;
+                    newGrossPay = calculateGrossPay() + amountIncrease;
+                }
+                break;
+                
+            case 'salary_decrease':
+                if (whatIfAdjustmentType === 'percentage') {
+                    const percentDecrease = parseFloat(whatIfValue) || 0;
+                    newGrossPay = calculateGrossPay() * (1 - percentDecrease / 100);
+                } else {
+                    const amountDecrease = parseFloat(whatIfValue) || 0;
+                    newGrossPay = calculateGrossPay() - amountDecrease;
+                }
+                break;
+                
+            case 'change_401k':
+                new401kContribution = parseFloat(whatIfValue) || 0;
+                break;
+                
+            case 'change_state':
+                if (whatIfNewState) {
+                    newStateTaxRate = STATE_TAX_RATES[whatIfNewState].rate;
+                    
+                    if (whatIfNewCity && STATE_TAX_RATES[whatIfNewState]?.cities && 
+                        STATE_TAX_RATES[whatIfNewState].cities[whatIfNewCity]) {
+                        newCityTaxRate = STATE_TAX_RATES[whatIfNewState].cities[whatIfNewCity].rate;
+                    }
+                }
+                break;
+                
+            case 'change_benefits':
+                newHealthInsurance = parseFloat(whatIfHealthInsurance) || 0;
+                newDentalInsurance = parseFloat(whatIfDentalInsurance) || 0;
+                break;
+                
+            default:
+                break;
+        }
+        
+        // Calculate new pre-tax deductions
+        const newPreTaxDeductions = [
+            { id: 1, name: '401(k)', amount: new401kContribution, type: 'percentage' },
+            { id: 2, name: 'Health Insurance', amount: newHealthInsurance, type: 'fixed' },
+            { id: 3, name: 'Dental Insurance', amount: newDentalInsurance, type: 'fixed' },
+        ];
+        
+        // Calculate new pre-tax deductions total
+        const newPreTaxDeductionsTotal = newPreTaxDeductions.reduce((total, deduction) => {
+            if (deduction.type === 'percentage') {
+                return total + (newGrossPay * deduction.amount / 100);
+            } else {
+                return total + deduction.amount;
+            }
+        }, 0);
+        
+        // Calculate taxable income
+        const newTaxableIncome = newGrossPay - newPreTaxDeductionsTotal;
+        
+        // Calculate new federal tax
+        const newFederalTax = calculateTaxProgressive(newTaxableIncome, payFrequency, TAX_BRACKETS_2024.FEDERAL);
+        
+        // Calculate new state tax
+        const newStateTax = newStateTaxRate * newTaxableIncome;
+        
+        // Calculate new city tax
+        const newCityTax = newCityTaxRate * newTaxableIncome;
+        
+        // Calculate new FICA taxes
+        const newSocialSecurity = Math.min(newTaxableIncome * 0.062, 160200 / PAY_FREQUENCIES[payFrequency].periodsPerYear * 0.062);
+        const newMedicare = newTaxableIncome * 0.0145;
+        
+        // Calculate new post-tax deductions
+        const newPostTaxDeductionsTotal = postTaxDeductions.reduce((total, deduction) => {
+            return total + deduction.amount;
+        }, 0);
+        
+        // Calculate new net pay
+        const newNetPay = newTaxableIncome - newFederalTax - newStateTax - newCityTax - newSocialSecurity - newMedicare - newPostTaxDeductionsTotal;
+        
+        // Set result
+        setWhatIfResult({
+            grossPay: newGrossPay,
+            federalTax: newFederalTax,
+            stateTax: newStateTax,
+            localTax: newCityTax,
+            socialSecurity: newSocialSecurity,
+            medicare: newMedicare,
+            preTaxDeductionsTotal: newPreTaxDeductionsTotal,
+            postTaxDeductionsTotal: newPostTaxDeductionsTotal,
+            netPay: newNetPay
+        });
+    };
+
     return (
         <div className="container mx-auto p-4">
             <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="light" />
@@ -1094,6 +1300,33 @@ const SalaryJournal = () => {
                 >
                     {showForm ? 'Cancel' : 'Add New Entry'}
                 </button>
+            </div>
+
+            {/* Introduction and Description */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-3">Track Your Income Growth Over Time</h2>
+                <p className="mb-4">Enter your salary information to see how your compensation changes over time. This tool helps you track your career progression and financial growth.</p>
+                
+                <div className="bg-blue-50 p-4 rounded-md">
+                    <div className="flex items-start">
+                        <div className="flex-shrink-0 mt-0.5">
+                            <svg className="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <div className="ml-3">
+                            <h3 className="text-sm font-medium text-blue-800">Why track your salary history?</h3>
+                            <div className="mt-2 text-sm text-blue-700">
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>Visualize your career progression and salary growth</li>
+                                    <li>Calculate accurate net income after taxes and deductions</li>
+                                    <li>Project future earnings with the "What If" calculator</li>
+                                    <li>Keep track of bonuses, commissions, and total compensation</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* User Profile Selection */}
@@ -1207,6 +1440,20 @@ const SalaryJournal = () => {
                             </div>
 
                             <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="dateOfChange">
+                                    Start Date*
+                                </label>
+                                <input 
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                                    id="dateOfChange" 
+                                    type="date" 
+                                    value={dateOfChange} 
+                                    onChange={(e) => setDateOfChange(e.target.value)}
+                                    required 
+                                />
+                            </div>
+
+                            <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="payFrequency">
                                     Desired Pay Frequency for Net Income*
                                 </label>
@@ -1278,32 +1525,48 @@ const SalaryJournal = () => {
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="bonusAmount">
                                     Annual Bonus
                                 </label>
+                                <div className="flex items-center mb-2">
+                                    <label className="inline-flex items-center mr-4">
+                                        <input 
+                                            type="radio" 
+                                            name="bonusType" 
+                                            value="flat" 
+                                            checked={!bonusIsPercentage}
+                                            onChange={() => setBonusIsPercentage(false)} 
+                                            className="form-radio text-blue-600"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">Flat Amount</span>
+                                    </label>
+                                    <label className="inline-flex items-center">
+                                        <input 
+                                            type="radio" 
+                                            name="bonusType" 
+                                            value="percentage" 
+                                            checked={bonusIsPercentage}
+                                            onChange={() => setBonusIsPercentage(true)} 
+                                            className="form-radio text-blue-600"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">Percentage</span>
+                                    </label>
+                                </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 sm:text-sm">$</span>
+                                        <span className="text-gray-500 sm:text-sm">{bonusIsPercentage ? '%' : '$'}</span>
                                     </div>
                                     <input 
                                         className="pl-7 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                                         id="bonusAmount" 
                                         type="number" 
-                                        placeholder="0.00" 
+                                        placeholder={bonusIsPercentage ? "0" : "0.00"} 
                                         value={bonusAmount} 
                                         onChange={(e) => setBonusAmount(e.target.value)} 
                                     />
                                 </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="dateOfChange">
-                                    Start Date
-                                </label>
-                                <input 
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
-                                    id="dateOfChange" 
-                                    type="date" 
-                                    value={dateOfChange} 
-                                    onChange={(e) => setDateOfChange(e.target.value)} 
-                                />
+                                {bonusIsPercentage && (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        Estimated bonus: {formatCurrency(calculateBonusAmount())}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="md:col-span-2">
@@ -1318,6 +1581,58 @@ const SalaryJournal = () => {
                                     onChange={(e) => setNotes(e.target.value)}
                                     rows="3"
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Location for Tax Calculation */}
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-gray-700 mb-4">Location for Tax Calculation</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="taxState">
+                                    State
+                                </label>
+                                <select
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    id="taxState"
+                                    value={selectedState}
+                                    onChange={(e) => {
+                                        setSelectedState(e.target.value);
+                                        setSelectedCity(''); // Reset city when state changes
+                                    }}
+                                >
+                                    <option value="">Select State</option>
+                                    {Object.keys(STATE_TAX_RATES).map(state => (
+                                        <option key={state} value={state}>{state}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="taxCity">
+                                    City
+                                </label>
+                                <select
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    id="taxCity"
+                                    value={selectedCity}
+                                    onChange={(e) => setSelectedCity(e.target.value)}
+                                    disabled={!selectedState || !STATE_TAX_RATES[selectedState]?.cities}
+                                >
+                                    <option value="">Select City</option>
+                                    {selectedState && STATE_TAX_RATES[selectedState]?.cities && 
+                                        Object.keys(STATE_TAX_RATES[selectedState].cities).map(city => (
+                                            <option key={city} value={city}>{city}</option>
+                                        ))
+                                    }
+                                </select>
+                                {!selectedState && 
+                                    <p className="text-sm text-gray-500 mt-1">Please select a state first</p>
+                                }
+                                {selectedState && !STATE_TAX_RATES[selectedState]?.cities && 
+                                    <p className="text-sm text-gray-500 mt-1">No city-specific taxes in selected state</p>
+                                }
                             </div>
                         </div>
                     </div>
@@ -1482,38 +1797,287 @@ const SalaryJournal = () => {
                 </div>
             </div>
 
+            {/* What If Tool */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
+                <h2 className="text-2xl font-bold mb-6">What If Calculator</h2>
+                <p className="mb-4 text-gray-600">
+                    Explore how changes to your salary, benefits, or location would affect your take-home pay.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Scenario
+                        </label>
+                        <select
+                            value={whatIfScenario}
+                            onChange={(e) => setWhatIfScenario(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                            <option value="salary_increase">Salary Increase</option>
+                            <option value="salary_decrease">Salary Decrease</option>
+                            <option value="change_401k">Change 401(k) Contribution</option>
+                            <option value="change_state">Move to Different State</option>
+                            <option value="change_benefits">Adjust Benefits</option>
+                        </select>
+                    </div>
+
+                    {(whatIfScenario === 'salary_increase' || whatIfScenario === 'salary_decrease') && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Adjustment Type
+                            </label>
+                            <div className="flex space-x-4">
+                                <label className="inline-flex items-center">
+                                    <input
+                                        type="radio"
+                                        value="percentage"
+                                        checked={whatIfAdjustmentType === 'percentage'}
+                                        onChange={() => setWhatIfAdjustmentType('percentage')}
+                                        className="form-radio text-blue-600"
+                                    />
+                                    <span className="ml-2">Percentage</span>
+                                </label>
+                                <label className="inline-flex items-center">
+                                    <input
+                                        type="radio"
+                                        value="amount"
+                                        checked={whatIfAdjustmentType === 'amount'}
+                                        onChange={() => setWhatIfAdjustmentType('amount')}
+                                        className="form-radio text-blue-600"
+                                    />
+                                    <span className="ml-2">Amount</span>
+                                </label>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Dynamic scenario parameters */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {(whatIfScenario === 'salary_increase' || whatIfScenario === 'salary_decrease') && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {whatIfAdjustmentType === 'percentage' ? 'Percentage Change' : 'Amount Change'}
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 sm:text-sm">
+                                        {whatIfAdjustmentType === 'percentage' ? '%' : '$'}
+                                    </span>
+                                </div>
+                                <input
+                                    type="number"
+                                    value={whatIfValue}
+                                    onChange={(e) => setWhatIfValue(e.target.value)}
+                                    className="pl-7 w-full shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {whatIfScenario === 'change_401k' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                New 401(k) Contribution Percentage
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    value={whatIfValue}
+                                    onChange={(e) => setWhatIfValue(e.target.value)}
+                                    className="pl-7 w-full shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    placeholder="0"
+                                    min="0"
+                                    max="100"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {whatIfScenario === 'change_state' && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    New State
+                                </label>
+                                <select
+                                    value={whatIfNewState}
+                                    onChange={(e) => {
+                                        setWhatIfNewState(e.target.value);
+                                        setWhatIfNewCity('');
+                                    }}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                >
+                                    <option value="">Select State</option>
+                                    {Object.keys(STATE_TAX_RATES).map(state => (
+                                        <option key={state} value={state}>{state}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    New City
+                                </label>
+                                <select
+                                    value={whatIfNewCity}
+                                    onChange={(e) => setWhatIfNewCity(e.target.value)}
+                                    disabled={!whatIfNewState || !STATE_TAX_RATES[whatIfNewState]?.cities}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                >
+                                    <option value="">Select City</option>
+                                    {whatIfNewState && STATE_TAX_RATES[whatIfNewState]?.cities && 
+                                        Object.keys(STATE_TAX_RATES[whatIfNewState].cities).map(city => (
+                                            <option key={city} value={city}>{city}</option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    {whatIfScenario === 'change_benefits' && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Health Insurance
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        value={whatIfHealthInsurance}
+                                        onChange={(e) => setWhatIfHealthInsurance(e.target.value)}
+                                        className="pl-7 w-full shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Dental Insurance
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        value={whatIfDentalInsurance}
+                                        onChange={(e) => setWhatIfDentalInsurance(e.target.value)}
+                                        className="pl-7 w-full shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={calculateWhatIfScenario}
+                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        Calculate
+                    </button>
+                </div>
+
+                {/* What-If Comparison Results */}
+                {whatIfResult && (
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Comparison Results</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="col-span-1 text-sm font-medium text-gray-500"></div>
+                            <div className="col-span-1 text-sm font-medium text-blue-600">Current</div>
+                            <div className="col-span-1 text-sm font-medium text-green-600">With Changes</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Gross Pay</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculateGrossPay())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.grossPay)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Federal Tax</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculateFederalTax())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.federalTax)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">State Tax</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculateStateTax())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.stateTax)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Local Tax</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculateCityTax())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.localTax)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">FICA</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculateFICA())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.socialSecurity + whatIfResult.medicare)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Pre-Tax Deductions</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculatePreTaxDeductions())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.preTaxDeductionsTotal)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Post-Tax Deductions</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(calculatePostTaxDeductions())}</div>
+                            <div className="col-span-1 text-sm">{formatCurrency(whatIfResult.postTaxDeductionsTotal)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Net Pay</div>
+                            <div className="col-span-1 text-sm font-bold">{formatCurrency(calculateNetPay())}</div>
+                            <div className="col-span-1 text-sm font-bold">{formatCurrency(whatIfResult.netPay)}</div>
+                            
+                            <div className="col-span-1 text-sm font-medium">Difference</div>
+                            <div className="col-span-2 text-sm font-bold">
+                                {formatCurrency(whatIfResult.netPay - calculateNetPay())}
+                                {" "}
+                                <span className={whatIfResult.netPay >= calculateNetPay() ? "text-green-600" : "text-red-600"}>
+                                    ({(((whatIfResult.netPay - calculateNetPay()) / calculateNetPay()) * 100).toFixed(2)}%)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Paycheck Calculation */}
             <div className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-bold mb-6">Salary Calculator</h2>
-                
-                {/* Pay Type Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Base Pay
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={basePay}
+                                onChange={(e) => setBasePay(e.target.value)}
+                                className="pl-7 w-full shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                placeholder="0.00"
+                            />
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Pay Type
                         </label>
-                        <div className="flex space-x-4">
-                            <label className="inline-flex items-center">
-                                <input
-                                    type="radio"
-                                    value="annual"
-                                    checked={payType === 'annual'}
-                                    onChange={(e) => setPayType(e.target.value)}
-                                    className="form-radio text-blue-600"
-                                />
-                                <span className="ml-2">Annual Salary</span>
-                            </label>
-                            <label className="inline-flex items-center">
-                                <input
-                                    type="radio"
-                                    value="hourly"
-                                    checked={payType === 'hourly'}
-                                    onChange={(e) => setPayType(e.target.value)}
-                                    className="form-radio text-blue-600"
-                                />
-                                <span className="ml-2">Hourly Rate</span>
-                            </label>
-                        </div>
+                        <select
+                            value={payType}
+                            onChange={(e) => setPayType(e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                            <option value="annual">Annual Salary</option>
+                            <option value="hourly">Hourly Rate</option>
+                        </select>
                     </div>
 
                     <div>
@@ -1530,27 +2094,6 @@ const SalaryJournal = () => {
                             ))}
                         </select>
                     </div>
-                </div>
-
-                {/* Base Pay Input */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {payType === 'annual' ? 'Annual Salary' : 'Hourly Rate'}
-                        </label>
-                        <div className="mt-1 relative rounded-md shadow-sm">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span className="text-gray-500 sm:text-sm">$</span>
-                            </div>
-                            <input
-                                type="number"
-                                value={basePay}
-                                onChange={(e) => setBasePay(e.target.value)}
-                                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                                placeholder="0.00"
-                            />
-                        </div>
-                    </div>
 
                     {payType === 'hourly' && (
                         <div>
@@ -1566,32 +2109,32 @@ const SalaryJournal = () => {
                         </div>
                     )}
                 </div>
-
+                
                 {/* Calculation Results */}
                 <div className="bg-gray-50 rounded-lg p-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Paycheck Summary</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-sm text-gray-500">Gross Pay ({PAY_FREQUENCIES[payFrequency].label})</p>
-                            <p className="text-lg font-semibold">{formatCurrency(calculations.grossPay)}</p>
+                            <p className="text-lg font-semibold">{formatCurrency(calculateGrossPay())}</p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-500">Federal Tax</p>
-                            <p className="text-lg font-semibold">{formatCurrency(calculations.federalTax)}</p>
+                            <p className="text-lg font-semibold">{formatCurrency(calculateFederalTax())}</p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-500">FICA</p>
                             <p className="text-lg font-semibold">
-                                {formatCurrency(calculations.socialSecurity + calculations.medicare)}
+                                {formatCurrency(calculateFICA())}
                             </p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-500">State Tax</p>
-                            <p className="text-lg font-semibold">{formatCurrency(calculations.stateTax)}</p>
+                            <p className="text-lg font-semibold">{formatCurrency(calculateStateTax())}</p>
                         </div>
                         <div className="col-span-2">
                             <p className="text-sm text-gray-500">Net Pay ({PAY_FREQUENCIES[payFrequency].label})</p>
-                            <p className="text-2xl font-bold text-green-600">{formatCurrency(calculations.netPay)}</p>
+                            <p className="text-2xl font-bold text-green-600">{formatCurrency(calculateNetPay())}</p>
                         </div>
                     </div>
                 </div>
@@ -1601,6 +2144,13 @@ const SalaryJournal = () => {
             {selectedRsuGrant && renderRsuVestingSchedule()}
         </div>
     );
+};
+
+// Set default props
+SalaryJournal.defaultProps = {
+    onSalaryAdded: () => {},
+    onSalaryUpdated: () => {},
+    onSalaryDeleted: () => {}
 };
 
 export default SalaryJournal;

@@ -1,4 +1,5 @@
-# Proxy API requests to the backend server
+# Redirect API requests to the backend server
 /api/*  https://api.trypersonalfinance.com/api/:splat  200
-# Handle SPA routing
-/*    /index.html   200 
+
+# Handle React Router client-side routing
+/*  /index.html  200 

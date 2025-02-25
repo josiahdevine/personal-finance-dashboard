@@ -1,5 +1,5 @@
 [build]
-  command = "CI=false npm run build"
+  command = "set \"CI=false\" && npm run build"
   publish = "build"
 
 [build.environment]
@@ -9,6 +9,9 @@
   REACT_APP_ENV = "production"
   REACT_APP_DOMAIN = "trypersonalfinance.com"
   REACT_APP_API_URL = "https://api.trypersonalfinance.com"
+  REACT_APP_DEPLOY_PLATFORM = "netlify"
+  REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
+  REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
 
 [[redirects]]
   from = "/api/*"
@@ -19,6 +22,13 @@
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+
+# Special redirect for authentication 
+[[redirects]]
+  from = "/.auth/*"
+  to = "https://personal-finance-dashboa-f76f6.firebaseapp.com/.auth/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"

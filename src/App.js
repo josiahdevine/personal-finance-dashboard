@@ -13,6 +13,11 @@ import { log, logError, logRender } from './utils/logger';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+import SalaryJournal from './Components/SalaryJournal';
+import BillsAnalysis from './Components/BillsAnalysis';
+import Goals from './Components/Goals';
+import LinkAccounts from './Components/LinkAccounts';
+import Transactions from './Components/Transactions';
 
 log('App', 'Initializing App component');
 
@@ -260,6 +265,66 @@ function App() {
                             <PrivateRoute>
                               <ErrorBoundary componentName="AskAI">
                                 <AskAI />
+                              </ErrorBoundary>
+                            </PrivateRoute>
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/salary-journal"
+                        element={
+                          <ErrorBoundary componentName="SalaryJournal">
+                            <PrivateRoute>
+                              <ErrorBoundary componentName="SalaryJournal">
+                                <SalaryJournal />
+                              </ErrorBoundary>
+                            </PrivateRoute>
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/bills-analysis"
+                        element={
+                          <ErrorBoundary componentName="BillsAnalysisRoute">
+                            <PrivateRoute>
+                              <ErrorBoundary componentName="BillsAnalysis">
+                                <BillsAnalysis />
+                              </ErrorBoundary>
+                            </PrivateRoute>
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/goals"
+                        element={
+                          <ErrorBoundary componentName="GoalsRoute">
+                            <PrivateRoute>
+                              <ErrorBoundary componentName="Goals">
+                                <Goals />
+                              </ErrorBoundary>
+                            </PrivateRoute>
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/link-accounts"
+                        element={
+                          <ErrorBoundary componentName="LinkAccountsRoute">
+                            <PrivateRoute>
+                              <ErrorBoundary componentName="LinkAccounts">
+                                <LinkAccounts />
+                              </ErrorBoundary>
+                            </PrivateRoute>
+                          </ErrorBoundary>
+                        }
+                      />
+                      <Route
+                        path="/transactions"
+                        element={
+                          <ErrorBoundary componentName="TransactionsRoute">
+                            <PrivateRoute>
+                              <ErrorBoundary componentName="Transactions">
+                                <Transactions />
                               </ErrorBoundary>
                             </PrivateRoute>
                           </ErrorBoundary>

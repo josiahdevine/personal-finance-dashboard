@@ -214,6 +214,14 @@ const SalaryJournal = () => {
     const { token, userId } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
 
+    // User management for multiple salary entries
+    const [users, setUsers] = useState([
+        { id: 'primary', name: 'Primary User', isActive: true }
+    ]);
+    const [activeUserId, setActiveUserId] = useState('primary');
+    const [showUserForm, setShowUserForm] = useState(false);
+    const [newUserName, setNewUserName] = useState('');
+
     // Additional salary information
     const [payType, setPayType] = useState('annual');
     const [basePay, setBasePay] = useState('');
@@ -299,10 +307,9 @@ const SalaryJournal = () => {
         notes: ''
     });
 
-    // Add useEffect to fetch salary entries when component mounts
     useEffect(() => {
         fetchSalaryEntries();
-    }, []); // Empty dependency array means this runs once when component mounts
+    }, [activeUserId]);
 
     useEffect(() => {
         if (salaryEntries.length > 0) {
@@ -349,28 +356,60 @@ const SalaryJournal = () => {
     const fetchSalaryEntries = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/salary/salary-entries', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
+            const response = await fetch(`/api/salary/entries?userId=${userId}&userProfileId=${activeUserId}`);
+            const data = await response.json();
+            
             if (response.ok) {
-                const data = await response.json();
                 setSalaryEntries(data);
-                console.log('Fetched salary entries:', data); // Add logging
             } else {
-                console.error('Failed to fetch salary entries:', response.status);
-                toast.error('Failed to fetch salary entries');
+                toast.error(data.message || 'Failed to load salary entries');
             }
         } catch (error) {
             console.error('Error fetching salary entries:', error);
-            toast.error('Error fetching salary entries');
+            toast.error('An error occurred while loading salary data');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAddUser = () => {
+        if (!newUserName.trim()) {
+            toast.error('Please enter a name for the user');
+            return;
+        }
+
+        const newUser = {
+            id: `user_${Date.now()}`,
+            name: newUserName.trim(),
+            isActive: false
+        };
+
+        setUsers([...users, newUser]);
+        setNewUserName('');
+        setShowUserForm(false);
+        toast.success(`Added ${newUserName} to your account`);
+    };
+
+    const switchActiveUser = (userId) => {
+        setActiveUserId(userId);
+        setUsers(users.map(user => ({
+            ...user,
+            isActive: user.id === userId
+        })));
+    };
+
+    const removeUser = (userId) => {
+        if (userId === 'primary') {
+            toast.error('Cannot remove the primary user');
+            return;
+        }
+
+        if (activeUserId === userId) {
+            setActiveUserId('primary');
+        }
+
+        setUsers(users.filter(user => user.id !== userId));
+        toast.success('User removed');
     };
 
     const handleSubmit = async (e) => {
@@ -1057,6 +1096,73 @@ const SalaryJournal = () => {
                 </button>
             </div>
 
+            {/* User Profile Selection */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Manage Household Members</h3>
+                    <button
+                        onClick={() => setShowUserForm(!showUserForm)}
+                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                    >
+                        {showUserForm ? 'Cancel' : 'Add Member'}
+                    </button>
+                </div>
+                
+                {showUserForm && (
+                    <div className="bg-blue-50 p-4 rounded mb-4">
+                        <div className="flex flex-col md:flex-row gap-2">
+                            <input
+                                type="text"
+                                value={newUserName}
+                                onChange={(e) => setNewUserName(e.target.value)}
+                                placeholder="Enter name"
+                                className="flex-grow p-2 border rounded"
+                            />
+                            <button
+                                onClick={handleAddUser}
+                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {users.map(user => (
+                        <div 
+                            key={user.id}
+                            className={`p-3 rounded border ${user.isActive ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'} flex justify-between items-center`}
+                        >
+                            <span className={user.isActive ? 'font-medium' : ''}>{user.name}</span>
+                            <div>
+                                {!user.isActive && (
+                                    <button
+                                        onClick={() => switchActiveUser(user.id)}
+                                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded mr-2 text-xs hover:bg-blue-200"
+                                    >
+                                        Switch
+                                    </button>
+                                )}
+                                {user.id !== 'primary' && (
+                                    <button
+                                        onClick={() => removeUser(user.id)}
+                                        className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            
+            {/* Active user indicator */}
+            <div className="bg-blue-50 p-3 rounded mb-6 text-sm text-blue-700">
+                Currently managing salary information for: <span className="font-semibold">{users.find(u => u.id === activeUserId)?.name || 'Primary User'}</span>
+            </div>
+            
             {/* Salary Entry Form */}
             {showForm && (
                 <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">

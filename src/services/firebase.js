@@ -35,6 +35,10 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-6RVP8YZH3S"
 };
 
+// Enhanced logging for production troubleshooting
+console.log(`[Firebase Config] Using Auth Domain: ${firebaseConfig.authDomain}`);
+console.log(`[Firebase Config] Current Origin: ${window.location.origin}`);
+
 // Type check firebaseConfig to ensure it's valid
 let configValid = true;
 const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
@@ -78,6 +82,21 @@ try {
   if (!isProduction) {
     log('Firebase', 'Firebase auth initialized successfully');
   }
+
+  // Check if we're on the production domain to avoid CORS issues with Firebase Auth
+  const isCustomDomain = window.location.hostname === 'trypersonalfinance.com' || 
+                        window.location.hostname === 'www.trypersonalfinance.com';
+
+  if (isCustomDomain) {
+    console.log('[Firebase Config] Running on custom domain, updating Firebase Auth configuration');
+    
+    // When on custom domain, make sure we're using the proper settings
+    if (auth) {
+      auth.config.authDomain = 'personal-finance-dashboa-f76f6.firebaseapp.com';
+      console.log('[Firebase Config] Updated Auth domain for custom domain use');
+    }
+  }
+  
 } catch (error) {
   logError('Firebase', 'Error initializing Firebase', error, {
     config: { ...firebaseConfig, apiKey: '***REDACTED***' }
@@ -92,6 +111,14 @@ try {
       }
       if (!auth) {
         auth = getAuth(app);
+
+        // Check for custom domain after recovery
+        const isCustomDomain = window.location.hostname === 'trypersonalfinance.com' || 
+                             window.location.hostname === 'www.trypersonalfinance.com';
+
+        if (isCustomDomain && auth) {
+          auth.config.authDomain = 'personal-finance-dashboa-f76f6.firebaseapp.com';
+        }
       }
     } catch (fallbackError) {
       // Critical failure, we can't recover
@@ -182,6 +209,15 @@ export const loginUser = async (email, password) => {
           break;
         case 'auth/network-request-failed':
           friendlyMessage = 'Network error - please check your connection';
+          break;
+        case 'auth/invalid-credential':
+          friendlyMessage = 'Invalid login credentials. The site domain may not be authorized in Firebase.';
+          // Add extra console logging for debugging
+          console.error('[Firebase Auth Error] Invalid credential error.', {
+            domain: window.location.origin,
+            authDomain: auth.config.authDomain,
+            errorDetails: error
+          });
           break;
       }
       

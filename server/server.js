@@ -90,8 +90,8 @@ const corsOptions = {
             'http://localhost:3000'
         ];
 
-        // Check if origin exactly matches our allowed domains or is a Vercel preview
-        if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+        // Check if origin exactly matches our allowed domains or is a Netlify preview
+        if (allowedOrigins.includes(origin) || origin.includes('netlify.app')) {
             // Use the actual requesting origin as the allowed origin in the response
             callback(null, origin);
         } else {
@@ -131,7 +131,7 @@ app.options('*', (req, res) => {
             'http://localhost:3000'
         ];
         
-        if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+        if (allowedOrigins.includes(origin) || origin.includes('netlify.app')) {
             res.header('Access-Control-Allow-Origin', origin);
             res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
             res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');

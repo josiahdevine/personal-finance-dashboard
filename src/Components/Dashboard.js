@@ -79,6 +79,7 @@ function Dashboard() {
     spending: { data: null, loading: true, error: null },
     goals: { data: [], loading: true, error: null }
   });
+  const [debugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -95,25 +96,90 @@ function Dashboard() {
             ? endpoint 
             : `/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
           
-          const response = await api.get(formattedEndpoint);
-          console.log(`${stateKey} raw data:`, response.data);
+          console.log(`[Dashboard] Fetching data from ${formattedEndpoint}`);
           
-          // Apply adapter function if provided
-          const processedData = adapter ? adapter(response.data) : response.data;
-          console.log(`${stateKey} processed data:`, processedData);
-          
-          setState(prev => ({
-            ...prev,
-            [stateKey]: { data: processedData, loading: false, error: null }
-          }));
+          try {
+            const response = await api.get(formattedEndpoint);
+            console.log(`[Dashboard] ${stateKey} raw data:`, response.data);
+            
+            // Apply adapter function if provided
+            const processedData = adapter ? adapter(response.data) : response.data;
+            console.log(`[Dashboard] ${stateKey} processed data:`, processedData);
+            
+            setState(prev => ({
+              ...prev,
+              [stateKey]: { data: processedData, loading: false, error: null }
+            }));
+          } catch (apiError) {
+            console.error(`[Dashboard] API Error fetching ${stateKey}:`, apiError);
+            
+            // Create fallback mock data in case of API errors
+            let mockData = null;
+            
+            // Use fallback mock data based on endpoint
+            if (endpoint.includes('balance-history')) {
+              mockData = {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                datasets: [{
+                  label: 'Net Worth',
+                  data: [10000, 12000, 13500, 14200, 15000],
+                  fill: false,
+                  borderColor: 'rgb(75, 192, 192)',
+                  tension: 0.1
+                }]
+              };
+            } else if (endpoint.includes('monthly-summary')) {
+              mockData = { average: 5000 };
+            } else if (endpoint.includes('spending-summary')) {
+              mockData = {
+                total: 3500,
+                categories: [
+                  { name: 'Housing', amount: 1500 },
+                  { name: 'Food', amount: 800 },
+                  { name: 'Transportation', amount: 400 },
+                  { name: 'Entertainment', amount: 300 },
+                  { name: 'Other', amount: 500 }
+                ]
+              };
+            } else if (endpoint.includes('goals')) {
+              mockData = [
+                { id: '1', name: 'Emergency Fund', current: 5000, target: 10000, progress: 50 },
+                { id: '2', name: 'Vacation', current: 2000, target: 5000, progress: 40 },
+                { id: '3', name: 'Down Payment', current: 15000, target: 50000, progress: 30 }
+              ];
+            }
+            
+            if (mockData) {
+              console.log(`[Dashboard] Using mock data for ${stateKey}`, mockData);
+              const processedMockData = adapter ? adapter(mockData) : mockData;
+              
+              setState(prev => ({
+                ...prev,
+                [stateKey]: { 
+                  data: processedMockData, 
+                  loading: false, 
+                  error: `API Error: ${apiError.message}. Using mock data instead.` 
+                }
+              }));
+            } else {
+              setState(prev => ({
+                ...prev,
+                [stateKey]: {
+                  data: prev[stateKey].data,
+                  loading: false,
+                  error: `Error: ${apiError.message || 'Failed to load data'}`
+                }
+              }));
+            }
+          }
         } catch (error) {
-          console.error(`Error fetching ${stateKey}:`, error);
+          console.error(`[Dashboard] Critical error in fetchData for ${stateKey}:`, error);
           setState(prev => ({
             ...prev,
             [stateKey]: {
-              data: prev[stateKey].data, // Preserve any existing data
+              data: prev[stateKey].data,
               loading: false,
-              error: error.message || `Failed to load ${stateKey} data`
+              error: `Critical Error: ${error.message || 'Unknown error occurred'}`
             }
           }));
         }
@@ -128,6 +194,10 @@ function Dashboard() {
 
     fetchDashboardData();
   }, []);
+
+  const toggleDebugMode = () => {
+    setDebugMode(!debugMode);
+  };
 
   const netWorthChartOptions = {
     responsive: true,
@@ -145,7 +215,28 @@ function Dashboard() {
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Financial Dashboard</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Financial Dashboard</h2>
+        <button 
+          onClick={toggleDebugMode}
+          className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+        >
+          {debugMode ? 'Hide Debug' : 'Show Debug'}
+        </button>
+      </div>
+      
+      {debugMode && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-xs font-mono overflow-auto">
+          <h3 className="font-bold mb-2">Debug Information:</h3>
+          <p>API Base URL: {process.env.REACT_APP_API_URL || 'https://api.trypersonalfinance.com'}</p>
+          <p>Current Window Origin: {window.location.origin}</p>
+          <p>Environment: {process.env.NODE_ENV}</p>
+          <div className="mt-2">
+            <p className="font-bold">Data State:</p>
+            <pre>{JSON.stringify(state, null, 2)}</pre>
+          </div>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Net Worth Panel */}
@@ -167,6 +258,14 @@ function Dashboard() {
               )}
             </div>
           )}
+          <div className="mt-4 flex justify-end">
+            <a 
+              href="/link-accounts" 
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+            >
+              Connect Accounts
+            </a>
+          </div>
         </DashboardPanel>
 
         {/* Monthly Income Panel */}
@@ -187,6 +286,14 @@ function Dashboard() {
               }
             </p>
             <p className="text-sm text-gray-600 mt-2">Average Monthly Income</p>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <a 
+              href="/salary-journal" 
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+            >
+              Update Income
+            </a>
           </div>
         </DashboardPanel>
 
@@ -226,6 +333,14 @@ function Dashboard() {
               No spending data available
             </div>
           )}
+          <div className="mt-4 flex justify-end">
+            <a 
+              href="/transactions" 
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+            >
+              Track Expenses
+            </a>
+          </div>
         </DashboardPanel>
 
         {/* Bills Analysis Panel */}
@@ -233,6 +348,14 @@ function Dashboard() {
           <ErrorBoundary fallback={<div className="text-red-500">Error loading Bills Analysis</div>}>
             <BillsAnalysis />
           </ErrorBoundary>
+          <div className="mt-4 flex justify-end">
+            <a 
+              href="/bills-analysis" 
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+            >
+              Manage Bills
+            </a>
+          </div>
         </DashboardPanel>
 
         {/* Financial Goals Panel */}
@@ -270,6 +393,14 @@ function Dashboard() {
               No financial goals set. Start by adding a goal!
             </div>
           )}
+          <div className="mt-4 flex justify-end">
+            <a 
+              href="/goals" 
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition"
+            >
+              Set Goals
+            </a>
+          </div>
         </DashboardPanel>
       </div>
     </div>

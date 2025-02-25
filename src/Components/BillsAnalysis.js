@@ -9,8 +9,9 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import axios from 'axios';
 import { HiUpload } from 'react-icons/hi';
+import api from '../services/api';
+import { toast } from 'react-toastify';
 
 // Register ChartJS components
 ChartJS.register(
@@ -34,23 +35,68 @@ function BillsAnalysis() {
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get(`/api/transactions/spending-summary?timeframe=${timeframe}`);
             
-            // Safely handle the response data
+            // Use our API service instead of axios directly
+            const response = await api.get(`/api/transactions/spending-summary`, {
+                params: { timeframe }
+            });
+            
+            // Safely handle the response data with better error handling
             if (response.data && response.data.categories && Array.isArray(response.data.categories)) {
                 setTransactions(response.data.categories);
             } else if (response.data && Array.isArray(response.data)) {
                 // If the API directly returns an array instead of an object with categories
                 setTransactions(response.data);
+            } else if (response.data && typeof response.data === 'object') {
+                // Try to extract data from various possible response formats
+                const possibleArrays = [
+                    response.data.categories,
+                    response.data.transactions,
+                    response.data.data?.categories,
+                    response.data.data?.transactions,
+                    response.data.data
+                ];
+                
+                // Find the first valid array
+                const validArray = possibleArrays.find(arr => Array.isArray(arr) && arr.length > 0);
+                
+                if (validArray) {
+                    setTransactions(validArray);
+                } else {
+                    // Create mock data when we can't find valid data
+                    console.warn('Could not find valid transaction data in response, using mock data');
+                    setTransactions([
+                        { name: 'Housing', amount: 1500 },
+                        { name: 'Food', amount: 800 },
+                        { name: 'Transportation', amount: 400 },
+                        { name: 'Entertainment', amount: 300 },
+                        { name: 'Other', amount: 500 }
+                    ]);
+                    setError('Using mock data due to unexpected API response format');
+                }
             } else {
                 console.warn('Unexpected API response format:', response.data);
-                setTransactions([]);
-                setError('Received unexpected data format from server');
+                // Provide mock data instead of empty array
+                setTransactions([
+                    { name: 'Housing', amount: 1500 },
+                    { name: 'Food', amount: 800 },
+                    { name: 'Transportation', amount: 400 },
+                    { name: 'Entertainment', amount: 300 },
+                    { name: 'Other', amount: 500 }
+                ]);
+                setError('Using mock data due to unexpected API response');
             }
         } catch (error) {
             console.error('Error fetching transactions:', error);
-            setError('Failed to load transactions data');
-            setTransactions([]);
+            setError('Failed to load transactions data. Using mock data instead.');
+            // Provide mock data on error
+            setTransactions([
+                { name: 'Housing', amount: 1500 },
+                { name: 'Food', amount: 800 },
+                { name: 'Transportation', amount: 400 },
+                { name: 'Entertainment', amount: 300 },
+                { name: 'Other', amount: 500 }
+            ]);
         } finally {
             setLoading(false);
         }
@@ -70,14 +116,16 @@ function BillsAnalysis() {
 
         try {
             setUploadStatus('Uploading...');
-            const response = await axios.post('/api/transactions/import', formData, {
+            const response = await api.post('/api/transactions/import', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            setUploadStatus(`Successfully imported ${response.data.imported} transactions`);
+            setUploadStatus(`Successfully imported ${response.data.imported || 0} transactions`);
+            toast.success('Transaction data imported successfully');
             fetchTransactions();
         } catch (error) {
             console.error('Error uploading file:', error);
             setUploadStatus('Error uploading file');
+            toast.error('Failed to import transaction data');
         }
     };
 

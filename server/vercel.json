@@ -18,7 +18,6 @@
             }
         }
     ],
-    "buildCommand": "npm run migrate:prod",
     "env": {
         "NODE_ENV": "production"
     }

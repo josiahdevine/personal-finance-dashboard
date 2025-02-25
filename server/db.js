@@ -3,15 +3,16 @@ const { Pool } = require('pg');
 const config = require('./config/' + (process.env.NODE_ENV || 'development'));
 require('dotenv').config();
 
-// Create connection pool with retries
+// Create connection pool with Neon Tech optimized settings
 const createPool = () => {
     const pool = new Pool({
         connectionString: config.database.url,
         ssl: config.database.ssl,
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 15000,
-        query_timeout: 20000
+        max: 10, // Reduced max connections for better stability
+        idleTimeoutMillis: 60000, // Increased idle timeout
+        connectionTimeoutMillis: 10000,
+        query_timeout: 30000,
+        keepAlive: true // Enable TCP keepalive
     });
 
     // Log connection events
@@ -37,26 +38,34 @@ const createPool = () => {
             hint: err.hint
         });
 
-        // Don't exit the process in production
-        if (process.env.NODE_ENV !== 'production') {
-            process.exit(-1);
+        // Create a new pool if the current one has an error
+        if (process.env.NODE_ENV === 'production') {
+            console.log('Attempting to create new pool after error');
+            return createPool();
         }
     });
 
     return pool;
 };
 
-const pool = createPool();
+let pool = createPool();
 
-// Wrapper for query execution with retries
+// Wrapper for query execution with retries and connection check
 const executeQuery = async (text, params, retries = 3) => {
     for (let i = 0; i < retries; i++) {
         try {
+            // Test the connection before executing the query
+            if (!pool._clients || pool._clients.length === 0) {
+                console.log('No active clients, creating new pool');
+                pool = createPool();
+            }
+
             console.log('Executing query:', {
-                text,
+                text: text.substring(0, 50) + '...',
                 params: params ? 'present' : 'none',
                 attempt: i + 1
             });
+
             const result = await pool.query(text, params);
             return result;
         } catch (error) {
@@ -67,9 +76,15 @@ const executeQuery = async (text, params, retries = 3) => {
                 remaining: retries - i - 1
             });
 
+            // Handle specific Neon Tech error codes
+            if (error.code === '57P01' || error.code === '57P02' || error.code === '57P03') {
+                console.log('Connection terminated, creating new pool');
+                pool = createPool();
+            }
+
             if (i === retries - 1) throw error;
 
-            // Wait before retrying
+            // Exponential backoff before retrying
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
         }
     }

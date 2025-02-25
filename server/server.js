@@ -20,7 +20,26 @@ const investmentRoutes = require('./routes/investmentRoutes');
 
 const app = express();
 
-// Debug middleware
+// Improved error handling for serverless environment
+let dbConnection = null;
+
+// Initialize database connection
+async function initializeDatabase() {
+    if (!dbConnection) {
+        try {
+            const testResult = await pool.query('SELECT NOW()');
+            console.log('Database connection successful:', testResult.rows[0].now);
+            dbConnection = pool;
+            return true;
+        } catch (error) {
+            console.error('Database connection error:', error.message);
+            return false;
+        }
+    }
+    return true;
+}
+
+// Debug middleware with improved error handling
 app.use((req, res, next) => {
     console.log('Request:', {
         method: req.method,
@@ -30,21 +49,26 @@ app.use((req, res, next) => {
         query: req.query
     });
 
-    // Capture the original send
+    // Capture the original send with error handling
     const originalSend = res.send;
     res.send = function(data) {
-        console.log('Response:', {
-            statusCode: res.statusCode,
-            headers: res._headers,
-            body: data
-        });
-        return originalSend.apply(res, arguments);
+        try {
+            console.log('Response:', {
+                statusCode: res.statusCode,
+                headers: res._headers,
+                body: data
+            });
+            return originalSend.apply(res, arguments);
+        } catch (error) {
+            console.error('Error in response:', error);
+            return originalSend.apply(res, [{ error: 'Internal Server Error' }]);
+        }
     };
 
     next();
 });
 
-// CORS configuration
+// CORS configuration with error handling
 const corsOptions = {
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
@@ -73,9 +97,18 @@ const corsOptions = {
     maxAge: 86400
 };
 
-app.use(cors(corsOptions));
+// Middleware with error handling
+app.use(async (req, res, next) => {
+    try {
+        await initializeDatabase();
+        next();
+    } catch (error) {
+        console.error('Middleware error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
-// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -106,18 +139,6 @@ console.log('Environment:', {
     PLAID_ENV: process.env.PLAID_ENV
 });
 
-// Test database connection
-async function testDatabaseConnection() {
-    try {
-        const result = await pool.query('SELECT NOW()');
-        console.log('Database connection successful:', result.rows[0].now);
-        return true;
-    } catch (error) {
-        console.error('Database connection error:', error.message);
-        return false;
-    }
-}
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/plaid', authenticateToken, plaidRoutes);
@@ -129,7 +150,7 @@ app.use('/api/investments', investmentRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
-    const dbConnected = await testDatabaseConnection();
+    const dbConnected = await initializeDatabase();
     res.json({
         status: dbConnected ? 'ok' : 'database_error',
         timestamp: new Date().toISOString(),
@@ -161,7 +182,7 @@ app.get('/api/salary-journal/:userId', authenticateToken, SalaryJournalControlle
 app.put('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.updateSalaryEntry);
 app.delete('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.deleteSalaryEntry);
 
-// Error handling middleware
+// Enhanced error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', {
         message: err.message,
@@ -192,20 +213,13 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-const port = process.env.PORT || 5000;
-const server = app.listen(port, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
-    testDatabaseConnection();
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Promise Rejection:', err);
-    // Don't exit the process in production, just log the error
-    if (process.env.NODE_ENV !== 'production') {
-        server.close(() => process.exit(1));
-    }
-});
+// Serverless-friendly startup
+if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT || 5000;
+    app.listen(port, async () => {
+        console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
+        await initializeDatabase();
+    });
+}
 
 module.exports = app;

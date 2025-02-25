@@ -15,6 +15,9 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import initDeploymentDebug from './utils/deploymentDebug';
+import runFirebaseTest from './utils/firebaseTest';
+// Import migration utilities
+import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
 
 // Import page components
 import Dashboard from './pages/Dashboard';
@@ -35,6 +38,23 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 
 log('App', 'Initializing App component');
+
+// Store the current domain for deployment tracking
+localStorage.setItem('last_domain', window.location.hostname);
+
+// Run Firebase connectivity tests
+if (process.env.NODE_ENV === 'production') {
+  runFirebaseTest()
+    .then(results => {
+      console.log('Firebase test results:', results);
+      if (!results.success) {
+        console.error('Firebase tests failed. Please check the console for more details.');
+      }
+    })
+    .catch(error => {
+      console.error('Error running Firebase tests:', error);
+    });
+}
 
 // Initialize deployment debugging in production
 initDeploymentDebug();
@@ -78,6 +98,16 @@ const PrivateRoute = ({ children }) => {
     loading,
     hasAuthError: !!authError
   });
+  
+  // Migration check for authenticated users
+  useEffect(() => {
+    if (currentUser && !loading) {
+      // Check if user needs migration notice
+      if (checkNeedsMigration()) {
+        showMigrationNotice();
+      }
+    }
+  }, [currentUser, loading]);
   
   if (loading) {
     log('App', 'PrivateRoute - Auth is loading, showing loading state');
@@ -197,6 +227,11 @@ function App() {
   
   useEffect(() => {
     log('App', 'App component mounted');
+    
+    // Track deployment info for version checks
+    localStorage.setItem('deployment_platform', 'netlify');
+    localStorage.setItem('app_version', '2.0.0');
+    localStorage.setItem('last_domain', window.location.hostname);
     
     // Add global error handler for unhandled promise rejections
     const handleUnhandledRejection = (event) => {

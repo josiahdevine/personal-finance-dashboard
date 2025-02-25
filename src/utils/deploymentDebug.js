@@ -1,184 +1,56 @@
 /**
  * Deployment Debug Utility
  * 
- * This utility helps diagnose issues in production deployments by:
- * 1. Checking for common issues (missing APIs, broken imports, etc)
- * 2. Logging detailed information about the runtime environment
- * 3. Providing detailed error information for Plaid and navigation problems
+ * This utility helps debug issues with deployment environments.
+ * It logs important information about the current environment and configuration.
  */
 
-import { log, logError } from './logger';
+const initDeploymentDebug = () => {
+  // Only run in production
+  if (process.env.NODE_ENV !== 'production') return;
 
-// Check if we're running in production mode
-const isProduction = process.env.NODE_ENV === 'production';
-
-/**
- * Run a full diagnostics check of the app
- */
-export const runDiagnostics = () => {
-  try {
-    log('Diagnostics', 'Running deployment diagnostics');
-    
-    // Check environment
-    const environment = {
-      nodeEnv: process.env.NODE_ENV,
-      buildTime: process.env.REACT_APP_BUILD_TIME || 'unknown',
-      buildId: process.env.REACT_APP_BUILD_ID || 'unknown',
-      userAgent: window.navigator?.userAgent || 'unknown',
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight
-      },
-      url: window.location.href
-    };
-    
-    log('Diagnostics', 'Environment info', environment);
-    
-    // Check for important global objects
-    checkGlobalObjects();
-    
-    // Check window features that might be missing in some environments
-    checkWindowFeatures();
-    
-    // Report any already caught errors
-    reportExistingErrors();
-    
-    log('Diagnostics', 'Diagnostics completed successfully');
-    return {
-      success: true,
-      environment
-    };
-  } catch (error) {
-    logError('Diagnostics', 'Error running diagnostics', error);
-    return {
-      success: false,
-      error: error.message
-    };
+  console.log('====== DEPLOYMENT DEBUG INFORMATION ======');
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`Hostname: ${window.location.hostname}`);
+  console.log(`Origin: ${window.location.origin}`);
+  
+  // Check important environment variables
+  console.log('\n=== Environment Variables ===');
+  console.log(`REACT_APP_API_URL: ${process.env.REACT_APP_API_URL || 'Not set'}`);
+  console.log(`REACT_APP_DOMAIN: ${process.env.REACT_APP_DOMAIN || 'Not set'}`);
+  console.log(`REACT_APP_DEPLOY_PLATFORM: ${process.env.REACT_APP_DEPLOY_PLATFORM || 'Not set'}`);
+  
+  // Check Firebase configuration
+  console.log('\n=== Firebase Configuration ===');
+  console.log(`Firebase API Key exists: ${Boolean(process.env.REACT_APP_FIREBASE_API_KEY)}`);
+  console.log(`Firebase Auth Domain: ${process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || 'Not set'}`);
+  console.log(`Firebase Project ID: ${process.env.REACT_APP_FIREBASE_PROJECT_ID || 'Not set'}`);
+  
+  // Check if the current domain is likely to be in Firebase authorized domains
+  const currentDomain = window.location.hostname;
+  const authDomain = process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || '';
+  const isAuthDomainSetup = Boolean(authDomain);
+  const isNetlifyDomain = currentDomain.includes('netlify.app');
+  const isCustomDomain = currentDomain.includes('trypersonalfinance.com');
+  
+  console.log('\n=== Domain Authorization Check ===');
+  console.log(`Current domain: ${currentDomain}`);
+  console.log(`Firebase Auth Domain is set up: ${isAuthDomainSetup ? 'Yes' : 'No'}`);
+  console.log(`Using Netlify domain: ${isNetlifyDomain ? 'Yes' : 'No'}`);
+  console.log(`Using custom domain: ${isCustomDomain ? 'Yes' : 'No'}`);
+  
+  // Check for common Firebase authentication issues
+  console.log('\n=== Authentication Setup Check ===');
+  if (isCustomDomain) {
+    console.log('IMPORTANT: Ensure trypersonalfinance.com is added to Firebase authorized domains');
+    console.log('Instructions:');
+    console.log('1. Go to Firebase console: https://console.firebase.google.com/');
+    console.log('2. Select your project: personal-finance-dashboa-f76f6');
+    console.log('3. Go to Authentication > Settings > Authorized domains');
+    console.log('4. Add trypersonalfinance.com if not already listed');
   }
+  
+  console.log('====== END DEBUG INFORMATION ======');
 };
 
-/**
- * Check that essential global objects are available
- */
-const checkGlobalObjects = () => {
-  const checks = {
-    window: typeof window !== 'undefined',
-    document: typeof document !== 'undefined',
-    localStorage: typeof localStorage !== 'undefined',
-    navigator: typeof navigator !== 'undefined',
-    fetch: typeof fetch === 'function',
-    Promise: typeof Promise === 'function'
-  };
-  
-  log('Diagnostics', 'Global object availability', checks);
-  
-  // Report any missing objects
-  const missing = Object.entries(checks)
-    .filter(([_, exists]) => !exists)
-    .map(([name]) => name);
-    
-  if (missing.length > 0) {
-    logError('Diagnostics', 'Missing essential global objects', 
-      new Error(`Missing: ${missing.join(', ')}`));
-  }
-};
-
-/**
- * Check for browser features that might be missing
- */
-const checkWindowFeatures = () => {
-  try {
-    // Detect localStorage availability (might be disabled)
-    let localStorageAvailable = false;
-    try {
-      localStorage.setItem('diagnostics_test', 'test');
-      localStorageAvailable = localStorage.getItem('diagnostics_test') === 'test';
-      localStorage.removeItem('diagnostics_test');
-    } catch (e) {
-      localStorageAvailable = false;
-    }
-    
-    // Check other features
-    const features = {
-      localStorage: localStorageAvailable,
-      sessionStorage: typeof sessionStorage !== 'undefined',
-      history: typeof window.history !== 'undefined' && typeof window.history.pushState === 'function',
-      geolocation: navigator && 'geolocation' in navigator,
-      serviceWorker: navigator && 'serviceWorker' in navigator
-    };
-    
-    log('Diagnostics', 'Browser features availability', features);
-  } catch (error) {
-    logError('Diagnostics', 'Error checking window features', error);
-  }
-};
-
-/**
- * Report any errors that have already been caught
- */
-const reportExistingErrors = () => {
-  try {
-    // Check for stored errors
-    const storedErrors = localStorage.getItem('app_errors');
-    if (storedErrors) {
-      try {
-        const errors = JSON.parse(storedErrors);
-        log('Diagnostics', 'Found previously logged errors', { count: errors.length });
-      } catch (e) {
-        logError('Diagnostics', 'Error parsing stored errors', e);
-      }
-    }
-  } catch (error) {
-    // If we can't access localStorage, just log and continue
-    logError('Diagnostics', 'Error reporting existing errors', error);
-  }
-};
-
-/**
- * Initialize deployment debugging
- * Runs when the app starts to catch any early issues
- */
-export const initDeploymentDebug = () => {
-  // Only run extensive debugging in production
-  if (!isProduction) {
-    log('Diagnostics', 'Skipping deployment debug in development mode');
-    return;
-  }
-  
-  log('Diagnostics', 'Initializing deployment debug');
-  
-  // Run diagnostics
-  runDiagnostics();
-  
-  // Set up global error handlers if not already done
-  if (!window._debugHandlersInitialized) {
-    // Track unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      logError('Diagnostics', 'Unhandled promise rejection', event.reason, {
-        message: event.reason?.message || 'Unknown promise rejection',
-        stack: event.reason?.stack
-      });
-    });
-    
-    // Track global errors
-    window.addEventListener('error', (event) => {
-      logError('Diagnostics', 'Unhandled error', event.error || new Error(event.message), {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno
-      });
-    });
-    
-    window._debugHandlersInitialized = true;
-  }
-  
-  // Check for URL parameters that might indicate debugging mode
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('debug') || urlParams.has('diagnose')) {
-    log('Diagnostics', 'Debug mode activated via URL parameter');
-    runDiagnostics();
-  }
-};
-
-// Export a default function that can be imported and run
 export default initDeploymentDebug; 

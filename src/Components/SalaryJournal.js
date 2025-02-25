@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../contexts/AuthContext'; // Adjust path as needed
+import React, { useState, useEffect, useRef } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import { Line } from 'react-chartjs-2';
 import {
@@ -14,6 +13,7 @@ import {
 } from 'chart.js';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 // Register ChartJS components
 ChartJS.register(
@@ -211,7 +211,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [notes, setNotes] = useState('');
     const [bonusAmount, setBonusAmount] = useState('');
     const [commissionAmount, setCommissionAmount] = useState('');
-    const { token, userId } = useContext(AuthContext);
+    const { token, userId, currentUser } = useAuth();
     const [loading, setLoading] = useState(false);
 
     // User management for multiple salary entries
@@ -226,7 +226,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [payType, setPayType] = useState('annual');
     const [basePay, setBasePay] = useState('');
     const [hoursPerWeek, setHoursPerWeek] = useState(40);
-    const [payFrequency, setPayFrequency] = useState('BIWEEKLY');
+    const [payFrequency, setPayFrequency] = useState('biweekly');
     
     // Additional income
     const [overtime, setOvertime] = useState({ hours: 0, rate: 1.5 });
@@ -320,6 +320,12 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     });
 
     const [bonusIsPercentage, setBonusIsPercentage] = useState(false);
+
+    // Add missing state variables for benefits
+    const [healthInsurance, setHealthInsurance] = useState('0');
+    const [dentalInsurance, setDentalInsurance] = useState('0');
+    const [visionInsurance, setVisionInsurance] = useState('0'); 
+    const [retirement401k, setRetirement401k] = useState('0');
 
     useEffect(() => {
         fetchSalaryEntries();

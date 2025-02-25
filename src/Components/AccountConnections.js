@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext'; // Adjust path as needed
+import { AuthContext } from '../contexts/AuthContext'; // Adjust path as needed
 import { toast, ToastContainer } from 'react-toastify';
 import { Line } from 'react-chartjs-2';
 import {

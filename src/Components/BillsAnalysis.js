@@ -24,16 +24,12 @@ ChartJS.register(
 
 function BillsAnalysis() {
     const [transactions, setTransactions] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState(null);
     const [timeframe, setTimeframe] = useState('month');
     const [loading, setLoading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
 
-    useEffect(() => {
-        fetchTransactions();
-    }, [timeframe]);
-
-    const fetchTransactions = async () => {
+    // Define fetchTransactions with useCallback before using it in useEffect
+    const fetchTransactions = React.useCallback(async () => {
         try {
             setLoading(true);
             const response = await axios.get(`/api/transactions/spending-summary?timeframe=${timeframe}`);
@@ -43,7 +39,12 @@ function BillsAnalysis() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [timeframe]);
+
+    // Now use fetchTransactions in useEffect
+    useEffect(() => {
+        fetchTransactions();
+    }, [timeframe, fetchTransactions]);
 
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
@@ -151,7 +152,7 @@ function BillsAnalysis() {
                                 <div
                                     key={transaction.category}
                                     className="flex justify-between items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-                                    onClick={() => setSelectedCategory(transaction.category)}
+                                    onClick={() => console.log(`Selected category: ${transaction.category}`)}
                                 >
                                     <div>
                                         <h4 className="font-medium">{transaction.category}</h4>

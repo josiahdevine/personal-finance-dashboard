@@ -6,7 +6,6 @@ import {
   signOut,
   onAuthStateChanged
 } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U",
@@ -21,7 +20,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const analytics = getAnalytics(app);
 
 // Authentication functions
 export const registerUser = async (email, password) => {
@@ -55,4 +53,10 @@ export const onAuthStateChange = (callback) => {
   return onAuthStateChanged(auth, callback);
 };
 
-export { auth, app }; 
+export { 
+  auth, 
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut
+}; 

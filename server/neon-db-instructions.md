@@ -8,7 +8,7 @@ We're experiencing authentication issues with the Neon PostgreSQL database. Here
 2. Sign in with your credentials
 3. Select your project "personal-finance-dashboard" 
 4. Navigate to the "Connection Details" tab
-5. Find the role "josiah" (or create a new role if needed)
+5. Find the role "neondb_owner" (or create a new role if needed)
 6. Reset the password for this role
 7. Make sure to copy the new password
 
@@ -20,7 +20,7 @@ After resetting the password, update the DATABASE_URL in both these files:
 
 The format should be:
 ```
-DATABASE_URL=postgres://josiah:YOUR_NEW_PASSWORD@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=postgres://neondb_owner:YOUR_NEW_PASSWORD@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require
 ```
 
 ## 3. Test the Connection

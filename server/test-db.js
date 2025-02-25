@@ -18,14 +18,14 @@ async function testConnections() {
     {
       name: 'Original connection string',
       config: {
-        connectionString: 'postgres://josiah:WPg5dfnvjCkM@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require',
+        connectionString: 'postgres://neondb_owner:WPg5dfnvjCkM@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require',
         ssl: { rejectUnauthorized: false }
       }
     },
     {
       name: 'Alternative connection format',
       config: {
-        connectionString: 'postgresql://josiah:WPg5dfnvjCkM@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require',
+        connectionString: 'postgresql://neondb_owner:WPg5dfnvjCkM@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require',
         ssl: { rejectUnauthorized: false }
       }
     },

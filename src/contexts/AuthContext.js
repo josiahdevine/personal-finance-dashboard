@@ -387,11 +387,7 @@ export const AuthProvider = ({ children }) => {
     authError,
     register,
     login,
-    logout,
-    resetPassword,
-    updateUserEmail,
-    updateUserPassword,
-    updateUserProfile
+    logout
   }), [currentUser, loading, isAuthenticated, authError]);
 
   return (

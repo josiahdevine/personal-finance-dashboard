@@ -7,7 +7,12 @@ import { toast } from 'react-toastify';
 const PlaidContext = createContext();
 
 export function usePlaid() {
-  return useContext(PlaidContext);
+  const context = useContext(PlaidContext);
+  if (!context) {
+    logError('usePlaid', 'PlaidContext used outside of provider', 
+      new Error('usePlaid must be used within a PlaidProvider'));
+  }
+  return context;
 }
 
 export function PlaidProvider({ children }) {
@@ -19,6 +24,15 @@ export function PlaidProvider({ children }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [contextReady, setContextReady] = useState(false);
+
+  // Log when context is mounted
+  useEffect(() => {
+    log('PlaidContext', 'PlaidProvider mounted');
+    return () => {
+      log('PlaidContext', 'PlaidProvider unmounted');
+    };
+  }, []);
 
   // Helper to use stored status as fallback - must be defined before it's used
   const getStoredStatusAsFallback = () => {
@@ -34,6 +48,7 @@ export function PlaidProvider({ children }) {
         setIsPlaidConnected(false);
       }
     } catch (e) {
+      logError('PlaidContext', 'Error in getStoredStatusAsFallback', e);
       setIsPlaidConnected(false);
     }
   };
@@ -41,7 +56,9 @@ export function PlaidProvider({ children }) {
   // Check if user is connected to Plaid
   const checkPlaidConnection = useCallback(async () => {
     if (!currentUser) {
+      log('PlaidContext', 'No current user, setting isPlaidConnected to false');
       setIsPlaidConnected(false);
+      setContextReady(true);
       return;
     }
 
@@ -58,6 +75,9 @@ export function PlaidProvider({ children }) {
           const isRecent = new Date().getTime() - parsedStatus.timestamp < 60 * 60 * 1000;
           
           if (isRecent) {
+            log('PlaidContext', 'Using recent stored Plaid status', { 
+              isConnected: parsedStatus.isConnected 
+            });
             setIsPlaidConnected(parsedStatus.isConnected);
             if (parsedStatus.accessToken) {
               setAccessToken(parsedStatus.accessToken);
@@ -66,6 +86,7 @@ export function PlaidProvider({ children }) {
             // Return early if we have recent stored status
             if (parsedStatus.isConnected) {
               setLoading(false);
+              setContextReady(true);
               return;
             }
           }
@@ -77,11 +98,13 @@ export function PlaidProvider({ children }) {
       
       // If no recent stored status, or status is not connected, check API
       try {
-        // Make sure the API exists before calling it
-        if (typeof api.get === 'function') {
+        // Make sure the API exists and is properly initialized
+        if (typeof api === 'object' && api !== null && typeof api.get === 'function') {
+          log('PlaidContext', 'Checking Plaid connection via API');
           const response = await api.get('/api/plaid/status');
           const status = response?.data?.connected || false;
           
+          log('PlaidContext', 'API returned Plaid status', { connected: status });
           setIsPlaidConnected(status);
           
           // Store in localStorage with timestamp
@@ -96,7 +119,8 @@ export function PlaidProvider({ children }) {
           }
         } else {
           // API not properly initialized
-          logError('PlaidContext', 'API not properly initialized', new Error('api.get is not a function'));
+          logError('PlaidContext', 'API not properly initialized', 
+            new Error(typeof api === 'object' ? 'api object exists but get method missing' : `api is ${typeof api}`));
           // Use stored status as fallback
           getStoredStatusAsFallback();
         }
@@ -109,6 +133,7 @@ export function PlaidProvider({ children }) {
       getStoredStatusAsFallback();
     } finally {
       setLoading(false);
+      setContextReady(true);
     }
   }, [currentUser]);
 
@@ -120,19 +145,23 @@ export function PlaidProvider({ children }) {
       logError('PlaidContext', 'Error in useEffect for checking Plaid connection', error);
       setIsPlaidConnected(false);
       setLoading(false);
+      setContextReady(true);
     }
   }, [currentUser, checkPlaidConnection]);
 
   // Create link token - safely wrap API calls
   const createLinkToken = useCallback(async () => {
-    if (!currentUser) return null;
+    if (!currentUser) {
+      logError('PlaidContext', 'Cannot create link token without a user');
+      return null;
+    }
 
     try {
       setLoading(true);
       log('PlaidContext', 'Creating Plaid link token');
       
-      if (typeof api.post !== 'function') {
-        throw new Error('API not properly initialized: api.post is not a function');
+      if (typeof api !== 'object' || api === null || typeof api.post !== 'function') {
+        throw new Error(`API not properly initialized: ${typeof api === 'object' ? 'api object exists but post method missing' : `api is ${typeof api}`}`);
       }
       
       const response = await api.post('/api/plaid/create-link-token', {
@@ -141,6 +170,7 @@ export function PlaidProvider({ children }) {
       
       const newLinkToken = response?.data?.link_token;
       if (newLinkToken) {
+        log('PlaidContext', 'Successfully created link token');
         setLinkToken(newLinkToken);
         return newLinkToken;
       } else {
@@ -158,13 +188,17 @@ export function PlaidProvider({ children }) {
 
   // Safe method to get transactions with proper error handling
   const getTransactions = useCallback(async (startDate, endDate) => {
-    if (!isPlaidConnected || !currentUser) return [];
+    if (!isPlaidConnected || !currentUser) {
+      log('PlaidContext', 'Cannot get transactions - not connected or no user');
+      return [];
+    }
 
     try {
       setLoading(true);
-      log('PlaidContext', 'Fetching transactions');
+      log('PlaidContext', 'Fetching transactions', { startDate, endDate });
       
       // Return mock transactions for now to avoid API errors
+      log('PlaidContext', 'Returning mock transactions');
       return mockTransactions;
     } catch (error) {
       logError('PlaidContext', 'Error fetching transactions', error);
@@ -208,6 +242,7 @@ export function PlaidProvider({ children }) {
     transactions,
     loading,
     error,
+    contextReady,
     checkPlaidConnection,
     createLinkToken,
     getTransactions

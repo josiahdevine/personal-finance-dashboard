@@ -108,6 +108,44 @@ class SalaryController {
             });
         }
     }
+
+    static async getSalaryEntries(req, res) {
+        try {
+            const userId = req.user.id;
+            const userProfileId = req.query.userProfileId;
+            
+            console.log('Fetching salary entries for user:', userId, 'profile:', userProfileId);
+            
+            let query;
+            let params;
+            
+            if (userProfileId) {
+                query = `
+                    SELECT * FROM salary_entries
+                    WHERE user_id = $1 AND user_profile_id = $2
+                    ORDER BY date DESC
+                `;
+                params = [userId, userProfileId];
+            } else {
+                query = `
+                    SELECT * FROM salary_entries
+                    WHERE user_id = $1
+                    ORDER BY date DESC
+                `;
+                params = [userId];
+            }
+
+            const result = await pool.query(query, params);
+            console.log(`Found ${result.rows.length} salary entries`);
+            res.json(result.rows);
+        } catch (error) {
+            console.error('Error fetching salary entries:', error);
+            res.status(500).json({
+                error: 'Failed to fetch salary entries',
+                message: error.message
+            });
+        }
+    }
 }
 
 module.exports = SalaryController; 

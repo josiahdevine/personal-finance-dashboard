@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -15,21 +15,48 @@ import {
 } from 'chart.js';
 import AuthMenu from '../components/AuthMenu';
 
+console.log('LandingPage.js: Initializing LandingPage component');
+
+// Log component imports
+console.log('LandingPage.js: AuthMenu import check:', {
+  AuthMenu: typeof AuthMenu === 'function' ? 'Function Component' : typeof AuthMenu,
+  AuthMenuExists: !!AuthMenu
+});
+
 // Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+console.log('LandingPage.js: Registering ChartJS components');
+try {
+  ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement
+  );
+  console.log('LandingPage.js: ChartJS components registered successfully');
+} catch (error) {
+  console.error('LandingPage.js: Error registering ChartJS components:', error);
+}
 
 const LandingPage = () => {
+  console.log('LandingPage.js: LandingPage component rendering');
   const [isAuthMenuOpen, setIsAuthMenuOpen] = useState(false);
+
+  useEffect(() => {
+    console.log('LandingPage.js: LandingPage component mounted');
+    return () => {
+      console.log('LandingPage.js: LandingPage component unmounting');
+    };
+  }, []);
+
+  // Log when AuthMenu opens/closes
+  useEffect(() => {
+    console.log('LandingPage.js: AuthMenu state changed:', { isOpen: isAuthMenuOpen });
+  }, [isAuthMenuOpen]);
 
   // Sample data for charts
   const netWorthData = {

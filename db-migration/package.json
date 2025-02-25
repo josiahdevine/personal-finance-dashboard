@@ -1,0 +1,13 @@
+{
+  "name": "neon-db-migration",
+  "version": "1.0.0",
+  "description": "Migration script for salary_entries table in Neon Tech PostgreSQL",
+  "main": "run_neon_migration.js",
+  "scripts": {
+    "migrate": "node run_neon_migration.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3"
+  }
+}

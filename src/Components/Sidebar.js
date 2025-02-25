@@ -10,7 +10,8 @@ import {
   HiOutlineCog,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
-  HiOutlineLogout
+  HiOutlineLogout,
+  HiOutlineLink
 } from 'react-icons/hi';
 import { useAuth } from '../contexts/AuthContext';
 import { useSidebar } from '../App';
@@ -67,9 +68,9 @@ function Sidebar() {
       icon: <HiOutlineChartBar className="w-6 h-6" />
     },
     {
-      name: 'Link Accounts',
+      name: 'Account Connections',
       path: '/link-accounts',
-      icon: <HiOutlineCreditCard className="w-6 h-6" />
+      icon: <HiOutlineLink className="w-6 h-6" />
     },
     {
       name: 'Goals',
@@ -80,6 +81,11 @@ function Sidebar() {
       name: 'Ask AI',
       path: '/ask-ai',
       icon: <HiOutlineQuestionMarkCircle className="w-6 h-6" />
+    },
+    {
+      name: 'Subscription',
+      path: '/subscription',
+      icon: <HiOutlineCreditCard className="w-6 h-6" />
     }
   ];
 

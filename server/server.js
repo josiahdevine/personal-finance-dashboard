@@ -82,10 +82,13 @@ const corsOptions = {
             'https://trypersonalfinance.com',
             'https://www.trypersonalfinance.com',
             'https://api.trypersonalfinance.com',
+            'https://personal-finance-dashboard.vercel.app',
             'http://localhost:3000'
         ];
 
+        // Allow all Vercel app domains or specific allowed origins
         if (allowedOrigins.includes(origin) || origin.includes('vercel.app')) {
+            console.log('Origin allowed by CORS:', origin);
             callback(null, true);
         } else {
             console.log('Origin not allowed by CORS:', origin);

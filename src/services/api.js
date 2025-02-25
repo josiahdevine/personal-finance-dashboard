@@ -1,10 +1,11 @@
 import axios from 'axios';
 import { auth } from './firebase';
 
-// Use the actual backend URL where your server is deployed
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://personal-finance-dashboard-ba5o39is4-josiah-devines-projects.vercel.app'
-  : 'http://localhost:5000';
+// Use the environment variable for API URL or fallback to the local server
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://personal-finance-dashboard.vercel.app'
+    : 'http://localhost:5000');
 
 console.log('API Base URL:', API_BASE_URL);
 console.log('Environment:', process.env.NODE_ENV);
@@ -22,29 +23,34 @@ const api = axios.create({
 // Add request interceptor for authentication
 api.interceptors.request.use(
   async (config) => {
-    // Get Firebase token
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      const token = await firebaseUser.getIdToken();
-      config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      // Fallback to JWT token if Firebase auth is not available
-      const jwtToken = localStorage.getItem('authToken');
-      if (jwtToken) {
-        config.headers.Authorization = `Bearer ${jwtToken}`;
+    try {
+      // Get Firebase token
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        const token = await firebaseUser.getIdToken();
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // Fallback to JWT token if Firebase auth is not available
+        const jwtToken = localStorage.getItem('authToken');
+        if (jwtToken) {
+          config.headers.Authorization = `Bearer ${jwtToken}`;
+        }
       }
-    }
 
-    // Log request details in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Request:', {
-        url: config.url,
-        method: config.method,
-        headers: config.headers,
-        data: config.data
-      });
+      // Log request details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Request:', {
+          url: config.url,
+          method: config.method,
+          headers: config.headers,
+          data: config.data
+        });
+      }
+      return config;
+    } catch (error) {
+      console.error('Request interceptor error:', error);
+      return config;
     }
-    return config;
   },
   (error) => {
     console.error('Request error:', error);
@@ -90,7 +96,10 @@ api.interceptors.response.use(
         // Handle both Firebase and JWT authentication
         auth.signOut().catch(console.error);
         localStorage.removeItem('authToken');
-        window.location.href = '/login';
+        // Only redirect to login if not already on login or landing page
+        if (!window.location.pathname.includes('login') && window.location.pathname !== '/') {
+          window.location.href = '/login';
+        }
         break;
       case 403:
         console.error('Access forbidden:', errorResponse.message);

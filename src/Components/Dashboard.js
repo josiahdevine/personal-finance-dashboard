@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import axios from 'axios';
+import api from '../services/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -56,7 +57,14 @@ function Dashboard() {
       // Helper function to handle API calls
       const fetchData = async (endpoint, stateKey) => {
         try {
-          const response = await axios.get(endpoint);
+          setState(prev => ({
+            ...prev,
+            [stateKey]: { ...prev[stateKey], loading: true, error: null }
+          }));
+          
+          const response = await api.get(endpoint);
+          console.log(`${stateKey} data:`, response.data);
+          
           setState(prev => ({
             ...prev,
             [stateKey]: { data: response.data, loading: false, error: null }
@@ -66,21 +74,19 @@ function Dashboard() {
           setState(prev => ({
             ...prev,
             [stateKey]: {
-              data: null,
+              data: prev[stateKey].data, // Preserve any existing data
               loading: false,
-              error: error.response?.data?.message || 'Failed to load data'
+              error: error.message || `Failed to load ${stateKey} data`
             }
           }));
         }
       };
 
-      // Fetch all data concurrently
-      Promise.all([
-        fetchData('/api/plaid/balance-history', 'netWorth'),
-        fetchData('/api/salary/monthly-summary', 'monthlyIncome'),
-        fetchData('/api/transactions/spending-summary', 'spending'),
-        fetchData('/api/goals', 'goals')
-      ]);
+      // Fetch all data
+      fetchData('/api/plaid/balance-history', 'netWorth');
+      fetchData('/api/salary/monthly-summary', 'monthlyIncome');
+      fetchData('/api/transactions/spending-summary', 'spending');
+      fetchData('/api/goals', 'goals');
     };
 
     fetchDashboardData();
@@ -88,6 +94,7 @@ function Dashboard() {
 
   const netWorthChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
@@ -126,7 +133,7 @@ function Dashboard() {
         >
           <div className="text-center">
             <p className="text-3xl font-bold text-green-600">
-              ${state.monthlyIncome.data?.toLocaleString() || '0'}
+              ${state.monthlyIncome.data?.average?.toLocaleString() || '0'}
             </p>
             <p className="text-sm text-gray-600 mt-2">Average Monthly Income</p>
           </div>
@@ -143,14 +150,14 @@ function Dashboard() {
               <div className="flex justify-between items-center">
                 <span className="text-lg font-medium">Total Spending</span>
                 <span className="text-xl font-bold text-red-600">
-                  ${state.spending.data.total.toLocaleString()}
+                  ${state.spending.data.total?.toLocaleString() || '0'}
                 </span>
               </div>
               <div className="space-y-2">
-                {state.spending.data.categories.map(category => (
-                  <div key={category.name} className="flex justify-between items-center">
-                    <span className="text-gray-600">{category.name}</span>
-                    <span className="font-medium">${category.amount.toLocaleString()}</span>
+                {state.spending.data.categories && state.spending.data.categories.map((category, index) => (
+                  <div key={category.name || index} className="flex justify-between items-center">
+                    <span className="text-gray-600">{category.name || 'Other'}</span>
+                    <span className="font-medium">${category.amount?.toLocaleString() || '0'}</span>
                   </div>
                 ))}
               </div>
@@ -177,18 +184,18 @@ function Dashboard() {
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-medium">{goal.name}</h4>
                     <span className="text-sm text-gray-600">
-                      {goal.progress}% Complete
+                      {goal.progress || 0}% Complete
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div
                       className="bg-blue-600 h-2.5 rounded-full"
-                      style={{ width: `${goal.progress}%` }}
+                      style={{ width: `${goal.progress || 0}%` }}
                     ></div>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
-                    <span>${goal.current.toLocaleString()}</span>
-                    <span>${goal.target.toLocaleString()}</span>
+                    <span>${(goal.current || 0).toLocaleString()}</span>
+                    <span>${(goal.target || 0).toLocaleString()}</span>
                   </div>
                 </div>
               ))}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './Components/auth/Login';
 import Register from './Components/auth/Register';
 import Dashboard from './Components/Dashboard';
@@ -21,13 +20,17 @@ const PrivateRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" />;
 };
 
-function App() {
+// HeaderWithAuth component to conditionally render Header
+const HeaderWithAuth = () => {
   const { user } = useAuth();
+  return user ? <Header /> : null;
+};
 
+function App() {
   return (
     <AuthProvider>
       <Router>
-        {user && <Header />}
+        <HeaderWithAuth />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />

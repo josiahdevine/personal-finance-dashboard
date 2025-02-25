@@ -14,6 +14,10 @@ export GENERATE_SOURCEMAP=false
 echo "Installing dependencies..."
 npm ci --prefer-offline --no-audit
 
+# Ensure cross-env is available
+echo "Installing cross-env..."
+npm install cross-env --no-save
+
 # Build the application
 echo "Building application..."
 npm run build:prod || npm run build

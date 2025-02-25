@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, createContext, useState, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
@@ -24,6 +24,13 @@ import Transactions from './Components/Transactions';
 import AskAI from './Components/AskAI';
 
 log('App', 'Initializing App component');
+
+// Create sidebar context for managing sidebar state
+export const SidebarContext = createContext();
+
+export function useSidebar() {
+  return useContext(SidebarContext);
+}
 
 // Protected Route component
 const PrivateRoute = ({ children }) => {
@@ -84,22 +91,29 @@ const PrivateRoute = ({ children }) => {
 // Adds layout with sidebar for authenticated routes
 function AuthenticatedLayout({ children }) {
   const { currentUser } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Log for analysis purposes
   log('App', 'Rendering AuthenticatedLayout', { userId: currentUser?.uid });
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prevState => !prevState);
+  };
   
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className={`flex-1 flex flex-col md:ml-16 lg:ml-64 transition-all duration-300`}>
-        <HeaderWithAuth />
-        <main className="flex-1 p-4 md:p-6">
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-        </main>
+    <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
+          <HeaderWithAuth />
+          <main className="flex-1 p-4 md:p-6">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarContext.Provider>
   );
 }
 

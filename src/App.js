@@ -14,6 +14,7 @@ import { log, logError, logRender } from './utils/logger';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+import initDeploymentDebug from './utils/deploymentDebug';
 
 // Import page components
 import Dashboard from './pages/Dashboard';
@@ -35,8 +36,16 @@ import { Elements } from '@stripe/react-stripe-js';
 
 log('App', 'Initializing App component');
 
+// Initialize deployment debugging in production
+initDeploymentDebug();
+
 // Initialize Stripe
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+
+// Add fallback/error handling for Stripe initialization
+if (!process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY) {
+  console.warn('Stripe publishable key is missing. Stripe functionality will be limited.');
+}
 
 // Create sidebar context for managing sidebar state
 export const SidebarContext = createContext();
@@ -129,6 +138,15 @@ const useMobileComponentFor = (path) => {
 // AuthenticatedLayout that handles the responsive layout
 const AuthenticatedLayout = ({ children }) => {
   const location = useLocation();
+  
+  // Log current route for debugging
+  useEffect(() => {
+    log('App', 'Route changed', { 
+      path: location.pathname,
+      search: location.search 
+    });
+  }, [location.pathname, location.search]);
+  
   const MobileComponent = useMobileComponentFor(location.pathname);
   
   // Store sidebar open/closed state
@@ -144,20 +162,31 @@ const AuthenticatedLayout = ({ children }) => {
   
   // If we have a specific mobile component for this route, use it
   if (MobileComponent) {
+    log('App', 'Using mobile component for route', { 
+      path: location.pathname,
+      component: MobileComponent.name || 'UnnamedMobileComponent'
+    });
+    
     return (
       <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
         <ResponsiveWrapper desktopLayout={DesktopLayout}>
-          <MobileComponent />
+          <ErrorBoundary componentName={`MobileRoute-${location.pathname}`}>
+            <MobileComponent />
+          </ErrorBoundary>
         </ResponsiveWrapper>
       </SidebarContext.Provider>
     );
   }
   
   // Otherwise just use the responsive wrapper with children
+  log('App', 'Using standard component for route', { path: location.pathname });
+  
   return (
     <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
       <ResponsiveWrapper desktopLayout={DesktopLayout}>
-        {children}
+        <ErrorBoundary componentName={`Route-${location.pathname}`}>
+          {children}
+        </ErrorBoundary>
       </ResponsiveWrapper>
     </SidebarContext.Provider>
   );

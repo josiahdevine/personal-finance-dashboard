@@ -7,13 +7,28 @@
  * @returns {boolean} True if current device is mobile
  */
 export const isMobileDevice = () => {
+  // Guard against running in non-browser environments
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false;
+  }
+  
   // Check for mobile user agent patterns
-  const userAgent = typeof window.navigator === 'undefined' ? '' : navigator.userAgent;
+  const userAgent = navigator.userAgent || '';
   
   const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   
   // Check if viewport width is typical for mobile
   const isMobileWidth = window.innerWidth <= 768;
+  
+  // Log detection for debugging
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Device detection:', { 
+      userAgent: userAgent.substring(0, 50) + '...',
+      isMobileByUA: mobileRegex.test(userAgent),
+      viewportWidth: window.innerWidth,
+      isMobileWidth
+    });
+  }
   
   return mobileRegex.test(userAgent) || isMobileWidth;
 };
@@ -23,7 +38,10 @@ export const isMobileDevice = () => {
  * @returns {boolean} True if current device is iOS
  */
 export const isIOSDevice = () => {
-  const userAgent = typeof window.navigator === 'undefined' ? '' : navigator.userAgent;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false;
+  }
+  const userAgent = navigator.userAgent || '';
   return /iPhone|iPad|iPod/i.test(userAgent);
 };
 
@@ -32,7 +50,10 @@ export const isIOSDevice = () => {
  * @returns {boolean} True if current device is Android
  */
 export const isAndroidDevice = () => {
-  const userAgent = typeof window.navigator === 'undefined' ? '' : navigator.userAgent;
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false;
+  }
+  const userAgent = navigator.userAgent || '';
   return /Android/i.test(userAgent);
 };
 
@@ -42,6 +63,10 @@ export const isAndroidDevice = () => {
  * @returns {Function} Function to remove the listener
  */
 export const onDeviceTypeChange = (callback) => {
+  if (typeof window === 'undefined') {
+    return () => {}; // No-op for SSR
+  }
+  
   // Set up resize listener
   const handleResize = () => {
     callback(isMobileDevice());
@@ -60,6 +85,10 @@ export const onDeviceTypeChange = (callback) => {
  * @returns {'portrait'|'landscape'} Current orientation
  */
 export const getDeviceOrientation = () => {
+  if (typeof window === 'undefined') {
+    return 'portrait'; // Default for SSR
+  }
+  
   if (window.screen && window.screen.orientation) {
     return window.screen.orientation.type.includes('portrait') ? 'portrait' : 'landscape';
   }

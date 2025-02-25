@@ -1,6 +1,10 @@
 module.exports = {
     database: {
-        url: process.env.DATABASE_URL,
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        name: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
         ssl: {
             rejectUnauthorized: false,
             require: true
@@ -24,5 +28,14 @@ module.exports = {
     jwt: {
         secret: process.env.JWT_SECRET,
         expiresIn: '7d'
+    },
+    allowedOrigins: [
+        'https://trypersonalfinance.com',
+        'https://www.trypersonalfinance.com'
+    ],
+    apiBaseUrl: 'https://api.trypersonalfinance.com',
+    logging: {
+        level: 'info',
+        format: 'json',
     }
 }; 

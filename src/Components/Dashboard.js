@@ -62,7 +62,12 @@ function Dashboard() {
             [stateKey]: { ...prev[stateKey], loading: true, error: null }
           }));
           
-          const response = await api.get(endpoint);
+          // Make sure endpoint has the correct format
+          const formattedEndpoint = endpoint.startsWith('/api/') 
+            ? endpoint 
+            : `/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+          
+          const response = await api.get(formattedEndpoint);
           console.log(`${stateKey} data:`, response.data);
           
           setState(prev => ({

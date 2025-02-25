@@ -1,10 +1,10 @@
 import axios from 'axios';
 import { auth } from './firebase';
 
-// Use the environment variable for API URL or fallback to the local server
+// Use the environment variable for API URL with proper fallbacks
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://personal-finance-dashboard.vercel.app'
+    ? 'https://api.trypersonalfinance.com'
     : 'http://localhost:5000');
 
 console.log('API Base URL:', API_BASE_URL);

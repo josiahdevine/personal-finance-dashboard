@@ -29,12 +29,18 @@ let dbConnection = null;
 async function initializeDatabase() {
     if (!dbConnection) {
         try {
+            console.log('Testing database connection...');
             const testResult = await pool.query('SELECT NOW()');
             console.log('Database connection successful:', testResult.rows[0].now);
             dbConnection = pool;
             return true;
         } catch (error) {
             console.error('Database connection error:', error.message);
+            console.error('Database details:', {
+                environment: process.env.NODE_ENV,
+                error_code: error.code,
+                error_detail: error.detail
+            });
             return false;
         }
     }
@@ -157,13 +163,23 @@ app.use('/api/investments', investmentRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
-    const dbConnected = await initializeDatabase();
-    res.json({
-        status: dbConnected ? 'ok' : 'database_error',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV,
-        database: dbConnected ? 'connected' : 'error'
-    });
+    try {
+        const dbConnected = await initializeDatabase();
+        res.json({
+            status: dbConnected ? 'ok' : 'database_error',
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV,
+            database: dbConnected ? 'connected' : 'error',
+            node_version: process.version,
+            memory_usage: process.memoryUsage()
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Root route handler

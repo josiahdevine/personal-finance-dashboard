@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   HiOutlineChartBar, 
@@ -13,42 +13,20 @@ import {
   HiOutlineLogout
 } from 'react-icons/hi';
 import { useAuth } from '../contexts/AuthContext';
+import { useSidebar } from '../App';
 import { log, logError } from '../utils/logger';
 
 function Sidebar() {
   const { logout } = useAuth();
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Handle window resize to collapse sidebar on small screens
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setCollapsed(true);
-      }
-    };
-
-    // Initial check
-    handleResize();
-
-    // Add event listener
-    window.addEventListener('resize', handleResize);
-
-    // Clean up
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   // Close mobile sidebar when route changes
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
-
-  // Toggle collapsed state
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed);
-  };
 
   // Toggle mobile sidebar
   const toggleMobile = () => {
@@ -123,23 +101,23 @@ function Sidebar() {
   const renderDesktopSidebar = () => (
     <div 
       className={`hidden md:flex flex-col bg-blue-900 text-white h-screen fixed left-0 top-0 z-20 transition-all duration-300 ${
-        collapsed ? 'w-16' : 'w-64'
+        isSidebarOpen ? 'w-64' : 'w-16'
       }`}
     >
       {/* Logo section */}
       <div className="flex items-center justify-between p-4 border-b border-blue-800">
-        {!collapsed && (
+        {isSidebarOpen && (
           <div className="font-bold text-lg">Finance Dashboard</div>
         )}
         <button 
-          onClick={toggleCollapsed}
+          onClick={toggleSidebar}
           className="p-1 rounded-full hover:bg-blue-800 focus:outline-none"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {collapsed ? (
-            <HiOutlineChevronRight className="w-5 h-5" />
-          ) : (
+          {isSidebarOpen ? (
             <HiOutlineChevronLeft className="w-5 h-5" />
+          ) : (
+            <HiOutlineChevronRight className="w-5 h-5" />
           )}
         </button>
       </div>
@@ -158,7 +136,7 @@ function Sidebar() {
             aria-label={item.name}
           >
             <span className="mr-3">{item.icon}</span>
-            {!collapsed && <span>{item.name}</span>}
+            {isSidebarOpen && <span>{item.name}</span>}
           </button>
         ))}
       </div>
@@ -171,7 +149,7 @@ function Sidebar() {
           aria-label="Logout"
         >
           <HiOutlineLogout className="w-6 h-6 mr-3" />
-          {!collapsed && <span>Logout</span>}
+          {isSidebarOpen && <span>Logout</span>}
         </button>
       </div>
     </div>

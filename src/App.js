@@ -2,10 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import Dashboard from './components/Dashboard';
-import AskAI from './components/AskAI';
+import Login from './Components/auth/Login';
+import Register from './Components/auth/Register';
+import Dashboard from './Components/Dashboard';
+import AskAI from './Components/AskAI';
 import './App.css';
 
 // Protected Route component

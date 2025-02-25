@@ -314,95 +314,96 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  // Set up the authentication state listener
+  // Handle auth state changes with Firebase - Modified to fix production errors
   useEffect(() => {
-    if (authStateListenerSet.current) {
-      log('AuthContext', 'Auth state listener already set up, skipping');
-      return;
-    }
-    
     log('AuthContext', 'Setting up auth state listener');
     
-    // Check if auth is available
     if (!auth) {
-      logError('AuthContext', 'Auth object is not available for auth state listener', 
-        new Error('Auth not initialized'));
+      logError('AuthContext', 'Auth not available for state listener', new Error('Auth not initialized'));
       setLoading(false);
       return;
     }
     
-    if (!onAuthStateChanged) {
-      logError('AuthContext', 'onAuthStateChanged function is not available', 
-        new Error('Auth function not available'));
+    try {
+      // Create the unsubscribe function for the auth state listener
+      const unsubscribe = onAuthStateChanged(
+        auth, 
+        (user) => {
+          log('AuthContext', 'Auth state changed', { userExists: !!user });
+          
+          if (user) {
+            // Make sure we handle the user data properly before updating state
+            const safeUser = {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+              emailVerified: user.emailVerified,
+              // Do not include complex Firebase objects that can't be serialized
+              // This prevents issues with rendering
+            };
+            
+            setCurrentUser(safeUser);
+            setIsAuthenticated(true);
+          } else {
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+          }
+          
+          setLoading(false);
+        },
+        (error) => {
+          logError('AuthContext', 'Auth state change error', error);
+          setAuthError({ 
+            message: 'Error monitoring authentication state', 
+            code: error.code 
+          });
+          setLoading(false);
+        }
+      );
+      
+      // Set the flag that the listener is active
+      authStateListenerSet.current = true;
+      
+      return () => {
+        log('AuthContext', 'Cleaning up auth state listener');
+        unsubscribe();
+        authStateListenerSet.current = false;
+      };
+    } catch (error) {
+      logError('AuthContext', 'Error setting up auth state listener', error);
+      setAuthError({ 
+        message: 'Error initializing authentication', 
+        code: error.code 
+      });
       setLoading(false);
-      return;
     }
-    
-    authStateListenerSet.current = true;
-    
-    // Set up auth state change listener
-    const unsubscribe = onAuthStateChanged(
-      auth, 
-      (user) => {
-        log('AuthContext', 'Auth state changed', {
-          user: user ? { uid: user.uid, email: user.email, verified: user.emailVerified } : null,
-          authenticated: !!user
-        });
-        
-        setCurrentUser(user);
-        setIsAuthenticated(!!user);
-        setLoading(false);
-      },
-      (error) => {
-        logError('AuthContext', 'Auth state listener error', error);
-        setAuthError({ message: 'Authentication error. Please try refreshing the page.', code: error.code });
-        setLoading(false);
-      }
-    );
-
-    // Clean up the listener on component unmount
-    return () => {
-      log('AuthContext', 'Cleaning up auth state listener');
-      authStateListenerSet.current = false;
-      unsubscribe();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The context value that will be provided
-  const value = {
+  // Make sure value is properly memoized to prevent unnecessary re-renders
+  const value = React.useMemo(() => ({
     currentUser,
-    isAuthenticated,
     loading,
+    isAuthenticated,
     authError,
     register,
     login,
-    logout
-  };
-
-  log('AuthContext', 'Rendering AuthContext.Provider', { 
-    currentUserExists: !!currentUser,
-    isAuthenticated,
-    loading,
-    hasAuthError: !!authError
-  });
+    logout,
+    resetPassword,
+    updateUserEmail,
+    updateUserPassword,
+    updateUserProfile
+  }), [currentUser, loading, isAuthenticated, authError]);
 
   return (
-    <AuthContext.Provider value={value}>
-      <ErrorBoundary componentName="AuthProvider">
+    <ErrorBoundary componentName="AuthProvider" showDetails={process.env.NODE_ENV === 'development'}>
+      <AuthContext.Provider value={value}>
         {!loading ? children : (
-          <div className="flex flex-col items-center justify-center p-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-lg font-medium text-gray-700">Loading authentication...</p>
-            {process.env.NODE_ENV !== 'production' && (
-              <pre className="mt-4 text-xs text-gray-500 p-2 bg-gray-100 rounded">
-                {JSON.stringify({loading, currentUser: !!currentUser, isAuthenticated, hasError: !!authError}, null, 2)}
-              </pre>
-            )}
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
         )}
-      </ErrorBoundary>
-    </AuthContext.Provider>
+      </AuthContext.Provider>
+    </ErrorBoundary>
   );
 };
 

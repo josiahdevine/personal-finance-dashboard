@@ -2,14 +2,42 @@
  * logger.js - Centralized logging utility for consistent error tracking
  */
 
-// Initialize logging module
-console.log('Initializing logger module');
+// Only log initialization in development
+const isProduction = process.env.NODE_ENV === 'production';
+if (!isProduction) {
+  console.log('Initializing logger module');
+}
 
-// Set this to false in production if you want to disable verbose logging
+// Disable verbose logging in production
 const VERBOSE_LOGGING = process.env.NODE_ENV === 'development';
 
 // Track component rendering for performance monitoring
 const componentRenderCounts = {};
+
+/**
+ * Safe stringify function that handles circular references
+ */
+function safeStringify(obj) {
+  if (!obj) return '';
+  
+  try {
+    // Create a safe copy with circular references removed
+    const seen = new WeakSet();
+    const safeObj = JSON.stringify(obj, (key, value) => {
+      if (key === 'auth' || key === 'firebase') return '[Firebase Object]';
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return '[Circular Reference]';
+        seen.add(value);
+      }
+      // Skip functions in logs
+      if (typeof value === 'function') return '[Function]';
+      return value;
+    });
+    return safeObj;
+  } catch (e) {
+    return '[Object cannot be stringified]';
+  }
+}
 
 /**
  * Log a message with consistent formatting
@@ -19,12 +47,17 @@ const componentRenderCounts = {};
  * @param {object} data - Optional data to include in the log
  */
 export const log = (component, message, data = null) => {
-  if (!VERBOSE_LOGGING && !message.includes('error') && !message.includes('fail')) {
-    return; // Only log errors in production
+  // Skip most logs in production
+  if (isProduction && !message.includes('error') && !message.includes('fail')) {
+    return;
   }
   
-  const logData = data ? ` | ${JSON.stringify(data)}` : '';
-  console.log(`[${component}] ${message}${logData}`);
+  try {
+    const logData = data ? ` | ${safeStringify(data)}` : '';
+    console.log(`[${component}] ${message}${logData}`);
+  } catch (error) {
+    console.log(`[${component}] ${message} (Error logging data)`);
+  }
 };
 
 /**
@@ -36,18 +69,23 @@ export const log = (component, message, data = null) => {
  * @param {object} additionalData - Optional additional context data
  */
 export const logError = (component, message, error, additionalData = null) => {
-  const errorInfo = {
-    message: error?.message || 'Unknown error',
-    stack: error?.stack,
-    ...additionalData
-  };
-  
-  console.error(`[${component}] ERROR: ${message}`, errorInfo);
-  
-  // You could send this to an error reporting service like Sentry here
-  // if (process.env.NODE_ENV === 'production') {
-  //   sendToErrorReportingService(component, message, errorInfo);
-  // }
+  try {
+    const errorInfo = {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      ...(additionalData ? additionalData : {})
+    };
+    
+    console.error(`[${component}] ERROR: ${message}`, errorInfo);
+    
+    // You could send this to an error reporting service like Sentry here
+    // if (isProduction) {
+    //   sendToErrorReportingService(component, message, errorInfo);
+    // }
+  } catch (loggingError) {
+    // Fallback if there's an error during logging
+    console.error(`[${component}] ERROR: ${message} (Error logging details)`);
+  }
 };
 
 /**
@@ -57,29 +95,39 @@ export const logError = (component, message, error, additionalData = null) => {
  * @param {object} props - The component props (optional)
  */
 export const logRender = (componentName, props = null) => {
-  if (!VERBOSE_LOGGING) return;
+  // Skip in production to avoid performance issues
+  if (isProduction) return;
   
-  // Track render count
-  componentRenderCounts[componentName] = (componentRenderCounts[componentName] || 0) + 1;
-  
-  // Log render with count
-  const count = componentRenderCounts[componentName];
-  const renderCountInfo = count > 3 ? ` (Render #${count})` : '';
-  
-  if (props) {
-    // Filter out functions from props for cleaner logs
-    const filteredProps = Object.entries(props).reduce((acc, [key, value]) => {
-      if (typeof value !== 'function') {
-        acc[key] = value;
-      } else {
-        acc[key] = '[Function]';
-      }
-      return acc;
-    }, {});
+  try {
+    // Track render count
+    componentRenderCounts[componentName] = (componentRenderCounts[componentName] || 0) + 1;
     
-    log(componentName, `Rendering${renderCountInfo}`, filteredProps);
-  } else {
-    log(componentName, `Rendering${renderCountInfo}`);
+    // Only log excessive renders to avoid console spam
+    const count = componentRenderCounts[componentName];
+    if (count <= 3 || count % 10 === 0) { // Log 1st, 2nd, 3rd, 10th, 20th, etc.
+      const renderCountInfo = count > 3 ? ` (Render #${count})` : '';
+      
+      if (props) {
+        // Filter out functions and large objects from props for cleaner logs
+        const filteredProps = Object.entries(props).reduce((acc, [key, value]) => {
+          if (typeof value === 'function') {
+            acc[key] = '[Function]';
+          } else if (value && typeof value === 'object' && Object.keys(value).length > 10) {
+            acc[key] = '[Large Object]';
+          } else {
+            acc[key] = value;
+          }
+          return acc;
+        }, {});
+        
+        log(componentName, `Rendering${renderCountInfo}`, filteredProps);
+      } else {
+        log(componentName, `Rendering${renderCountInfo}`);
+      }
+    }
+  } catch (error) {
+    // Prevent logging errors from affecting the app
+    console.error(`Error in logRender for ${componentName}:`, error);
   }
 };
 
@@ -92,7 +140,7 @@ export const logRender = (componentName, props = null) => {
  * @returns {any} - The result of the function
  */
 export const timeOperation = async (component, operation, fn) => {
-  if (!VERBOSE_LOGGING) return fn();
+  if (isProduction) return fn(); // In production, just run the function
   
   const start = performance.now();
   try {

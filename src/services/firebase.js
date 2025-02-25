@@ -8,17 +8,22 @@ import {
 } from 'firebase/auth';
 import { log, logError, timeOperation } from '../utils/logger';
 
-// Add logging for environment variables
-log('Firebase', 'Initializing Firebase module');
-log('Firebase', 'Firebase Config Available', {
-  apiKeyExists: !!process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomainExists: !!process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectIdExists: !!process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucketExists: !!process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderIdExists: !!process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appIdExists: !!process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementIdExists: !!process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
-});
+// Production mode should be less verbose
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Add logging for environment variables but only when not in production
+if (!isProduction) {
+  log('Firebase', 'Initializing Firebase module');
+  log('Firebase', 'Firebase Config Available', {
+    apiKeyExists: !!process.env.REACT_APP_FIREBASE_API_KEY,
+    authDomainExists: !!process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+    projectIdExists: !!process.env.REACT_APP_FIREBASE_PROJECT_ID,
+    storageBucketExists: !!process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+    messagingSenderIdExists: !!process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+    appIdExists: !!process.env.REACT_APP_FIREBASE_APP_ID,
+    measurementIdExists: !!process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+  });
+}
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U",
@@ -48,51 +53,51 @@ for (const [key, value] of Object.entries(firebaseConfig)) {
 }
 
 // Initialize Firebase
-log('Firebase', 'Initializing Firebase app...');
 let app;
+let auth;
+
 try {
-  if (!configValid) {
-    throw new Error('Firebase configuration is invalid. Check the console for details.');
+  // Less verbose logging in production
+  if (!isProduction) {
+    log('Firebase', 'Initializing Firebase app...');
   }
   
   app = initializeApp(firebaseConfig);
-  log('Firebase', 'Firebase app initialized successfully', { appName: app.name });
   
-  // Verify that app was initialized properly
-  if (!app.name) {
-    throw new Error('Firebase app was initialized but has no name property');
+  if (!isProduction) {
+    log('Firebase', 'Firebase app initialized successfully', { appName: app.name });
   }
-} catch (error) {
-  logError('Firebase', 'Error initializing Firebase app', error, { config: { ...firebaseConfig, apiKey: '***REDACTED***' } });
-  throw new Error(`Firebase initialization failed: ${error.message}`);
-}
-
-// Initialize Auth
-log('Firebase', 'Initializing Firebase auth...');
-let auth;
-try {
-  if (!app) {
-    throw new Error('Cannot initialize auth - Firebase app is not initialized');
+  
+  // Initialize Auth
+  if (!isProduction) {
+    log('Firebase', 'Initializing Firebase auth...');
   }
   
   auth = getAuth(app);
   
-  if (!auth) {
-    throw new Error('Firebase auth was initialized but returned null/undefined');
-  }
-  
-  log('Firebase', 'Firebase auth initialized successfully', { authInitialized: !!auth });
-  
-  // Check that auth has the expected methods
-  const requiredAuthMethods = ['signInWithEmailAndPassword', 'createUserWithEmailAndPassword', 'signOut'];
-  const missingMethods = requiredAuthMethods.filter(method => typeof auth[method] !== 'function');
-  
-  if (missingMethods.length > 0) {
-    logError('Firebase', 'Firebase auth is missing expected methods', new Error('Auth initialization incomplete'), { missingMethods });
+  if (!isProduction) {
+    log('Firebase', 'Firebase auth initialized successfully');
   }
 } catch (error) {
-  logError('Firebase', 'Error initializing Firebase auth', error);
-  throw new Error(`Firebase auth initialization failed: ${error.message}`);
+  logError('Firebase', 'Error initializing Firebase', error, {
+    config: { ...firebaseConfig, apiKey: '***REDACTED***' }
+  });
+  
+  // In production, we'll attempt to create fallback instances
+  if (isProduction) {
+    try {
+      // Last attempt to initialize Firebase with default values
+      if (!app) {
+        app = initializeApp(firebaseConfig);
+      }
+      if (!auth) {
+        auth = getAuth(app);
+      }
+    } catch (fallbackError) {
+      // Critical failure, we can't recover
+      console.error('Critical Firebase initialization error:', fallbackError);
+    }
+  }
 }
 
 // Authentication functions with better error handling and timing
@@ -213,32 +218,52 @@ export const logoutUser = async () => {
   });
 };
 
-// Auth state observer
+// Auth state observer with better error handling for production
 export const onAuthStateChange = (callback) => {
-  log('Firebase', 'Setting up auth state change listener...');
+  if (!isProduction) {
+    log('Firebase', 'Setting up auth state change listener...');
+  }
   
   if (!auth) {
     const error = new Error('Auth service not initialized');
-    logError('Firebase', 'Cannot set up auth state listener - auth not initialized', error);
-    throw error;
+    logError('Firebase', 'Cannot set up auth state listener', error);
+    // Don't throw in production, return a no-op unsubscribe
+    return () => {};
   }
   
-  return onAuthStateChanged(auth, (user) => {
-    log('Firebase', 'Auth state changed', { 
-      authenticated: !!user,
-      uid: user?.uid,
-      email: user?.email,
-      emailVerified: user?.emailVerified 
+  try {
+    return onAuthStateChanged(auth, (user) => {
+      if (!isProduction) {
+        log('Firebase', 'Auth state changed', { 
+          authenticated: !!user,
+          uid: user?.uid 
+        });
+      }
+      
+      try {
+        // Filter user object to avoid circular references
+        if (user) {
+          const safeUser = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            emailVerified: user.emailVerified
+          };
+          callback(safeUser);
+        } else {
+          callback(null);
+        }
+      } catch (callbackError) {
+        logError('Firebase', 'Error in auth state change callback', callbackError);
+      }
+    }, (error) => {
+      logError('Firebase', 'Auth state change listener error', error);
     });
-    
-    try {
-      callback(user);
-    } catch (callbackError) {
-      logError('Firebase', 'Error in auth state change callback', callbackError);
-    }
-  }, (error) => {
-    logError('Firebase', 'Auth state change listener error', error);
-  });
+  } catch (error) {
+    logError('Firebase', 'Error setting up auth state listener', error);
+    // Don't throw in production, return a no-op unsubscribe
+    return () => {};
+  }
 };
 
 // Log export content

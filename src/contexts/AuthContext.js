@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { log, logError, logRender, timeOperation } from '../utils/logger';
-import ErrorBoundary from '../components/ErrorBoundary';
+import ErrorBoundary from '../Components/ErrorBoundary';
 
 log('AuthContext', 'Initializing AuthContext module');
 

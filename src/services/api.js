@@ -235,6 +235,25 @@ api.checkHealth = async () => {
   }
 };
 
+// Add login method for backend authentication
+api.login = async (userData) => {
+  try {
+    // In a real implementation, this would call the backend
+    // For now, we'll just mock a successful response
+    console.log('Mock backend login with:', userData);
+    
+    // Simulate successful backend authentication
+    return {
+      success: true,
+      userId: userData.firebaseUid,
+      token: 'mock-auth-token-' + Date.now()
+    };
+  } catch (error) {
+    console.error('Backend login failed:', error);
+    throw error;
+  }
+};
+
 // Check health on initialization in non-production environments
 if (process.env.NODE_ENV !== 'production') {
   api.checkHealth().then(result => {

@@ -241,6 +241,34 @@ const RootRouteHandler = () => {
   );
 };
 
+// Component to handle anonymous auth for users who aren't logged in
+const AnonymousAuthHandler = () => {
+  const { currentUser, loading, signInAnonymously } = useAuth();
+  const [authAttempted, setAuthAttempted] = useState(false);
+  
+  // Try anonymous sign-in if no user and not already attempted
+  useEffect(() => {
+    const attemptAnonymousAuth = async () => {
+      try {
+        // Only try if we aren't already loading auth and haven't tried yet
+        if (!loading && !currentUser && !authAttempted) {
+          log('App', 'Attempting anonymous sign-in');
+          setAuthAttempted(true);
+          await signInAnonymously();
+          log('App', 'Anonymous sign-in successful');
+        }
+      } catch (error) {
+        logError('App', 'Anonymous sign-in failed, continuing as guest', error);
+        // Continue without authentication
+      }
+    };
+    
+    attemptAnonymousAuth();
+  }, [currentUser, loading, signInAnonymously, authAttempted]);
+  
+  return null; // This component doesn't render anything
+};
+
 function App() {
   logRender('App');
   const [stripeAvailable, setStripeAvailable] = useState(isStripeAvailable());
@@ -316,6 +344,8 @@ function App() {
               <PlaidLinkProvider>
                 <FinanceDataProvider>
                   <StripeWrapper>
+                    {/* Anonymous auth handler */}
+                    <AnonymousAuthHandler />
                     <ToastContainer position="top-right" autoClose={5000} />
                     <Routes>
                       {/* Public routes */}

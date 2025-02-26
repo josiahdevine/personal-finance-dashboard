@@ -1,16 +1,27 @@
 // Plaid Link Token Creation Function
 // This is a stub implementation - you'll need to add your actual Plaid API credentials
 exports.handler = async function(event, context) {
+  console.log("Received create-link-token request:", {
+    httpMethod: event.httpMethod,
+    path: event.path,
+    origin: event.headers.origin || event.headers.Origin || '*'
+  });
+
+  // Get the requesting origin or default to *
+  const origin = event.headers.origin || event.headers.Origin || '*';
+  
   // CORS headers
   const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
     "Content-Type": "application/json"
   };
 
   // Handle preflight OPTIONS request
   if (event.httpMethod === "OPTIONS") {
+    console.log("Handling OPTIONS preflight request");
     return {
       statusCode: 204,
       headers,
@@ -20,6 +31,7 @@ exports.handler = async function(event, context) {
 
   // Only allow POST requests
   if (event.httpMethod !== "POST") {
+    console.log(`Method not allowed: ${event.httpMethod}`);
     return {
       statusCode: 405,
       headers,
@@ -46,6 +58,7 @@ exports.handler = async function(event, context) {
     
     // For demo/development purposes, we're returning a mock token
     // In production, you would call plaidClient.createLinkToken() here
+    console.log("Returning mock link token");
     return {
       statusCode: 200,
       headers,

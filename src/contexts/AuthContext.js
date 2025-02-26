@@ -39,6 +39,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [firebaseInitialized, setFirebaseInitialized] = useState(false);
   const navigate = useNavigate();
   const authStateListenerSet = useRef(false);
   
@@ -46,8 +47,83 @@ export const AuthProvider = ({ children }) => {
     currentUserExists: currentUser !== null,
     loading,
     isAuthenticated,
-    hasAuthError: !!authError
+    hasAuthError: !!authError,
+    firebaseInitialized
   });
+
+  // Check Firebase initialization status
+  useEffect(() => {
+    const checkFirebaseInit = () => {
+      try {
+        // Check localStorage for firebase initialization status
+        const firebaseInitError = localStorage.getItem('firebase_init_error');
+        const authInitTimestamp = localStorage.getItem('auth_init_timestamp');
+        
+        if (authInitTimestamp) {
+          // Firebase was successfully initialized
+          log('AuthContext', 'Firebase initialization detected', { timestamp: authInitTimestamp });
+          setFirebaseInitialized(true);
+          return true;
+        } else if (firebaseInitError) {
+          // There was an error initializing Firebase
+          try {
+            const errorInfo = JSON.parse(firebaseInitError);
+            logError('AuthContext', 'Firebase initialization error detected', new Error(errorInfo.message), errorInfo);
+            setAuthError({
+              message: 'Authentication service failed to initialize',
+              code: 'auth/initialization-failed',
+              details: errorInfo
+            });
+          } catch (e) {
+            logError('AuthContext', 'Failed to parse Firebase init error', e);
+          }
+          return false;
+        }
+        
+        // Check if auth is accessible directly
+        if (auth) {
+          log('AuthContext', 'Firebase auth object is available');
+          setFirebaseInitialized(true);
+          return true;
+        }
+        
+        return false;
+      } catch (error) {
+        logError('AuthContext', 'Error checking Firebase initialization', error);
+        return false;
+      }
+    };
+    
+    // Perform the initial check
+    const isInitialized = checkFirebaseInit();
+    
+    // If not initialized yet, set up a retry mechanism
+    if (!isInitialized) {
+      log('AuthContext', 'Firebase not initialized yet, setting up retry checks');
+      
+      let retryCount = 0;
+      const maxRetries = 5;
+      const intervalId = setInterval(() => {
+        retryCount++;
+        log('AuthContext', `Retry ${retryCount}/${maxRetries} checking Firebase initialization`);
+        
+        if (checkFirebaseInit() || retryCount >= maxRetries) {
+          clearInterval(intervalId);
+          
+          if (retryCount >= maxRetries && !firebaseInitialized) {
+            log('AuthContext', 'Max retries reached, Firebase still not initialized');
+            setAuthError({
+              message: 'Authentication service could not be initialized',
+              code: 'auth/initialization-timeout'
+            });
+            setLoading(false); // Allow app to load even without auth
+          }
+        }
+      }, 2000); // Check every 2 seconds
+      
+      return () => clearInterval(intervalId);
+    }
+  }, []);
 
   // Register a new user
   const register = async (username, email, password) => {
@@ -59,6 +135,17 @@ export const AuthProvider = ({ children }) => {
         setAuthError(null);
         setLoading(true);
         log('AuthContext', 'Loading state set to true for registration');
+        
+        // Check if Firebase is initialized
+        if (!firebaseInitialized) {
+          const error = new Error('Authentication service is not initialized');
+          logError('AuthContext', 'Registration failed - Firebase not initialized', error);
+          setAuthError({
+            message: 'Authentication service is not available',
+            code: 'auth/not-initialized'
+          });
+          throw error;
+        }
         
         // Validate inputs
         if (!username || !email || !password) {
@@ -139,6 +226,12 @@ export const AuthProvider = ({ children }) => {
             case 'auth/network-request-failed':
               errorMessage = 'Network error. Check your connection and try again.';
               break;
+            case 'auth/not-initialized':
+              errorMessage = 'Authentication service is not available. Please try again later.';
+              break;
+            default:
+              errorMessage = `Registration failed: ${error.message}`;
+              break;
           }
         }
         
@@ -153,7 +246,7 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  // Login a user
+  // Login a user - with improved error handling
   const login = async (email, password) => {
     return timeOperation('AuthContext', 'User login', async () => {
       log('AuthContext', 'Login function called', { email });
@@ -163,6 +256,17 @@ export const AuthProvider = ({ children }) => {
         setAuthError(null);
         setLoading(true);
         log('AuthContext', 'Loading state set to true for login');
+        
+        // Check if Firebase is initialized
+        if (!firebaseInitialized) {
+          const error = new Error('Authentication service is not initialized');
+          logError('AuthContext', 'Login failed - Firebase not initialized', error);
+          setAuthError({
+            message: 'Authentication service is not available',
+            code: 'auth/not-initialized'
+          });
+          throw error;
+        }
         
         // Validate inputs
         if (!email || !password) {
@@ -246,6 +350,12 @@ export const AuthProvider = ({ children }) => {
             case 'auth/network-request-failed':
               errorMessage = 'Network error. Check your connection and try again.';
               break;
+            case 'auth/not-initialized':
+              errorMessage = 'Authentication service is not available. Please try again later.';
+              break;
+            default:
+              errorMessage = `Login failed: ${error.message}`;
+              break;
           }
         }
         
@@ -314,9 +424,15 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  // Handle auth state changes with Firebase - Modified to fix production errors
+  // Handle auth state changes with Firebase - Enhanced retry mechanism
   useEffect(() => {
-    log('AuthContext', 'Setting up auth state listener');
+    log('AuthContext', 'Setting up auth state listener', { firebaseInitialized });
+    
+    // Wait for Firebase to be initialized before setting up the auth state listener
+    if (!firebaseInitialized) {
+      log('AuthContext', 'Delaying auth state listener until Firebase is initialized');
+      return;
+    }
     
     if (!auth) {
       logError('AuthContext', 'Auth not available for state listener', new Error('Auth not initialized'));
@@ -377,7 +493,7 @@ export const AuthProvider = ({ children }) => {
       });
       setLoading(false);
     }
-  }, []);
+  }, [firebaseInitialized]);
 
   // Make sure value is properly memoized to prevent unnecessary re-renders
   const value = React.useMemo(() => ({
@@ -385,10 +501,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     authError,
+    firebaseInitialized,
     register,
     login,
     logout
-  }), [currentUser, loading, isAuthenticated, authError]);
+  }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout]);
 
   return (
     <ErrorBoundary componentName="AuthProvider" showDetails={process.env.NODE_ENV === 'development'}>

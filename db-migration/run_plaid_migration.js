@@ -70,4 +70,8 @@ async function runPlaidMigration() {
   }
 }
 
-runPlaidMigration(); 
+runPlaidMigration().catch(err => {
+  console.error('Top level error:');
+  console.error(err);
+  process.exit(1);
+}); 

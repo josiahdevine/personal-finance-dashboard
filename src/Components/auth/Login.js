@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
+import { completeAuthMigration } from '../../utils/authUtils';
 
 // Login form validation schema
 const LoginSchema = Yup.object().shape({
@@ -18,6 +19,26 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
   const [serverError, setServerError] = useState(null);
+  
+  // Check for coming from a different domain/deployment
+  useEffect(() => {
+    const lastDomain = localStorage.getItem('last_domain');
+    const currentDomain = window.location.hostname;
+    
+    if (lastDomain && lastDomain !== currentDomain && lastDomain.includes('vercel.app')) {
+      toast.info(
+        "We've moved to a new platform! Please log in again to continue.",
+        { 
+          position: "top-center",
+          autoClose: 10000 
+        }
+      );
+    }
+    
+    // Always update the current domain
+    localStorage.setItem('last_domain', currentDomain);
+    localStorage.setItem('deployment_platform', 'netlify');
+  }, []);
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
@@ -27,12 +48,25 @@ const Login = () => {
       await login(values.email, values.password);
       
       console.log('Login successful');
+      
+      // Complete migration after successful login
+      completeAuthMigration();
+      
       toast.success('Successfully logged in!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      setServerError(error.message || 'Failed to log in. Please check your credentials.');
-      toast.error(error.message || 'Failed to log in. Please check your credentials.');
+      
+      // Special handling for domain-related errors
+      if (error.code === 'auth/unauthorized-domain' || 
+          error.code === 'auth/invalid-api-key' ||
+          error.code === 'auth/invalid-credential') {
+        setServerError('Authentication error due to recent platform changes. Please try again or clear your browser cache.');
+        toast.error('Authentication configuration error. Please try again.');
+      } else {
+        setServerError(error.message || 'Failed to log in. Please check your credentials.');
+        toast.error(error.message || 'Failed to log in. Please check your credentials.');
+      }
     } finally {
       setSubmitting(false);
     }

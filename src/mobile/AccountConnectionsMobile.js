@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePlaid } from '../contexts/PlaidContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaidLink } from 'react-plaid-link';
@@ -9,9 +9,6 @@ import {
   HiOutlineCreditCard, 
   HiOutlinePlusCircle,
   HiOutlineExclamationCircle,
-  HiOutlineInformationCircle,
-  HiOutlineChartBar,
-  HiOutlineChevronRight
 } from 'react-icons/hi';
 
 /**
@@ -30,17 +27,50 @@ const AccountConnectionsMobile = () => {
     name: '',
     type: 'checking',
     balance: '',
-    institution: ''
+    institution: '',
+    isInterestBearing: false
   });
 
-  // Initialize component and fetch data
-  useEffect(() => {
-    fetchAccounts();
-    initializePlaid();
-  }, []);
+  // Define fetchAccounts and initializePlaid before useEffect
+  const fetchAccounts = useCallback(async () => {
+    try {
+      setLoading(true);
+      // First check if user is authenticated
+      if (!currentUser) {
+        console.log('User not authenticated, skipping account fetch');
+        return;
+      }
+
+      console.log('Fetching accounts...');
+      const response = await api.get('/api/plaid/accounts');
+      console.log('Accounts response:', response.data);
+      
+      if (response.data && Array.isArray(response.data)) {
+        setAccounts(response.data);
+      } else {
+        console.warn('Unexpected accounts response format:', response.data);
+        setAccounts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+      toast.error('Failed to load accounts. Please try again later.');
+      
+      // For development/testing, use mock data
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Using mock account data for development');
+        setAccounts([
+          { account_id: 'mock-checking', name: 'Mock Checking', type: 'depository', subtype: 'checking', balances: { current: 2500 } },
+          { account_id: 'mock-savings', name: 'Mock Savings', type: 'depository', subtype: 'savings', balances: { current: 10000 } },
+          { account_id: 'mock-credit', name: 'Mock Credit Card', type: 'credit', subtype: 'credit card', balances: { current: -1500 } }
+        ]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   // Initialize Plaid connection
-  const initializePlaid = async () => {
+  const initializePlaid = useCallback(async () => {
     try {
       if (!linkToken) {
         const token = await createLinkToken();
@@ -52,7 +82,13 @@ const AccountConnectionsMobile = () => {
       console.error('Error initializing Plaid:', error);
       toast.error('Failed to initialize Plaid connection');
     }
-  };
+  }, [linkToken, createLinkToken]);
+
+  // Initialize component and fetch data
+  useEffect(() => {
+    fetchAccounts();
+    initializePlaid();
+  }, [fetchAccounts, initializePlaid]);
 
   // Configuration for Plaid Link
   const config = {
@@ -95,20 +131,6 @@ const AccountConnectionsMobile = () => {
     }
   };
 
-  // Fetch connected accounts
-  const fetchAccounts = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/plaid/accounts');
-      setAccounts(response.data || []);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-      toast.error('Failed to load accounts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Refresh account data
   const refreshAccounts = async () => {
     try {
@@ -128,10 +150,11 @@ const AccountConnectionsMobile = () => {
 
   // Handle manual account input changes
   const handleManualInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setManualAccount({
       ...manualAccount,
-      [name]: name === 'balance' ? parseFloat(value) || '' : value
+      [name]: type === 'checkbox' ? checked : 
+              name === 'balance' ? parseFloat(value) || '' : value
     });
   };
 
@@ -155,7 +178,8 @@ const AccountConnectionsMobile = () => {
           name: '',
           type: 'checking',
           balance: '',
-          institution: ''
+          institution: '',
+          isInterestBearing: false
         });
         setShowAddManual(false);
       }
@@ -173,25 +197,6 @@ const AccountConnectionsMobile = () => {
       style: 'currency',
       currency: currency,
     }).format(amount);
-  };
-
-  // Icon mapping for account types
-  const getAccountTypeIcon = (type) => {
-    switch (type) {
-      case 'depository':
-      case 'checking':
-      case 'savings':
-        return '🏦';
-      case 'credit':
-        return '💳';
-      case 'loan':
-      case 'mortgage':
-        return '💰';
-      case 'investment':
-        return '📈';
-      default:
-        return '🏦';
-    }
   };
 
   // Calculate total balance
@@ -325,6 +330,25 @@ const AccountConnectionsMobile = () => {
                   />
                 </div>
               </div>
+
+              {/* Add interest-bearing checkbox for checking and savings accounts */}
+              {(manualAccount.type === 'checking' || manualAccount.type === 'savings') && (
+                <div className="mt-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="isInterestBearing"
+                      id="isInterestBearing"
+                      checked={manualAccount.isInterestBearing}
+                      onChange={handleManualInputChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isInterestBearing" className="ml-2 block text-sm text-gray-700">
+                      Interest Bearing Account
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="mt-5 flex space-x-3">
@@ -362,26 +386,35 @@ const AccountConnectionsMobile = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {accounts.map((account) => (
-            <div key={account.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="text-2xl mr-3">{getAccountTypeIcon(account.type)}</span>
+        <div className="space-y-4 mt-4">
+          {Array.isArray(accounts) && accounts.length > 0 ? (
+            accounts.map((account) => (
+              <div 
+                key={account.account_id} 
+                className="bg-white rounded-lg shadow-md p-4 border border-gray-200"
+              >
+                {/* Account card contents */}
+                <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-medium text-gray-900">{account.name}</h3>
-                    <p className="text-xs text-gray-500">{account.institution}</p>
+                    <h3 className="text-md font-medium text-gray-900">{account.name}</h3>
+                    <p className="text-sm text-gray-500">{account.subtype} • {account.mask}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold">
+                      {formatCurrency(account.balances && (account.balances.available !== undefined ? account.balances.available : account.balances.current))}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {account.balances && account.balances.available !== undefined ? 'Available' : 'Current'} Balance
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <span className={`font-semibold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'} mr-2`}>
-                    {formatCurrency(account.balance)}
-                  </span>
-                  <HiOutlineChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-500">No accounts connected. Connect your first account above.</p>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

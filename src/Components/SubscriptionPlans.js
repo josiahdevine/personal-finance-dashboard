@@ -8,7 +8,7 @@ import {
   addPaymentMethod
 } from '../services/stripe';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
-import { format } from 'date-fns';
+import { format } from '../utils/patchedDateFns';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 

@@ -33,7 +33,7 @@ const LinkAccounts = () => {
   useEffect(() => {
     fetchAccounts();
     initializePlaid();
-  }, []);
+  }, [initializePlaid, fetchAccounts]);
 
   // Initialize Plaid connection
   const initializePlaid = async () => {
@@ -42,11 +42,15 @@ const LinkAccounts = () => {
         const token = await createLinkToken();
         if (token) {
           setLinkToken(token);
+          console.log("Link token created successfully:", token.substring(0, 10) + "...");
+        } else {
+          console.error("Failed to create link token - received empty token");
+          toast.error("Couldn't initialize bank connection. Please try again later.");
         }
       }
     } catch (error) {
       console.error('Error initializing Plaid:', error);
-      toast.error('Failed to initialize Plaid connection');
+      toast.error(`Failed to initialize Plaid connection: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -73,6 +77,11 @@ const LinkAccounts = () => {
   const handlePlaidSuccess = async (publicToken, metadata) => {
     try {
       setLoading(true);
+      console.log("Exchanging public token with metadata:", {
+        institution_id: metadata.institution.institution_id,
+        institution_name: metadata.institution.name
+      });
+      
       const response = await api.post('/api/plaid/exchange-token', {
         public_token: publicToken,
         institution: metadata.institution,
@@ -85,7 +94,18 @@ const LinkAccounts = () => {
       }
     } catch (error) {
       console.error('Error exchanging Plaid token:', error);
-      toast.error('Failed to connect account');
+      
+      // More detailed error reporting
+      let errorMessage = 'Failed to connect account';
+      if (error.response) {
+        errorMessage = `Server error: ${error.response.data?.message || error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'No response from server. Please check your internet connection.';
+      } else {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -367,6 +387,11 @@ const LinkAccounts = () => {
     );
   };
 
+  // Add this function to handle removing accounts
+  const handleRemoveAccount = (accountId) => {
+    setAccounts(accounts.filter(account => account.id !== accountId));
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <header className="mb-8">
@@ -429,6 +454,33 @@ const LinkAccounts = () => {
       <div className="mt-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Accounts</h2>
         {renderAccountCards()}
+      </div>
+
+      <h2 className="text-lg font-semibold mb-4">Selected Accounts</h2>
+      <div className="space-y-3">
+        {Array.isArray(accounts) && accounts.length > 0 ? (
+          accounts.map((account) => (
+            <div 
+              key={account.id} 
+              className="bg-white rounded-md p-3 flex justify-between items-center border border-gray-200 shadow-sm"
+            >
+              <div>
+                <h3 className="font-medium">{account.name}</h3>
+                <p className="text-sm text-gray-500">{account.type} • {account.institution}</p>
+              </div>
+              <button
+                onClick={() => handleRemoveAccount(account.id)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500 text-center py-4">No accounts selected yet. Please select accounts above.</p>
+        )}
       </div>
     </div>
   );

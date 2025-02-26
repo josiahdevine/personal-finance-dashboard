@@ -109,6 +109,99 @@ If issues arise in production:
 3. Test connections to Plaid API from production server
 4. Review recent changes that might have affected the integration
 
+## Production Environment Setup
+
+## Troubleshooting Common Production Issues
+
+### Link Token Creation Failures
+
+If you're seeing "Failed to create link token for Plaid" errors in production, check the following:
+
+1. **Environment Variables**: Verify that all required Plaid environment variables are correctly set in your production environment:
+   - `PLAID_CLIENT_ID`
+   - `PLAID_SECRET`
+   - `PLAID_ENV` (should be set to 'development' or 'production', not 'sandbox' for real data)
+   - `PLAID_PRODUCTS` (comma-separated list of Plaid products you're using)
+   - `PLAID_COUNTRY_CODES` (e.g., 'US')
+
+2. **API Initialization**: Check the browser console for errors like `[PlaidContext] ERROR: API not properly initialized`. This suggests that:
+   - The API client might not be properly initialized
+   - The backend API might not be accessible from the frontend
+   - There might be CORS issues preventing API access
+
+3. **Network Connectivity**: Look for `net::ERR_BLOCKED_BY_CLIENT` errors, which can indicate:
+   - Content blockers (like ad blockers) are preventing resources from loading
+   - CORS headers are missing or incorrectly configured
+   - Network connectivity issues between client and server
+
+### Authentication Issues
+
+If you're seeing authentication errors with Firebase:
+
+1. **Firebase Configuration**: Verify that the Firebase configuration is correct in production:
+   - Check if the Firebase project is properly set up for production
+   - Ensure that the correct Firebase configuration is being used (development vs. production)
+
+2. **Authentication Rules**: For errors like "auth/admin-restricted-operation":
+   - Check that you have the appropriate authentication methods enabled in Firebase Console
+   - Verify that anonymous authentication is properly configured if you're using it
+   - Review any custom Firebase security rules that might be restricting access
+
+### Account Loading Failures
+
+For "Failed to load accounts" errors:
+
+1. **Database Connection**: Verify that your application can connect to the production database:
+   - Check database connection strings in environment variables
+   - Ensure the database is accessible from your production server
+   - Check that necessary database tables and schema are properly set up
+
+2. **Error Handling**: Improve error handling to provide more specific error messages:
+   - Check server logs for detailed error information
+   - Consider adding more detailed error reporting in the frontend
+
+## Quick Fixes for Common Issues
+
+1. **API Initialization Issues**:
+   ```javascript
+   // Add this check before making API calls
+   if (typeof api !== 'object' || api === null || typeof api.post !== 'function') {
+     console.error('API not properly initialized:', typeof api);
+     // Implement fallback or retry mechanism
+   }
+   ```
+
+2. **CORS Issues**:
+   ```javascript
+   // Server-side CORS configuration (Node.js/Express)
+   app.use(cors({
+     origin: process.env.FRONTEND_URL || 'https://your-production-domain.com',
+     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+     credentials: true
+   }));
+   ```
+
+3. **Production Environment Variables**:
+   ```bash
+   # Required environment variables for production
+   PLAID_CLIENT_ID=your_client_id
+   PLAID_SECRET=your_production_secret
+   PLAID_ENV=production
+   PLAID_PRODUCTS=transactions,auth,balance
+   PLAID_COUNTRY_CODES=US
+   DATABASE_URL=your_production_db_url
+   FIREBASE_API_KEY=your_firebase_api_key
+   # ... other Firebase configuration variables
+   ```
+
+## Monitoring and Logging
+
+For better visibility into production issues:
+
+1. **Enhanced Logging**: Implement more detailed logging for Plaid operations
+2. **Error Tracking**: Consider implementing Sentry or a similar error tracking service
+3. **Performance Monitoring**: Monitor API response times and error rates to identify issues early
+
 ---
 
 By following this deployment guide, you should be able to successfully transition the Plaid integration from development to production while ensuring security, data integrity, and reliability. 

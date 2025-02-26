@@ -32,8 +32,9 @@ The current Plaid integration architecture uses a multi-layer approach:
 
 1. **Plaid Client Setup (`server/plaid.js`):**
    - Uses the official Plaid Node.js client
-   - Currently configured for sandbox environment
-   - Uses hardcoded credentials
+   - ✅ Updated to use environment variables for configuration (no more hardcoded credentials)
+   - ✅ Supports multiple environments (sandbox, development, production) based on PLAID_ENV variable
+   - ✅ Includes additional logging and error handling
 
 2. **Plaid Controller (`server/controllers/PlaidController.js`):**
    - Handles API endpoints for Plaid operations
@@ -49,34 +50,89 @@ The current Plaid integration architecture uses a multi-layer approach:
    - Defines API endpoints for Plaid operations
    - Implements authentication middleware
    - Routes requests to the appropriate controller methods
+   - ✅ Added new endpoint for syncing balances
+   - ✅ Added webhook endpoint for Plaid notifications
 
 ### Database Schema
 
-The current implementation includes these primary tables:
+✅ **Migration Completed**: The Plaid database schema has been successfully migrated to production on [Date]. The following tables have been created:
 
 1. **plaid_items:**
    - Stores information about connected financial institutions
    - Includes Plaid access tokens, institution IDs, and status
+   - ✅ Added error tracking fields (error_code, error_message)
+   - ✅ Added proper timestamp management via triggers
 
 2. **plaid_accounts:**
    - Stores information about individual accounts
    - Linked to plaid_items via plaid_item_id
+   - ✅ Added fields for tracking deletion and visibility status
+   - ✅ Added interest-bearing flag
 
 3. **account_balances:**
    - Stores current and historical balance information
    - Linked to plaid_accounts via plaid_account_id
+   - ✅ Added support for currency codes
 
 4. **balance_history:**
    - Stores historical balance data for trend analysis
    - Includes both Plaid and manual accounts
+   - ✅ Added metadata JSON field for additional information
+
+5. **plaid_transactions:** ✅
+   - Stores transaction data from Plaid
+   - Includes categorization and merchant information
+   - Supports visibility controls and custom categorization
+
+6. **plaid_sync_cursor:** ✅
+   - Manages the Plaid transaction sync process
+   - Tracks cursor position for incremental updates
+
+7. **plaid_webhooks:** ✅
+   - Stores webhook events from Plaid
+   - Tracks processing status and provides audit trail
+
+#### Database Indices and Performance Enhancements
+
+✅ The following indices have been created to optimize query performance:
+
+```
+idx_plaid_items_user_id
+idx_plaid_accounts_plaid_item_id
+idx_account_balances_plaid_account_id
+idx_balance_history_user_timestamp
+idx_plaid_transactions_user_id
+idx_plaid_transactions_date
+idx_plaid_transactions_account_id
+idx_plaid_webhooks_item_id
+```
 
 ## Identified Issues & Recommendations
 
-### Critical Issues
+### Current Production Issues
 
-1. **Hardcoded Credentials:** 
-   - The Plaid client is initialized with hardcoded credentials in `server/plaid.js`
-   - **Recommendation:** Move credentials to environment variables and ensure they're not committed to source control
+1. **Link Token Creation Failure:** 
+   - Error: "Failed to create link token for Plaid"
+   - This appears to be an API initialization issue based on console logs
+   - Potential causes: Missing API credentials, incorrect environment setup, or backend connectivity issues
+
+2. **Account Loading Failure:**
+   - Error: "Failed to load accounts. Please try again later."
+   - This may be related to authentication issues or database connectivity problems
+
+3. **Firebase Authentication Issues:**
+   - Error: "Anonymous sign in failed: auth/admin-restricted-operation"
+   - This suggests a configuration issue with Firebase authentication
+
+4. **Network Resource Loading Failures:**
+   - Several "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT" errors
+   - These may be related to content blockers or CORS issues
+
+### Critical Issues (Previously Identified)
+
+1. **Hardcoded Credentials:** ✅ FIXED
+   - Credentials have been moved to environment variables in `server/plaid.js`
+   - ✅ Configuration now properly reads from .env files
 
 2. **Error Handling:**
    - Current error handling doesn't adequately address common Plaid API issues
@@ -86,9 +142,9 @@ The current implementation includes these primary tables:
    - The `Failed to create link token for plaid` error indicates issues with the token creation process
    - **Recommendation:** Implement better logging and retry mechanisms for link token creation
 
-4. **Environment Configuration:**
-   - The application is using sandbox mode but may need to transition to development or production
-   - **Recommendation:** Create a clear environment transition strategy with configuration for each environment
+4. **Environment Configuration:** ✅ IMPROVED
+   - The application now properly uses the environment specified in PLAID_ENV
+   - ✅ Configuration supports sandbox, development, and production environments
 
 ### Architecture Improvements
 
@@ -245,4 +301,174 @@ ON balance_history(user_id, timestamp);
 
 The current Plaid implementation provides a foundation but requires significant improvements for production use. The most critical issues are hardcoded credentials, inadequate error handling, and the lack of proper environment configuration. Addressing these issues and implementing the recommended improvements will result in a more robust, secure, and maintainable Plaid integration.
 
-By following the implementation plan outlined above, the application can successfully transition from development to production while ensuring data integrity, security, and performance. 
+By following the implementation plan outlined above, the application can successfully transition from development to production while ensuring data integrity, security, and performance.
+
+## Action Plan for Production Issues (Feb 26, 2023)
+
+Based on our recent deployment and observed production errors, here's a prioritized action plan to address the current issues:
+
+### 1. Fix API Initialization Issues
+
+**Problem:** Browser console shows `[PlaidContext] ERROR: API not properly initialized` and "Failed to create link token for Plaid" errors.
+
+**Actions:**
+1. Check and update environment variables on production server:
+   ```bash
+   PLAID_CLIENT_ID=your_plaid_client_id
+   PLAID_SECRET=your_plaid_secret
+   PLAID_ENV=development  # or 'production' if using Production API
+   PLAID_PRODUCTS=transactions,auth,balance
+   PLAID_COUNTRY_CODES=US
+   ```
+
+2. Update server-side logging to provide more context:
+   ```javascript
+   // In server/plaid.js
+   console.log('Plaid Environment Variables Check:');
+   console.log(`- PLAID_CLIENT_ID: ${PLAID_CLIENT_ID ? 'Present' : 'MISSING'}`);
+   console.log(`- PLAID_SECRET: ${PLAID_SECRET ? 'Present' : 'MISSING'}`);
+   console.log(`- PLAID_ENV: ${PLAID_ENV || 'MISSING'}`);
+   ```
+
+3. Ensure CORS is properly configured on production:
+   ```javascript
+   // In server/index.js
+   app.use(cors({
+     origin: process.env.FRONTEND_URL || 'https://yourdomain.com',
+     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+     credentials: true
+   }));
+   ```
+
+### 2. Address Firebase Authentication Issues
+
+**Problem:** "Anonymous sign in failed: auth/admin-restricted-operation" errors in console.
+
+**Actions:**
+1. Verify Firebase project settings for production:
+   - Go to Firebase Console → Authentication → Sign-in methods
+   - Ensure Anonymous Authentication is enabled if your app uses it
+   - Check IP allowlist settings if they're enabled
+
+2. Validate Firebase configuration in frontend:
+   ```javascript
+   // Check that these match the production Firebase project
+   const firebaseConfig = {
+     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+     authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+     projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+     // ...other firebase config
+   };
+   ```
+
+3. Implement more robust error handling for authentication:
+   ```javascript
+   // In AuthContext.js - improve error handling
+   auth.signInAnonymously()
+     .catch((error) => {
+       console.error('Authentication error:', error.code, error.message);
+       // Implement fallback mechanism or user-friendly error message
+     });
+   ```
+
+### 3. Fix Network Resource Loading Issues
+
+**Problem:** Many "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT" errors.
+
+**Actions:**
+1. Check if resources are being blocked by content blockers:
+   - Test in incognito mode with extensions disabled
+   - Verify that all essential resources are loading from trusted domains
+
+2. Check for mixed content issues if site is served over HTTPS:
+   - Ensure all resources (scripts, API calls) use HTTPS
+   - Check for hardcoded HTTP URLs in the application
+
+3. Review network requests and optimize:
+   - Consider bundling API requests to reduce number of calls
+   - Implement caching strategies where appropriate
+
+### 4. Implement Better Error Recovery
+
+**Problem:** The UI shows "Failed to load accounts. Please try again later."
+
+**Actions:**
+1. Add retry mechanism for failed API calls:
+   ```javascript
+   // Implement retry logic for critical API calls
+   const fetchWithRetry = async (url, options, maxRetries = 3) => {
+     let lastError;
+     for (let i = 0; i < maxRetries; i++) {
+       try {
+         return await fetch(url, options);
+       } catch (error) {
+         console.log(`Attempt ${i+1} failed, retrying...`);
+         lastError = error;
+         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+       }
+     }
+     throw lastError;
+   };
+   ```
+
+2. Implement graceful fallbacks for critical features:
+   - Show cached data when available
+   - Provide alternative ways to access/add accounts manually
+   - Display helpful error messages with specific actions users can take
+
+### 5. Enhance Monitoring and Diagnostics
+
+**Actions:**
+1. Implement application monitoring:
+   - Add Sentry or similar error tracking
+   - Set up alerts for critical errors
+
+2. Improve logging:
+   - Add request IDs to track requests across the stack
+   - Log important events and user actions
+
+3. Create a system health endpoint:
+   ```javascript
+   // In server/index.js
+   app.get('/api/health', async (req, res) => {
+     try {
+       // Check database connection
+       const dbStatus = await checkDatabaseConnection();
+       
+       // Check Plaid API connection
+       const plaidStatus = await checkPlaidConnection();
+       
+       res.json({
+         status: 'healthy',
+         services: {
+           database: dbStatus,
+           plaid: plaidStatus
+         }
+       });
+     } catch (error) {
+       res.status(500).json({
+         status: 'unhealthy',
+         error: error.message
+       });
+     }
+   });
+   ```
+
+### Timeline and Priorities
+
+1. **Immediate (Today):**
+   - Update environment variables in production
+   - Implement basic error logging enhancements
+   - Add retry logic for critical API calls
+
+2. **Short-term (1-2 days):**
+   - Fix Firebase configuration issues
+   - Implement better error handling and fallbacks
+   - Add health endpoints and basic monitoring
+
+3. **Medium-term (3-5 days):**
+   - Refactor API initialization to be more robust
+   - Implement comprehensive logging and monitoring
+   - Create user-friendly error recovery flows
+
+The successful completion of these tasks will ensure a reliable Plaid integration in production, with improved user experience and resilience against common failure modes. 

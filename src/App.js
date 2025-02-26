@@ -1,8 +1,9 @@
 import React, { useEffect, createContext, useState, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
 import { FinanceDataProvider } from './contexts/FinanceDataContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './Components/auth/Login';
 import Register from './Components/auth/Register';
 import LandingPage from './pages/LandingPage';
@@ -18,6 +19,8 @@ import initDeploymentDebug from './utils/deploymentDebug';
 import runFirebaseTest from './utils/firebaseTest';
 // Import migration utilities
 import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
+import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
 
 // Import page components
 import Dashboard from './pages/Dashboard';
@@ -28,14 +31,15 @@ import LinkAccounts from './Components/LinkAccounts';
 import Transactions from './Components/Transactions';
 import AskAI from './Components/AskAI';
 import SubscriptionPlans from './Components/SubscriptionPlans';
+import UIComponentDemo from './Components/examples/UIComponentDemo';
 
 // Import mobile versions of components
 import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
 import SubscriptionPlansMobile from './mobile/SubscriptionPlansMobile';
 
 // Import Stripe context provider
-import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
+import { PlaidLinkProvider } from './contexts/PlaidLinkContext';
 
 log('App', 'Initializing App component');
 
@@ -59,13 +63,8 @@ if (process.env.NODE_ENV === 'production') {
 // Initialize deployment debugging in production
 initDeploymentDebug();
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
-
-// Add fallback/error handling for Stripe initialization
-if (!process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY) {
-  console.warn('Stripe publishable key is missing. Stripe functionality will be limited.');
-}
+// Initialize Stripe conditionally
+const stripePromise = initializeStripe();
 
 // Create sidebar context for managing sidebar state
 export const SidebarContext = createContext();
@@ -92,66 +91,62 @@ const DesktopLayout = ({ children }) => {
 const PrivateRoute = ({ children }) => {
   logRender('PrivateRoute');
   const { currentUser, loading, authError } = useAuth();
+  const navigate = useNavigate();
   
   log('App', 'PrivateRoute auth state', { 
     currentUserExists: !!currentUser, 
     loading,
     hasAuthError: !!authError
   });
-  
-  // Migration check for authenticated users
+
+  // Check for version mismatch and migration needs
   useEffect(() => {
-    if (currentUser && !loading) {
-      // Check if user needs migration notice
-      if (checkNeedsMigration()) {
-        showMigrationNotice();
-      }
+    const needsMigration = checkNeedsMigration();
+    if (needsMigration) {
+      showMigrationNotice();
     }
-  }, [currentUser, loading]);
-  
+  }, []);
+
+  // Show loading state while auth is initializing
   if (loading) {
-    log('App', 'PrivateRoute - Auth is loading, showing loading state');
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading authentication state...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
-  
-  // Show error state if there's an auth error
+
+  // Redirect to login if not authenticated
+  if (!currentUser) {
+    return <Navigate to="/landing" />;
+  }
+
+  // Show error state if authentication error occurred
   if (authError) {
-    logError('App', 'PrivateRoute - Auth error encountered', 
-      new Error(authError.message), { code: authError.code });
-      
     return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 m-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <HiOutlineExclamationCircle className="w-8 h-8" />
           </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Authentication Error</h3>
-            <p className="text-sm text-red-700 mt-1">{authError.message}</p>
-            <div className="mt-2">
-              <button 
-                className="text-sm text-red-600 hover:text-red-500" 
-                onClick={() => window.location.href = '/login'}
-              >
-                Return to Login
-              </button>
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold text-red-700 mb-2">Authentication Error</h2>
+          <p className="text-gray-600 mb-4">{authError.message || 'Please try logging in again.'}</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     );
   }
-  
-  return currentUser ? children : <Navigate to="/login" />;
+
+  // Render the protected content if authenticated
+  return children;
 };
 
 // Determine if the route should use a mobile component version
@@ -197,11 +192,20 @@ const AuthenticatedLayout = ({ children }) => {
       component: MobileComponent.name || 'UnnamedMobileComponent'
     });
     
+    // Check if we need to use StripeWrapper for this component
+    const needsStripeWrapper = MobileComponent === SubscriptionPlansMobile;
+    
     return (
       <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
         <ResponsiveWrapper desktopLayout={DesktopLayout}>
           <ErrorBoundary componentName={`MobileRoute-${location.pathname}`}>
-            <MobileComponent />
+            {needsStripeWrapper ? (
+              <Elements stripe={stripePromise}>
+                <MobileComponent />
+              </Elements>
+            ) : (
+              <MobileComponent />
+            )}
           </ErrorBoundary>
         </ResponsiveWrapper>
       </SidebarContext.Provider>
@@ -222,8 +226,24 @@ const AuthenticatedLayout = ({ children }) => {
   );
 };
 
+// Define RootRouteHandler component to properly handle the redirect based on auth state
+const RootRouteHandler = () => {
+  const { currentUser } = useAuth();
+  
+  return (
+    <ErrorBoundary componentName="RootPath">
+      {currentUser ? (
+        <Navigate to="/dashboard" />
+      ) : (
+        <Navigate to="/landing" />
+      )}
+    </ErrorBoundary>
+  );
+};
+
 function App() {
   logRender('App');
+  const [stripeAvailable, setStripeAvailable] = useState(isStripeAvailable());
   
   useEffect(() => {
     log('App', 'App component mounted');
@@ -274,116 +294,147 @@ function App() {
     console.error('Some required components are not available');
   }
 
+  // Conditional wrapper for Elements to handle when Stripe isn't available
+  const StripeWrapper = ({ children }) => {
+    if (!stripeAvailable) {
+      return <>{children}</>;
+    }
+    
+    return (
+      <Elements stripe={stripePromise}>
+        {children}
+      </Elements>
+    );
+  };
+
   return (
     <ErrorBoundary componentName="AppRoot">
       <Router>
-        <AuthProvider>
-          <PlaidProvider>
-            <FinanceDataProvider>
-              <Elements stripe={stripePromise}>
-                <ToastContainer position="top-right" autoClose={5000} />
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/landing" element={<LandingPage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  
-                  {/* Authenticated routes with layout */}
-                  <Route 
-                    path="/" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <Dashboard />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/salary-journal" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <SalaryJournal />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/bills-analysis" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <BillsAnalysis />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/goals" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <Goals />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/link-accounts" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <LinkAccounts />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/transactions" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <Transactions />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/ask-ai" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <AskAI />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  <Route 
-                    path="/subscription" 
-                    element={
-                      <PrivateRoute>
-                        <AuthenticatedLayout>
-                          <SubscriptionPlans />
-                        </AuthenticatedLayout>
-                      </PrivateRoute>
-                    } 
-                  />
-                  
-                  {/* Redirect all other routes to dashboard */}
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </Elements>
-            </FinanceDataProvider>
-          </PlaidProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <PlaidProvider>
+              <PlaidLinkProvider>
+                <FinanceDataProvider>
+                  <StripeWrapper>
+                    <ToastContainer position="top-right" autoClose={5000} />
+                    <Routes>
+                      {/* Public routes */}
+                      <Route path="/landing" element={<LandingPage />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      
+                      {/* Default route to landing page when not logged in - Fixed with RootRouteHandler */}
+                      <Route path="/" element={<RootRouteHandler />} />
+                      
+                      {/* Dashboard route separated from root */}
+                      <Route 
+                        path="/dashboard" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <Dashboard />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/salary-journal" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <SalaryJournal />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/bills-analysis" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <BillsAnalysis />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/goals" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <Goals />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/link-accounts" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <LinkAccounts />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/transactions" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <Transactions />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/ask-ai" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <AskAI />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/subscription" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <SubscriptionPlans />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/ui-components" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <UIComponentDemo />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      {/* Redirect all other routes to dashboard */}
+                      <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
+                  </StripeWrapper>
+                </FinanceDataProvider>
+              </PlaidLinkProvider>
+            </PlaidProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </Router>
     </ErrorBoundary>
   );

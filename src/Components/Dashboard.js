@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { useFinanceData } from '../contexts/FinanceDataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme, Card, Button } from '../contexts/ThemeContext';
 import { log, logError } from '../utils/logger';
 import { Link } from 'react-router-dom';
 import BillsAnalysis from './BillsAnalysis';
@@ -59,14 +60,16 @@ ChartJS.register(
 
 // DashboardPanel component for consistent UI across dashboard sections
 function DashboardPanel({ title, children, className, error, loading, linkTo }) {
+  const { colors, shadows } = useTheme();
+  
   return (
-    <div className={`bg-white rounded-lg shadow-md p-4 ${className || ''}`}>
+    <Card variant="base" className={`p-4 ${className || ''}`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
         {linkTo && (
           <Link 
             to={linkTo} 
-            className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            className={`text-sm text-primary-600 hover:text-primary-700 flex items-center`}
           >
             View all
             <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,17 +80,17 @@ function DashboardPanel({ title, children, className, error, loading, linkTo }) 
       </div>
       
       {error ? (
-        <div className="bg-red-50 p-3 rounded border border-red-200 text-red-800">
+        <div className="bg-danger-100 p-3 rounded border border-danger-300 text-danger-700">
           <p className="text-sm">{error}</p>
         </div>
       ) : loading ? (
         <div className="flex justify-center py-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
         </div>
       ) : (
         children
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -101,6 +104,8 @@ function Dashboard() {
     financialGoals,
     recentTransactions
   } = useFinanceData();
+  
+  const { colors } = useTheme();
   
   const [dashboardData, setDashboardData] = useState({
     balanceHistory: null,
@@ -166,13 +171,13 @@ function Dashboard() {
   const getIncomeExpenseColors = () => {
     if (financialSummary.monthlySavings > 0) {
       return {
-        savingsColor: 'text-green-600',
-        savingsBg: 'bg-green-100'
+        savingsColor: 'text-success-500',
+        savingsBg: 'bg-success-100'
       };
     } else {
       return {
-        savingsColor: 'text-red-600',
-        savingsBg: 'bg-red-100'
+        savingsColor: 'text-danger-500',
+        savingsBg: 'bg-danger-100'
       };
     }
   };
@@ -197,10 +202,10 @@ function Dashboard() {
           loading={loading && financeDataLoading}
           error={error}
           linkTo="/salary-journal"
-          className="bg-blue-50"
+          className="bg-primary-50"
         >
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-700">
+            <p className="text-2xl font-bold text-primary-700">
               {formatCurrency(financialSummary.monthlyIncome)}
             </p>
             <p className="text-sm text-gray-600 mt-1">
@@ -214,10 +219,10 @@ function Dashboard() {
           loading={loading && financeDataLoading}
           error={error}
           linkTo="/bills-analysis"
-          className="bg-red-50"
+          className="bg-danger-100"
         >
           <div className="text-center">
-            <p className="text-2xl font-bold text-red-700">
+            <p className="text-2xl font-bold text-danger-700">
               {formatCurrency(financialSummary.monthlyExpenses)}
             </p>
             <p className="text-sm text-gray-600 mt-1">
@@ -257,25 +262,25 @@ function Dashboard() {
               {Object.entries(financialSummary.expenseBreakdown || {})
                 .sort(([_, a], [__, b]) => b - a)
                 .slice(0, 5)
-                .map(([category, amount]) => (
+                .map(([category, amount], index) => (
                   <div key={category} className="flex justify-between items-center">
                     <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                      <div className={`w-3 h-3 rounded-full bg-chart-${Object.keys(colors.chart)[index % Object.keys(colors.chart).length]} mr-2`}></div>
                       <span className="text-sm text-gray-700">{category}</span>
                     </div>
                     <div className="flex items-center">
                       <span className="text-sm font-medium text-gray-900">{formatCurrency(amount)}</span>
                       <span className="text-xs text-gray-500 ml-2">
                         ({Math.round((amount / financialSummary.monthlyExpenses) * 100)}%)
-                </span>
+                      </span>
                     </div>
-              </div>
+                  </div>
                 ))}
             </div>
           ) : (
             <div className="text-center py-6 text-gray-500">
               <p>No expense data available.</p>
-              <Link to="/bills-analysis" className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">
+              <Link to="/bills-analysis" className="text-primary-600 hover:text-primary-700 text-sm mt-2 inline-block">
                 Add your first expense
               </Link>
             </div>
@@ -299,7 +304,7 @@ function Dashboard() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-blue-600 h-2 rounded-full" 
+                      className="bg-primary-600 h-2 rounded-full" 
                       style={{ width: `${Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))}%` }}
                     ></div>
                   </div>
@@ -309,7 +314,7 @@ function Dashboard() {
           ) : (
             <div className="text-center py-6 text-gray-500">
               <p>No financial goals set.</p>
-              <Link to="/goals" className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">
+              <Link to="/goals" className="text-primary-600 hover:text-primary-700 text-sm mt-2 inline-block">
                 Set your first goal
               </Link>
             </div>
@@ -348,7 +353,7 @@ function Dashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {transaction.category}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${transaction.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${transaction.amount < 0 ? 'text-danger-600' : 'text-success-600'}`}>
                         {formatCurrency(Math.abs(transaction.amount))}
                       </td>
                     </tr>
@@ -359,10 +364,10 @@ function Dashboard() {
           ) : (
             <div className="text-center py-6 text-gray-500">
               <p>No transaction data available.</p>
-              <Link to="/link-accounts" className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">
+              <Link to="/link-accounts" className="text-primary-600 hover:text-primary-700 text-sm mt-2 inline-block">
                 Link your accounts to see transactions
               </Link>
-          </div>
+            </div>
           )}
         </DashboardPanel>
       </div>
@@ -374,12 +379,13 @@ function Dashboard() {
       )}
 
       <div className="text-center mt-8">
-        <button 
+        <Button 
           onClick={toggleDebugMode} 
-          className="text-xs text-gray-500 hover:text-gray-700"
+          variant="ghost"
+          size="sm"
         >
           {debugMode ? 'Hide' : 'Show'} Debug Data
-        </button>
+        </Button>
       </div>
     </div>
   );

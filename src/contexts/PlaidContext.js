@@ -4,6 +4,29 @@ import api from '../services/api';
 import { log, logError } from '../utils/logger';
 import { toast } from 'react-toastify';
 
+// Maximum retry attempts for API calls
+const MAX_RETRIES = 3;
+
+// Retry helper function for API calls
+const retryApiCall = async (apiCall, maxRetries = MAX_RETRIES) => {
+  let lastError;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        log('PlaidContext', `Retry attempt ${attempt + 1}/${maxRetries}`);
+      }
+      return await apiCall();
+    } catch (error) {
+      lastError = error;
+      log('PlaidContext', `API call failed, attempt ${attempt + 1}/${maxRetries}`, error);
+      // Exponential backoff
+      const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+};
+
 const PlaidContext = createContext();
 
 export function usePlaid() {
@@ -25,6 +48,45 @@ export function PlaidProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [contextReady, setContextReady] = useState(false);
+  
+  // Add API check
+  const [isApiInitialized, setIsApiInitialized] = useState(false);
+  
+  // Check if API is properly initialized
+  useEffect(() => {
+    const checkApiInitialization = async () => {
+      try {
+        // Verify that the API object exists and has the required methods
+        if (typeof api !== 'object' || api === null) {
+          throw new Error(`API not properly initialized: ${typeof api}`);
+        }
+        
+        if (typeof api.get !== 'function' || typeof api.post !== 'function') {
+          throw new Error('API object exists but required methods are missing');
+        }
+        
+        // Test API health check if available
+        if (typeof api.checkHealth === 'function') {
+          const healthResult = await api.checkHealth();
+          if (healthResult.status !== 'healthy') {
+            console.warn('API health check warning:', healthResult.error);
+          }
+        }
+        
+        setIsApiInitialized(true);
+        log('PlaidContext', 'API initialization verified ✓');
+      } catch (error) {
+        logError('PlaidContext', 'API initialization check failed', error);
+        setIsApiInitialized(false);
+        // Only show toast in production to avoid spamming in development
+        if (process.env.NODE_ENV === 'production') {
+          toast.error('Failed to initialize API connection. Please refresh the page.');
+        }
+      }
+    };
+    
+    checkApiInitialization();
+  }, []);
 
   // Log when context is mounted
   useEffect(() => {
@@ -97,32 +159,31 @@ export function PlaidProvider({ children }) {
       }
       
       // If no recent stored status, or status is not connected, check API
+      if (!isApiInitialized) {
+        logError('PlaidContext', 'API not properly initialized, using fallback');
+        getStoredStatusAsFallback();
+        setLoading(false);
+        setContextReady(true);
+        return;
+      }
+      
       try {
-        // Make sure the API exists and is properly initialized
-        if (typeof api === 'object' && api !== null && typeof api.get === 'function') {
-          log('PlaidContext', 'Checking Plaid connection via API');
-          const response = await api.get('/api/plaid/status');
-          const status = response?.data?.connected || false;
-          
-          log('PlaidContext', 'API returned Plaid status', { connected: status });
-          setIsPlaidConnected(status);
-          
-          // Store in localStorage with timestamp
-          localStorage.setItem('plaidConnectionStatus', JSON.stringify({
-            isConnected: status,
-            timestamp: new Date().getTime(),
-            accessToken: response?.data?.accessToken || null
-          }));
-          
-          if (response?.data?.accessToken) {
-            setAccessToken(response.data.accessToken);
-          }
-        } else {
-          // API not properly initialized
-          logError('PlaidContext', 'API not properly initialized', 
-            new Error(typeof api === 'object' ? 'api object exists but get method missing' : `api is ${typeof api}`));
-          // Use stored status as fallback
-          getStoredStatusAsFallback();
+        log('PlaidContext', 'Checking Plaid connection via API');
+        const response = await retryApiCall(() => api.get('/api/plaid/status'));
+        const status = response?.data?.connected || false;
+        
+        log('PlaidContext', 'API returned Plaid status', { connected: status });
+        setIsPlaidConnected(status);
+        
+        // Store in localStorage with timestamp
+        localStorage.setItem('plaidConnectionStatus', JSON.stringify({
+          isConnected: status,
+          timestamp: new Date().getTime(),
+          accessToken: response?.data?.accessToken || null
+        }));
+        
+        if (response?.data?.accessToken) {
+          setAccessToken(response.data.accessToken);
         }
       } catch (apiError) {
         logError('PlaidContext', 'Error checking Plaid connection via API', apiError);
@@ -135,7 +196,7 @@ export function PlaidProvider({ children }) {
       setLoading(false);
       setContextReady(true);
     }
-  }, [currentUser]);
+  }, [currentUser, isApiInitialized]);
 
   // Initialize connection check on mount and when user changes
   useEffect(() => {
@@ -153,6 +214,13 @@ export function PlaidProvider({ children }) {
   const createLinkToken = useCallback(async () => {
     if (!currentUser) {
       logError('PlaidContext', 'Cannot create link token without a user');
+      toast.error('Please log in to connect your bank account');
+      return null;
+    }
+
+    if (!isApiInitialized) {
+      logError('PlaidContext', 'Cannot create link token - API not initialized');
+      toast.error('Failed to create link token for Plaid - Connection issue');
       return null;
     }
 
@@ -160,13 +228,10 @@ export function PlaidProvider({ children }) {
       setLoading(true);
       log('PlaidContext', 'Creating Plaid link token');
       
-      if (typeof api !== 'object' || api === null || typeof api.post !== 'function') {
-        throw new Error(`API not properly initialized: ${typeof api === 'object' ? 'api object exists but post method missing' : `api is ${typeof api}`}`);
-      }
-      
-      const response = await api.post('/api/plaid/create-link-token', {
+      // Use retry mechanism for creating link token
+      const response = await retryApiCall(() => api.post('/api/plaid/create-link-token', {
         userId: currentUser.uid
-      });
+      }));
       
       const newLinkToken = response?.data?.link_token;
       if (newLinkToken) {
@@ -179,34 +244,28 @@ export function PlaidProvider({ children }) {
     } catch (error) {
       logError('PlaidContext', 'Error creating link token', error);
       setError('Failed to create link token');
-      toast.error('Failed to create link token for Plaid');
+      
+      // Provide more specific error message based on the error
+      let errorMessage = 'Failed to create link token for Plaid';
+      
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage = 'Authentication error - please log in again';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error - please try again later';
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = `Plaid error: ${error.response.data.error}`;
+        }
+      } else if (error.message.includes('Network Error')) {
+        errorMessage = 'Network error - please check your connection';
+      }
+      
+      toast.error(errorMessage);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
-
-  // Safe method to get transactions with proper error handling
-  const getTransactions = useCallback(async (startDate, endDate) => {
-    if (!isPlaidConnected || !currentUser) {
-      log('PlaidContext', 'Cannot get transactions - not connected or no user');
-      return [];
-    }
-
-    try {
-      setLoading(true);
-      log('PlaidContext', 'Fetching transactions', { startDate, endDate });
-      
-      // Return mock transactions for now to avoid API errors
-      log('PlaidContext', 'Returning mock transactions');
-      return mockTransactions;
-    } catch (error) {
-      logError('PlaidContext', 'Error fetching transactions', error);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, isPlaidConnected]);
+  }, [currentUser, isApiInitialized]);
 
   // Mock transactions for testing
   const mockTransactions = [
@@ -232,6 +291,28 @@ export function PlaidProvider({ children }) {
       category: 'Income'
     }
   ];
+
+  // Safe method to get transactions with proper error handling
+  const getTransactions = useCallback(async (startDate, endDate) => {
+    if (!isPlaidConnected || !currentUser) {
+      log('PlaidContext', 'Cannot get transactions - not connected or no user');
+      return [];
+    }
+
+    try {
+      setLoading(true);
+      log('PlaidContext', 'Fetching transactions', { startDate, endDate });
+      
+      // Return mock transactions for now to avoid API errors
+      log('PlaidContext', 'Returning mock transactions');
+      return mockTransactions;
+    } catch (error) {
+      logError('PlaidContext', 'Error fetching transactions', error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, isPlaidConnected, mockTransactions]);
 
   // Value provided by this context
   const value = {

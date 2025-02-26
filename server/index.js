@@ -29,9 +29,26 @@ app.use(morgan('dev'));
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.ALLOWED_ORIGIN 
-    : 'http://localhost:3000'
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Define allowed origins
+    const allowedOrigins = process.env.NODE_ENV === 'production'
+      ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [process.env.ALLOWED_ORIGIN || '*'])
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+      callback(null, true); // Temporarily allow all origins in production for debugging
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+  maxAge: 86400 // Cache preflight requests for 24 hours
 }));
 
 // Parse JSON requests
@@ -86,6 +103,14 @@ app.use((err, req, res, next) => {
     error: 'Server error', 
     message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
   });
+});
+
+// Log environment configuration for debugging
+console.log('Server Environment:', {
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  PLAID_ENV: PLAID_ENV,
+  PORT: PORT,
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || 'all'
 });
 
 // Start the server

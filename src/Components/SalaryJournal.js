@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import { Line } from 'react-chartjs-2';
 import {
@@ -12,7 +12,7 @@ import {
     Legend
 } from 'chart.js';
 import 'react-toastify/dist/ReactToastify.css';
-import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 // Register ChartJS components
@@ -67,6 +67,210 @@ const TAX_BRACKETS_2024 = {
 };
 
 const STATE_TAX_RATES = {
+    AL: { flatRate: 0.05 },
+    AK: { flatRate: 0 }, // No state income tax
+    AZ: {
+        brackets: [
+            { rate: 0.0259, upTo: 28653 },
+            { rate: 0.0334, upTo: 57305 },
+            { rate: 0.0417, upTo: Infinity }
+        ]
+    },
+    AR: {
+        brackets: [
+            { rate: 0.02, upTo: 4999 },
+            { rate: 0.04, upTo: 9999 },
+            { rate: 0.055, upTo: Infinity }
+        ]
+    },
+    CA: {
+        brackets: [
+            { rate: 0.01, upTo: 10099 },
+            { rate: 0.02, upTo: 23942 },
+            { rate: 0.04, upTo: 37788 },
+            { rate: 0.06, upTo: 52455 },
+            { rate: 0.08, upTo: 66295 },
+            { rate: 0.093, upTo: 338639 },
+            { rate: 0.103, upTo: 406364 },
+            { rate: 0.113, upTo: 677275 },
+            { rate: 0.123, upTo: Infinity }
+        ],
+        cities: {
+            'San Francisco': {
+                payrollTax: 0.0038 // SF has a payroll expense tax
+            }
+        }
+    },
+    CO: { flatRate: 0.044 },
+    CT: {
+        brackets: [
+            { rate: 0.03, upTo: 10000 },
+            { rate: 0.05, upTo: 50000 },
+            { rate: 0.055, upTo: 100000 },
+            { rate: 0.06, upTo: 200000 },
+            { rate: 0.065, upTo: 250000 },
+            { rate: 0.069, upTo: 500000 },
+            { rate: 0.0699, upTo: Infinity }
+        ]
+    },
+    DE: {
+        brackets: [
+            { rate: 0.022, upTo: 5000 },
+            { rate: 0.039, upTo: 10000 },
+            { rate: 0.048, upTo: 20000 },
+            { rate: 0.052, upTo: 25000 },
+            { rate: 0.0555, upTo: 60000 },
+            { rate: 0.066, upTo: Infinity }
+        ]
+    },
+    FL: { flatRate: 0 }, // No state income tax
+    GA: {
+        brackets: [
+            { rate: 0.01, upTo: 750 },
+            { rate: 0.02, upTo: 2250 },
+            { rate: 0.03, upTo: 3750 },
+            { rate: 0.04, upTo: 5250 },
+            { rate: 0.05, upTo: 7000 },
+            { rate: 0.0575, upTo: Infinity }
+        ]
+    },
+    HI: {
+        brackets: [
+            { rate: 0.014, upTo: 2400 },
+            { rate: 0.032, upTo: 4800 },
+            { rate: 0.055, upTo: 9600 },
+            { rate: 0.064, upTo: 14400 },
+            { rate: 0.068, upTo: 19200 },
+            { rate: 0.072, upTo: 24000 },
+            { rate: 0.076, upTo: 36000 },
+            { rate: 0.079, upTo: 48000 },
+            { rate: 0.0825, upTo: 150000 },
+            { rate: 0.09, upTo: 175000 },
+            { rate: 0.1, upTo: 200000 },
+            { rate: 0.11, upTo: Infinity }
+        ]
+    },
+    ID: {
+        brackets: [
+            { rate: 0.01, upTo: 1568 },
+            { rate: 0.03, upTo: 3136 },
+            { rate: 0.045, upTo: 4704 },
+            { rate: 0.06, upTo: Infinity }
+        ]
+    },
+    IL: { flatRate: 0.0495 },
+    IN: { flatRate: 0.0323 },
+    IA: {
+        brackets: [
+            { rate: 0.0425, upTo: 6000 },
+            { rate: 0.0482, upTo: 30000 },
+            { rate: 0.0598, upTo: Infinity }
+        ]
+    },
+    KS: {
+        brackets: [
+            { rate: 0.031, upTo: 15000 },
+            { rate: 0.0525, upTo: 30000 },
+            { rate: 0.057, upTo: Infinity }
+        ]
+    },
+    KY: { flatRate: 0.045 },
+    LA: {
+        brackets: [
+            { rate: 0.0185, upTo: 12500 },
+            { rate: 0.035, upTo: 50000 },
+            { rate: 0.0425, upTo: Infinity }
+        ]
+    },
+    ME: {
+        brackets: [
+            { rate: 0.058, upTo: 23000 },
+            { rate: 0.0675, upTo: 54450 },
+            { rate: 0.0715, upTo: Infinity }
+        ]
+    },
+    MD: {
+        brackets: [
+            { rate: 0.02, upTo: 1000 },
+            { rate: 0.03, upTo: 2000 },
+            { rate: 0.04, upTo: 3000 },
+            { rate: 0.0475, upTo: 100000 },
+            { rate: 0.05, upTo: 125000 },
+            { rate: 0.0525, upTo: 150000 },
+            { rate: 0.055, upTo: 250000 },
+            { rate: 0.0575, upTo: Infinity }
+        ]
+    },
+    MA: { flatRate: 0.05 },
+    MI: { flatRate: 0.0425 },
+    MN: {
+        brackets: [
+            { rate: 0.0535, upTo: 30070 },
+            { rate: 0.068, upTo: 98760 },
+            { rate: 0.0785, upTo: 183340 },
+            { rate: 0.0985, upTo: Infinity }
+        ]
+    },
+    MS: {
+        brackets: [
+            { rate: 0.04, upTo: 10000 },
+            { rate: 0.05, upTo: Infinity }
+        ]
+    },
+    MO: {
+        brackets: [
+            { rate: 0.015, upTo: 1088 },
+            { rate: 0.02, upTo: 2176 },
+            { rate: 0.025, upTo: 3264 },
+            { rate: 0.03, upTo: 4352 },
+            { rate: 0.035, upTo: 5440 },
+            { rate: 0.04, upTo: 6528 },
+            { rate: 0.045, upTo: 7616 },
+            { rate: 0.05, upTo: 8704 },
+            { rate: 0.054, upTo: Infinity }
+        ]
+    },
+    MT: {
+        brackets: [
+            { rate: 0.01, upTo: 3100 },
+            { rate: 0.02, upTo: 5500 },
+            { rate: 0.03, upTo: 8400 },
+            { rate: 0.04, upTo: 11400 },
+            { rate: 0.05, upTo: 14600 },
+            { rate: 0.06, upTo: 18800 },
+            { rate: 0.068, upTo: Infinity }
+        ]
+    },
+    NE: {
+        brackets: [
+            { rate: 0.0246, upTo: 3700 },
+            { rate: 0.0351, upTo: 22170 },
+            { rate: 0.0501, upTo: 35730 },
+            { rate: 0.0684, upTo: Infinity }
+        ]
+    },
+    NV: { flatRate: 0 }, // No state income tax
+    NH: { flatRate: 0.05, onlyInterestAndDividends: true }, // Only taxes interest and dividend income
+    NJ: {
+        brackets: [
+            { rate: 0.014, upTo: 20000 },
+            { rate: 0.0175, upTo: 35000 },
+            { rate: 0.035, upTo: 40000 },
+            { rate: 0.0553, upTo: 75000 },
+            { rate: 0.0637, upTo: 500000 },
+            { rate: 0.0897, upTo: 1000000 },
+            { rate: 0.1075, upTo: Infinity }
+        ]
+    },
+    NM: {
+        brackets: [
+            { rate: 0.017, upTo: 5500 },
+            { rate: 0.032, upTo: 11000 },
+            { rate: 0.047, upTo: 16000 },
+            { rate: 0.049, upTo: 210000 },
+            { rate: 0.059, upTo: Infinity }
+        ]
+    },
     NY: {
         brackets: [
             { rate: 0.04, upTo: 8500 },
@@ -90,63 +294,71 @@ const STATE_TAX_RATES = {
             }
         }
     },
-    CA: {
+    NC: { flatRate: 0.0475 },
+    ND: {
         brackets: [
-            { rate: 0.01, upTo: 10099 },
-            { rate: 0.02, upTo: 23942 },
-            { rate: 0.04, upTo: 37788 },
-            { rate: 0.06, upTo: 52455 },
-            { rate: 0.08, upTo: 66295 },
-            { rate: 0.093, upTo: 338639 },
-            { rate: 0.103, upTo: 406364 },
-            { rate: 0.113, upTo: 677275 },
-            { rate: 0.123, upTo: Infinity }
-        ],
-        cities: {
-            'San Francisco': {
-                payrollTax: 0.0038 // SF has a payroll expense tax
-            }
-        }
-    },
-    NJ: {
-        brackets: [
-            { rate: 0.014, upTo: 20000 },
-            { rate: 0.0175, upTo: 35000 },
-            { rate: 0.035, upTo: 40000 },
-            { rate: 0.0553, upTo: 75000 },
-            { rate: 0.0637, upTo: 500000 },
-            { rate: 0.0897, upTo: 1000000 },
-            { rate: 0.1075, upTo: Infinity }
+            { rate: 0.011, upTo: 41775 },
+            { rate: 0.0204, upTo: 101050 },
+            { rate: 0.0227, upTo: 210825 },
+            { rate: 0.0264, upTo: 458350 },
+            { rate: 0.029, upTo: Infinity }
         ]
     },
-    MA: {
-        flatRate: 0.05
-    },
-    IL: {
-        flatRate: 0.0495
-    },
-    TX: {
-        flatRate: 0 // No state income tax
-    },
-    FL: {
-        flatRate: 0 // No state income tax
-    },
-    WA: {
-        flatRate: 0, // No state income tax
-        cities: {
-            Seattle: {
-                payrollTax: 0.00175 // Seattle Payroll Expense Tax
-            }
-        }
-    },
-    DC: {
+    OH: {
         brackets: [
-            { rate: 0.04, upTo: 10000 },
-            { rate: 0.06, upTo: 40000 },
-            { rate: 0.065, upTo: 60000 },
-            { rate: 0.085, upTo: 350000 },
-            { rate: 0.0925, upTo: 1000000 },
-            { rate: 0.0975, upTo: Infinity }
+            { rate: 0.02765, upTo: 26050 },
+            { rate: 0.03226, upTo: 46100 },
+            { rate: 0.03688, upTo: 92150 },
+            { rate: 0.0399, upTo: 115300 },
+            { rate: 0.04597, upTo: Infinity }
+        ]
+    },
+    OK: {
+        brackets: [
+            { rate: 0.0025, upTo: 1000 },
+            { rate: 0.0075, upTo: 2500 },
+            { rate: 0.0175, upTo: 3750 },
+            { rate: 0.0275, upTo: 4900 },
+            { rate: 0.0375, upTo: 7200 },
+            { rate: 0.0475, upTo: Infinity }
+        ]
+    },
+    OR: {
+        brackets: [
+            { rate: 0.0475, upTo: 3650 },
+            { rate: 0.0675, upTo: 9200 },
+            { rate: 0.0875, upTo: 125000 },
+            { rate: 0.099, upTo: Infinity }
+        ]
+    },
+    PA: { flatRate: 0.0307 },
+    RI: {
+        brackets: [
+            { rate: 0.0375, upTo: 68200 },
+            { rate: 0.0475, upTo: 155050 },
+            { rate: 0.0599, upTo: Infinity }
+        ]
+    },
+    SC: {
+        brackets: [
+            { rate: 0, upTo: 3200 },
+            { rate: 0.03, upTo: 6410 },
+            { rate: 0.04, upTo: 9620 },
+            { rate: 0.05, upTo: 12820 },
+            { rate: 0.06, upTo: 16040 },
+            { rate: 0.07, upTo: Infinity }
+        ]
+    },
+    SD: { flatRate: 0 }, // No state income tax
+    TN: { flatRate: 0 }, // No state income tax
+    TX: { flatRate: 0 }, // No state income tax
+    UT: { flatRate: 0.0485 },
+    VT: {
+        brackets: [
+            { rate: 0.0335, upTo: 44650 },
+            { rate: 0.066, upTo: 108050 },
+            { rate: 0.076, upTo: 204000 },
+            { rate: 0.0875, upTo: Infinity }
         ]
     },
     VA: {
@@ -157,18 +369,25 @@ const STATE_TAX_RATES = {
             { rate: 0.0575, upTo: Infinity }
         ]
     },
-    PA: {
-        flatRate: 0.0307,
-        cities: {
-            Philadelphia: {
-                residentRate: 0.0371,
-                nonResidentRate: 0.035
-            },
-            Pittsburgh: {
-                flatRate: 0.01
-            }
-        }
-    }
+    WA: { flatRate: 0 }, // No state income tax
+    WV: {
+        brackets: [
+            { rate: 0.03, upTo: 10000 },
+            { rate: 0.04, upTo: 25000 },
+            { rate: 0.045, upTo: 40000 },
+            { rate: 0.06, upTo: 60000 },
+            { rate: 0.065, upTo: Infinity }
+        ]
+    },
+    WI: {
+        brackets: [
+            { rate: 0.0354, upTo: 12760 },
+            { rate: 0.0465, upTo: 25520 },
+            { rate: 0.053, upTo: 280950 },
+            { rate: 0.0765, upTo: Infinity }
+        ]
+    },
+    WY: { flatRate: 0 } // No state income tax
 };
 
 const INCOME_TYPES = {
@@ -201,6 +420,15 @@ const RSU_VESTING_SCHEDULES = {
     CUSTOM: 'Custom'
 };
 
+// Helper function to safely access pay frequency data
+const getPayFrequencyData = (key, property, defaultValue = '') => {
+    if (!key || !PAY_FREQUENCIES[key]) {
+        console.warn(`Invalid pay frequency key: ${key}`);
+        return defaultValue;
+    }
+    return PAY_FREQUENCIES[key][property] || defaultValue;
+};
+
 const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [salaryEntries, setSalaryEntries] = useState([]);
     const [showForm, setShowForm] = useState(false);
@@ -226,7 +454,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [payType, setPayType] = useState('annual');
     const [basePay, setBasePay] = useState('');
     const [hoursPerWeek, setHoursPerWeek] = useState(40);
-    const [payFrequency, setPayFrequency] = useState('biweekly');
+    const [payFrequency, setPayFrequency] = useState('BIWEEKLY');
     
     // Additional income
     const [overtime, setOvertime] = useState({ hours: 0, rate: 1.5 });
@@ -327,9 +555,202 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [visionInsurance, setVisionInsurance] = useState('0'); 
     const [retirement401k, setRetirement401k] = useState('0');
 
+    // Move calculatePaycheck function definition to before the useEffect hooks
+    const calculatePaycheck = useCallback(() => {
+        try {
+            // Get base values
+            let gross = 0;
+            const basePayValue = parseFloat(basePay) || 0;
+            
+            // Calculate gross pay based on pay type and frequency
+            if (payType === 'hourly') {
+                const hoursValue = parseFloat(hoursPerWeek) || 0;
+                const periodsPerYear = PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 52;
+                
+                // For hourly, calculate based on hours per week and pay frequency
+                gross = basePayValue * hoursValue * (52 / periodsPerYear);
+                
+                // Add overtime if applicable
+                if (overtime.hours > 0) {
+                    const overtimeRate = basePayValue * (overtime.rate || 1.5);
+                    const overtimePay = overtimeRate * overtime.hours * (52 / periodsPerYear);
+                    gross += overtimePay;
+                }
+            } else {
+                // For salary (annual), divide by number of pay periods
+                const periodsPerYear = PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12;
+                gross = basePayValue / periodsPerYear;
+            }
+            
+            // Add bonus and commission
+            const bonusValue = parseFloat(bonus) || 0;
+            const commissionValue = parseFloat(commission) || 0;
+            gross += bonusValue + commissionValue;
+            
+            // Calculate pre-tax deductions
+            const preTaxTotal = preTaxDeductions.reduce((total, deduction) => {
+                const amount = parseFloat(deduction.amount) || 0;
+                if (deduction.type === 'percentage') {
+                    return total + (gross * amount / 100);
+                }
+                return total + amount;
+            }, 0);
+            
+            // Calculate taxable income
+            const taxableIncome = Math.max(0, gross - preTaxTotal);
+            
+            // Calculate taxes
+            let federalTax = 0;
+            let stateTax = 0;
+            let localTax = 0;
+            
+            // Federal tax calculation
+            const annualizedIncome = taxableIncome * (PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12);
+            federalTax = calculateFederalTax(annualizedIncome) / (PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12);
+            
+            // State tax calculation if state is selected
+            if (selectedState && STATE_TAX_RATES[selectedState]) {
+                if (STATE_TAX_RATES[selectedState].flatRate !== undefined) {
+                    stateTax = taxableIncome * STATE_TAX_RATES[selectedState].flatRate;
+                } else if (STATE_TAX_RATES[selectedState].brackets) {
+                    stateTax = calculateProgressiveTax(
+                        annualizedIncome, 
+                        STATE_TAX_RATES[selectedState].brackets
+                    ) / (PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12);
+                }
+            }
+            
+            // Local/city tax calculation if applicable
+            if (selectedState && selectedCity && 
+                STATE_TAX_RATES[selectedState]?.cities?.[selectedCity]) {
+                const cityRates = STATE_TAX_RATES[selectedState].cities[selectedCity];
+                
+                if (cityRates.flatRate !== undefined) {
+                    localTax = taxableIncome * cityRates.flatRate;
+                } else if (cityRates.brackets) {
+                    localTax = calculateProgressiveTax(
+                        annualizedIncome, 
+                        cityRates.brackets
+                    ) / (PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12);
+                } else if (cityRates.residentRate !== undefined) {
+                    // For cities with separate resident rates like Philadelphia
+                    localTax = taxableIncome * cityRates.residentRate;
+                }
+            }
+            
+            // Calculate FICA taxes (Social Security and Medicare)
+            const annualizedGross = gross * (PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12);
+            const ssTaxRate = TAX_BRACKETS_2024.FICA.socialSecurity.rate;
+            const ssWageBase = TAX_BRACKETS_2024.FICA.socialSecurity.wageBase;
+            const medicareTaxRate = TAX_BRACKETS_2024.FICA.medicare.rate;
+            
+            // Calculate Social Security (subject to wage base limit)
+            let socialSecurityTax = taxableIncome * ssTaxRate;
+            
+            // Adjust for annual wage base limit
+            if (annualizedGross > ssWageBase) {
+                // Complex calculation to adjust for the wage base within the pay period
+                const adjustment = Math.max(0, (annualizedGross - ssWageBase) / annualizedGross);
+                socialSecurityTax *= (1 - adjustment);
+            }
+            
+            // Calculate Medicare (no wage base limit)
+            let medicareTax = taxableIncome * medicareTaxRate;
+            
+            // Additional Medicare tax for high earners
+            if (annualizedGross > TAX_BRACKETS_2024.FICA.medicare.threshold) {
+                const additionalMedicareTaxRate = TAX_BRACKETS_2024.FICA.medicare.additionalRate;
+                const additionalMedicareTax = Math.max(0, (annualizedGross - TAX_BRACKETS_2024.FICA.medicare.threshold)) 
+                    * additionalMedicareTaxRate / (PAY_FREQUENCIES[payFrequency]?.periodsPerYear || 12);
+                medicareTax += additionalMedicareTax;
+            }
+            
+            // Calculate post-tax deductions
+            const postTaxTotal = postTaxDeductions.reduce((total, deduction) => {
+                const amount = parseFloat(deduction.amount) || 0;
+                if (deduction.type === 'percentage') {
+                    return total + (gross * amount / 100);
+                }
+                return total + amount;
+            }, 0);
+            
+            // Calculate net pay
+            const totalTax = federalTax + stateTax + localTax + socialSecurityTax + medicareTax;
+            const netPay = gross - preTaxTotal - totalTax - postTaxTotal;
+            
+            return {
+                grossPay: gross,
+                preTaxDeductionsTotal: preTaxTotal,
+                taxableIncome,
+                federalTax,
+                stateTax,
+                localTax,
+                socialSecurity: socialSecurityTax,
+                medicare: medicareTax,
+                totalTax,
+                postTaxDeductionsTotal: postTaxTotal,
+                netPay
+            };
+        } catch (error) {
+            console.error('Error in calculatePaycheck:', error);
+            return {
+                grossPay: 0,
+                preTaxDeductionsTotal: 0,
+                taxableIncome: 0,
+                federalTax: 0,
+                stateTax: 0, 
+                localTax: 0,
+                socialSecurity: 0,
+                medicare: 0,
+                totalTax: 0,
+                postTaxDeductionsTotal: 0,
+                netPay: 0
+            };
+        }
+    }, [basePay, payType, payFrequency, hoursPerWeek, overtime, bonus, commission, 
+        preTaxDeductions, postTaxDeductions, selectedState, selectedCity]);
+
+    const fetchSalaryEntries = useCallback(async () => {
+        setLoading(true);
+        try {
+            // First try to load from localStorage as a fallback
+            const storedEntries = localStorage.getItem(`salary_entries_${activeUserId}`);
+            if (storedEntries) {
+                const parsedEntries = JSON.parse(storedEntries);
+                console.log('Loaded salary entries from localStorage:', parsedEntries);
+                setSalaryEntries(parsedEntries);
+            }
+            
+            // Then try the API with proper authentication
+            try {
+                console.log('Fetching salary data for user:', activeUserId);
+                
+                // Use our api service which handles authentication and has fallback mock data
+                const response = await api.get(`/api/salary/entries?userProfileId=${activeUserId}`);
+                
+                const data = response.data;
+                console.log('Loaded salary entries from API:', data);
+                setSalaryEntries(data);
+                
+                // Update localStorage with the latest data
+                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(data));
+                toast.success('Salary data loaded from database');
+            } catch (apiError) {
+                console.error('API Error fetching salary entries:', apiError);
+                toast.warning('Using locally stored salary data - API connection error');
+            }
+        } catch (error) {
+            console.error('Error in fetchSalaryEntries:', error);
+            toast.error('An error occurred while loading salary data');
+        } finally {
+            setLoading(false);
+        }
+    }, [activeUserId]);
+
+    // Now use the functions in useEffect hooks
     useEffect(() => {
         fetchSalaryEntries();
-    }, [activeUserId]);
+    }, [fetchSalaryEntries]); 
 
     useEffect(() => {
         if (salaryEntries.length > 0) {
@@ -345,7 +766,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             setBonusAmount(mostRecent.bonus_amount?.toString() || '0');
             setCommissionAmount(mostRecent.commission_amount?.toString() || '0');
         }
-    }, [salaryEntries]); // Only depend on salaryEntries
+    }, [salaryEntries]); 
 
     useEffect(() => {
         const calculateAndSetResults = () => {
@@ -370,83 +791,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
         };
 
         calculateAndSetResults();
-    }, [basePay, payType, payFrequency, hoursPerWeek, overtime, bonus, commission, 
-        preTaxDeductions, postTaxDeductions, selectedState, selectedCity]);
-
-    const fetchSalaryEntries = async () => {
-        setLoading(true);
-        try {
-            // First try to load from localStorage as a fallback
-            const storedEntries = localStorage.getItem(`salary_entries_${activeUserId}`);
-            if (storedEntries) {
-                const parsedEntries = JSON.parse(storedEntries);
-                console.log('Loaded salary entries from localStorage:', parsedEntries);
-                setSalaryEntries(parsedEntries);
-            }
-            
-            // Then try the API with proper authentication
-            try {
-                // Get the current user's token
-                const token = await currentUser.getIdToken();
-                
-                // Build the API URL using the environment variable
-                const apiUrl = process.env.REACT_APP_API_URL || 'https://api.trypersonalfinance.com';
-                const endpoint = `/api/salary/entries?userProfileId=${activeUserId}`;
-                const fullUrl = `${apiUrl}${endpoint}`;
-                
-                console.log('Fetching salary data from:', endpoint);
-                
-                const response = await fetch(fullUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    console.warn(`API error (${response.status}):`, errorData);
-                    toast.warning(`Using localStorage data (API returned ${response.status})`);
-                    return; // Keep using localStorage data
-                }
-                
-                const data = await response.json();
-                console.log('Loaded salary entries from API:', data);
-                setSalaryEntries(data);
-                
-                // Update localStorage with the latest data
-                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(data));
-                toast.success('Salary data loaded from database');
-            } catch (apiError) {
-                console.error('API Error fetching salary entries:', apiError);
-                toast.warning('Using locally stored salary data - API connection error');
-            }
-        } catch (error) {
-            console.error('Error in fetchSalaryEntries:', error);
-            toast.error('An error occurred while loading salary data');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAddUser = () => {
-        if (!newUserName.trim()) {
-            toast.error('Please enter a name for the user');
-            return;
-        }
-
-        const newUser = {
-            id: `user_${Date.now()}`,
-            name: newUserName.trim(),
-            isActive: false
-        };
-
-        setUsers([...users, newUser]);
-        setNewUserName('');
-        setShowUserForm(false);
-        toast.success(`Added ${newUserName} to your account`);
-    };
+    }, [calculatePaycheck]); 
 
     const switchActiveUser = (userId) => {
         setActiveUserId(userId);
@@ -479,9 +824,6 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             const finalBonusAmount = bonusIsPercentage 
                 ? (parseFloat(salaryAmount) * parseFloat(bonusAmount) / 100) 
                 : parseFloat(bonusAmount) || 0;
-                
-            // Get current user's token
-            const token = await currentUser.getIdToken();
             
             // Prepare data for the API
             const newEntry = {
@@ -507,72 +849,75 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
 
             console.log('Sending data to server:', newEntry);
 
-            // Build the API URL using the environment variable
-            const apiUrl = process.env.REACT_APP_API_URL || 'https://api.trypersonalfinance.com';
-            const endpoint = '/api/salary'; // This is correct - matches how routes are mounted
-            const fullUrl = `${apiUrl}${endpoint}`;
+            // Use our api service which handles auth tokens and provides mock data if needed
+            const response = await api.post('/api/salary', newEntry);
             
-            console.log('Sending POST request to:', fullUrl);
+            console.log('Server response data:', response.data);
 
-            try {
-                const response = await fetch(fullUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(newEntry),
-                });
-
-                let responseData;
-                try {
-                    responseData = await response.json();
-                } catch (parseError) {
-                    console.error('Error parsing response:', parseError);
-                    responseData = { error: 'Could not parse server response' };
-                }
-
-                console.log('Server response status:', response.status);
-                console.log('Server response data:', responseData);
-
-                if (response.ok) {
-                    toast.success('Salary entry created successfully!');
-                    resetForm();
-                    fetchSalaryEntries(); // Refresh the list
-                } else {
-                    console.error('Server error response:', responseData);
-                    
-                    // More detailed error message
-                    let errorMessage = 'Failed to create salary entry: ';
-                    if (responseData?.message) {
-                        errorMessage += responseData.message;
-                    } else if (responseData?.error) {
-                        errorMessage += responseData.error;
-                    } else {
-                        errorMessage += response.statusText || 'Unknown error';
-                    }
-                    toast.error(errorMessage);
-                    
-                    // Fall back to local storage if API fails
-                    const entryWithId = {
-                        ...newEntry,
-                        id: `local_${Date.now()}`,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    const existingEntries = JSON.parse(localStorage.getItem(`salary_entries_${activeUserId}`) || '[]');
-                    const updatedEntries = [entryWithId, ...existingEntries];
-                    localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
-                    
-                    setSalaryEntries(updatedEntries);
-                    toast.warning('Saved to local storage (API unavailable)');
-                    resetForm();
-                }
-            } catch (networkError) {
-                console.error('Network error:', networkError);
-                toast.error(`Network error: ${networkError.message || 'Could not connect to server'}`);
+            if (response.status === 200 || response.status === 201) {
+                toast.success('Salary entry created successfully!');
+                resetForm();
+                fetchSalaryEntries(); // Refresh the list
+            } else {
+                console.error('Server error response:', response.data);
                 
-                // Fall back to local storage for network errors too
+                // More detailed error message
+                let errorMessage = 'Failed to create salary entry: ';
+                if (response.data?.message) {
+                    errorMessage += response.data.message;
+                } else if (response.data?.error) {
+                    errorMessage += response.data.error;
+                } else {
+                    errorMessage += response.statusText || 'Unknown error';
+                }
+                toast.error(errorMessage);
+                
+                // Fall back to local storage if API fails
+                const entryWithId = {
+                    ...newEntry,
+                    id: `local_${Date.now()}`,
+                    created_at: new Date().toISOString()
+                };
+                
+                const existingEntries = JSON.parse(localStorage.getItem(`salary_entries_${activeUserId}`) || '[]');
+                const updatedEntries = [entryWithId, ...existingEntries];
+                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
+                
+                setSalaryEntries(updatedEntries);
+                toast.warning('Saved to local storage (API unavailable)');
+                resetForm();
+            }
+        } catch (error) {
+            console.error('Error creating salary entry:', error);
+            toast.error('Error creating salary entry: ' + (error.message || 'Unknown error'));
+            
+            // Fall back to local storage for network errors too
+            try {
+                const finalBonusAmount = bonusIsPercentage 
+                    ? (parseFloat(salaryAmount) * parseFloat(bonusAmount) / 100) 
+                    : parseFloat(bonusAmount) || 0;
+                
+                const newEntry = {
+                    company,
+                    position,
+                    user_profile_id: activeUserId,
+                    salary_amount: parseFloat(salaryAmount),
+                    pay_type: payType,
+                    pay_frequency: payFrequency,
+                    hours_per_week: payType === 'hourly' ? parseFloat(hoursPerWeek) : null,
+                    date_of_change: dateOfChange || new Date().toISOString().split('T')[0],
+                    notes,
+                    bonus_amount: finalBonusAmount,
+                    bonus_is_percentage: bonusIsPercentage,
+                    commission_amount: parseFloat(commissionAmount) || 0,
+                    health_insurance: parseFloat(healthInsurance) || 0,
+                    dental_insurance: parseFloat(dentalInsurance) || 0,
+                    vision_insurance: parseFloat(visionInsurance) || 0,
+                    retirement_401k: parseFloat(retirement401k) || 0,
+                    state: selectedState,
+                    city: selectedCity
+                };
+                
                 const entryWithId = {
                     ...newEntry,
                     id: `local_${Date.now()}`,
@@ -586,10 +931,9 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 setSalaryEntries(updatedEntries);
                 toast.warning('Saved to local storage (network error)');
                 resetForm();
+            } catch (storageError) {
+                console.error('Failed to save to local storage:', storageError);
             }
-        } catch (error) {
-            console.error('Error creating salary entry:', error);
-            toast.error('Error creating salary entry: ' + (error.message || 'Unknown error'));
         } finally {
             setLoading(false);
         }
@@ -617,19 +961,35 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     const prepareChartData = (entries) => {
-        // Sort entries by date
-        const sortedEntries = [...entries].sort((a, b) => 
-            new Date(a.date_of_change) - new Date(b.date_of_change)
-        );
-
+        // Sort entries by date of change
+        const sortedEntries = [...entries].sort((a, b) => {
+            return new Date(a.date_of_change) - new Date(b.date_of_change);
+        });
+        
         return {
-            labels: sortedEntries.map(entry => new Date(entry.date_of_change).toLocaleDateString()),
+            labels: sortedEntries.map(entry => 
+                new Date(entry.date_of_change).toLocaleDateString('default', { month: 'short', year: 'numeric' })
+            ),
             datasets: [
                 {
                     label: 'Base Salary',
                     data: sortedEntries.map(entry => entry.salary_amount),
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Bonus',
+                    data: sortedEntries.map(entry => entry.bonus_amount || 0),
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Commission',
+                    data: sortedEntries.map(entry => entry.commission_amount || 0),
+                    borderColor: 'rgb(255, 205, 86)',
+                    backgroundColor: 'rgba(255, 205, 86, 0.5)',
                     tension: 0.1
                 },
                 {
@@ -694,30 +1054,26 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     const calculateAnnualSalary = () => {
-        if (payType === 'annual') {
-            return parseFloat(basePay) || 0;
-        } else {
-            const weeklyPay = (parseFloat(basePay) || 0) * hoursPerWeek;
-            return weeklyPay * 52;
+        if (payType === 'hourly') {
+            return parseFloat(basePay) * hoursPerWeek * 52;
         }
+        // If annual, return as is, otherwise convert based on pay frequency
+        return payType === 'annual' ? parseFloat(basePay) : parseFloat(basePay) * getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
     };
 
     const calculateGrossPay = () => {
         const annualSalary = calculateAnnualSalary();
-        const periodsPerYear = PAY_FREQUENCIES[payFrequency].periodsPerYear;
-        const baseGrossPay = annualSalary / periodsPerYear;
-
-        // Add overtime if applicable
-        let overtimePay = 0;
-        if (payType === 'hourly') {
-            const hourlyRate = parseFloat(basePay) || 0;
-            overtimePay = overtime.hours * hourlyRate * overtime.rate;
+        const periodsPerYear = getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
+        
+        // Base pay per period
+        let grossPay = annualSalary / periodsPerYear;
+        
+        // Add overtime, if any
+        if (overtime.hours > 0) {
+            grossPay += (parseFloat(basePay) * overtime.rate * overtime.hours);
         }
-
-        // Add bonus and commission
-        const additionalPay = (parseFloat(bonus) || 0) + (parseFloat(commission) || 0);
-
-        return baseGrossPay + overtimePay + additionalPay;
+        
+        return grossPay;
     };
 
     const calculatePreTaxDeductions = (grossPay) => {
@@ -739,40 +1095,46 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     const calculateFederalTax = (taxableIncome) => {
-        const annualTaxableIncome = taxableIncome * PAY_FREQUENCIES[payFrequency].periodsPerYear;
+        // Convert to annual for bracket calculation
+        const annualTaxableIncome = taxableIncome * getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
         let tax = 0;
-        let remainingIncome = annualTaxableIncome;
-
-        for (let i = 0; i < TAX_BRACKETS_2024.FEDERAL.length; i++) {
-            const bracket = TAX_BRACKETS_2024.FEDERAL[i];
-            const prevBracket = i > 0 ? TAX_BRACKETS_2024.FEDERAL[i - 1].upTo : 0;
-            const bracketIncome = Math.min(remainingIncome, bracket.upTo - prevBracket);
+        
+        for (const bracket of TAX_BRACKETS_2024.FEDERAL) {
+            const prevBracket = TAX_BRACKETS_2024.FEDERAL[TAX_BRACKETS_2024.FEDERAL.indexOf(bracket) - 1];
+            const bracketStart = prevBracket ? prevBracket.upTo : 0;
+            const bracketAmount = Math.min(annualTaxableIncome, bracket.upTo) - bracketStart;
             
-            if (bracketIncome <= 0) break;
+            if (bracketAmount > 0) {
+                tax += bracketAmount * bracket.rate;
+            }
             
-            tax += bracketIncome * bracket.rate;
-            remainingIncome -= bracketIncome;
+            if (annualTaxableIncome <= bracket.upTo) {
+                break;
+            }
         }
-
-        return tax / PAY_FREQUENCIES[payFrequency].periodsPerYear;
+        
+        // Convert back to pay period amount
+        return tax / getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
     };
-
+    
     const calculateFICA = (taxableIncome) => {
-        const annualTaxableIncome = taxableIncome * PAY_FREQUENCIES[payFrequency].periodsPerYear;
+        // Convert to annual for limit calculations
+        const annualTaxableIncome = taxableIncome * getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
         const { socialSecurity, medicare } = TAX_BRACKETS_2024.FICA;
-
-        // Calculate Social Security
-        const ssTax = Math.min(annualTaxableIncome, socialSecurity.wageBase) * socialSecurity.rate;
-
-        // Calculate Medicare
+        
+        // Calculate Social Security (capped at wage base)
+        const ssTaxableIncome = Math.min(annualTaxableIncome, socialSecurity.wageBase);
+        const ssTax = ssTaxableIncome * socialSecurity.rate;
+        
+        // Calculate Medicare (additional rate for high earners)
         let medicareTax = annualTaxableIncome * medicare.rate;
         if (annualTaxableIncome > medicare.threshold) {
             medicareTax += (annualTaxableIncome - medicare.threshold) * medicare.additionalRate;
         }
-
+        
         return {
-            socialSecurity: ssTax / PAY_FREQUENCIES[payFrequency].periodsPerYear,
-            medicare: medicareTax / PAY_FREQUENCIES[payFrequency].periodsPerYear
+            socialSecurity: ssTax / getPayFrequencyData(payFrequency, 'periodsPerYear', 26),
+            medicare: medicareTax / getPayFrequencyData(payFrequency, 'periodsPerYear', 26)
         };
     };
 
@@ -781,8 +1143,37 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             return 0;
         }
 
-        const stateTaxRate = STATE_TAX_RATES[selectedState].rate;
-        return taxableIncome * stateTaxRate;
+        // Convert to annual for bracket calculation
+        const annualTaxableIncome = taxableIncome * getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
+        let tax = 0;
+
+        const stateData = STATE_TAX_RATES[selectedState];
+
+        // Handle flat rate states
+        if (stateData.flatRate !== undefined) {
+            tax = annualTaxableIncome * stateData.flatRate;
+        } 
+        // Handle bracket states
+        else if (stateData.brackets) {
+            let previousThreshold = 0;
+            
+            for (const bracket of stateData.brackets) {
+                const taxableInBracket = Math.min(annualTaxableIncome, bracket.upTo) - previousThreshold;
+                
+                if (taxableInBracket > 0) {
+                    tax += taxableInBracket * bracket.rate;
+                }
+                
+                if (annualTaxableIncome <= bracket.upTo) {
+                    break;
+                }
+                
+                previousThreshold = bracket.upTo;
+            }
+        }
+
+        // Convert back to pay period amount
+        return tax / getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
     };
 
     // Calculate city tax based on selected city
@@ -799,63 +1190,53 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     // Helper function to calculate progressive tax based on brackets
-    const calculateTaxProgressive = (taxableIncome, payFrequency, brackets) => {
-        // Convert to annual amount for calculation
-        const periodsPerYear = PAY_FREQUENCIES[payFrequency].periodsPerYear;
-        const annualizedIncome = taxableIncome * periodsPerYear;
-        
+    const calculateProgressiveTax = (taxableIncome, brackets) => {
         let tax = 0;
-        let remainingIncome = annualizedIncome;
+        let previousBracketLimit = 0;
         
-        for (let i = 0; i < brackets.length; i++) {
-            const bracket = brackets[i];
-            const nextBracketThreshold = i < brackets.length - 1 ? brackets[i + 1].threshold : Infinity;
-            const incomeInBracket = Math.min(remainingIncome, nextBracketThreshold - bracket.threshold);
-            
-            if (incomeInBracket <= 0) break;
-            
-            tax += incomeInBracket * bracket.rate;
-            remainingIncome -= incomeInBracket;
-        }
+        // Sort brackets by income threshold ascending
+        const sortedBrackets = [...brackets].sort((a, b) => a.income - b.income);
         
-        // Convert back to per-period amount
-        return tax / periodsPerYear;
-    };
-
-    // Calculate local tax if applicable
-    const calculateLocalTax = (taxableIncome) => {
-        if (!selectedState || !selectedCity || 
-            !STATE_TAX_RATES[selectedState]?.cities?.[selectedCity]) return 0;
-
-        const cityTax = STATE_TAX_RATES[selectedState].cities[selectedCity];
-        const annualTaxableIncome = taxableIncome * PAY_FREQUENCIES[payFrequency].periodsPerYear;
-
-        if (cityTax.payrollTax) {
-            return (annualTaxableIncome * cityTax.payrollTax) / PAY_FREQUENCIES[payFrequency].periodsPerYear;
-        }
-
-        if (cityTax.brackets) {
-            let tax = 0;
-            let remainingIncome = annualTaxableIncome;
-
-            for (let i = 0; i < cityTax.brackets.length; i++) {
-                const bracket = cityTax.brackets[i];
-                const prevBracket = i > 0 ? cityTax.brackets[i - 1].upTo : 0;
-                const bracketIncome = Math.min(remainingIncome, bracket.upTo - prevBracket);
-                
-                if (bracketIncome <= 0) break;
-                
-                tax += bracketIncome * bracket.rate;
-                remainingIncome -= bracketIncome;
+        for (const bracket of sortedBrackets) {
+            if (taxableIncome > bracket.income) {
+                const taxableAmountInBracket = Math.min(taxableIncome, bracket.income) - previousBracketLimit;
+                tax += taxableAmountInBracket * bracket.rate;
+                previousBracketLimit = bracket.income;
+            } else {
+                break;
             }
-
-            return tax / PAY_FREQUENCIES[payFrequency].periodsPerYear;
         }
-
+        
+        return tax;
+    };
+    
+    const calculateLocalTax = (taxableIncome) => {
+        // Skip if no state or city selected
+        if (!selectedState || !selectedCity) return 0;
+        
+        // Get state tax rates and check if city has tax info
+        const stateTax = STATE_TAX_RATES[selectedState];
+        if (!stateTax || !stateTax.cities || !stateTax.cities[selectedCity]) return 0;
+        
+        const cityTax = stateTax.cities[selectedCity];
+        const annualTaxableIncome = taxableIncome * getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
+        
+        if (cityTax) {
+            // Some cities have flat rates, others have brackets
+            if (cityTax.flatRate) {
+                return annualTaxableIncome * cityTax.flatRate / getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
+            } else if (cityTax.payrollTax) {
+                return (annualTaxableIncome * cityTax.payrollTax) / getPayFrequencyData(payFrequency, 'periodsPerYear', 26);
+            } else if (cityTax.brackets) {
+                return calculateProgressiveTax(taxableIncome, cityTax.brackets);
+            }
+        }
+        
         return 0;
     };
 
-    const calculatePaycheck = () => {
+    // Rename this to avoid duplication with the useCallback version
+    const calculateSimplePaycheck = () => {
         const grossPay = calculateGrossPay();
         const preTaxDeductionsTotal = calculatePreTaxDeductions(grossPay);
         const taxableIncome = grossPay - preTaxDeductionsTotal;
@@ -881,7 +1262,8 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     const handleSave = async () => {
-        const paycheck = calculatePaycheck();
+        // Also update reference here
+        const paycheck = calculateSimplePaycheck();
         const newEntry = {
             ...paycheck,
             payType,
@@ -909,7 +1291,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             
             // Then try to save to API
             try {
-                const response = await axios.post('/api/salary/save', newEntry);
+                const response = await api.post('/api/salary/save', newEntry);
                 if (response.status === 200 || response.status === 201) {
                     toast.success('Paycheck saved successfully');
                     
@@ -930,26 +1312,6 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             console.error('Error in handleSave:', error);
             toast.error('Failed to save paycheck');
         }
-    };
-
-    const prepareIncomeBreakdownData = () => {
-        const data = {
-            labels: Object.values(INCOME_TYPES),
-            datasets: [{
-                data: incomeBreakdown.map(income => income.amount),
-                backgroundColor: [
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(255, 159, 64, 0.6)',
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(54, 162, 235, 0.6)',
-                    'rgba(153, 102, 255, 0.6)',
-                    'rgba(255, 206, 86, 0.6)',
-                    'rgba(75, 192, 192, 0.6)',
-                    'rgba(255, 159, 64, 0.6)'
-                ]
-            }]
-        };
-        return data;
     };
 
     const calculateRsuVestingSchedule = (grant) => {
@@ -1008,7 +1370,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             case RSU_VESTING_SCHEDULES.ANNUAL:
                 return 1;
             default:
-                return 1;
+                return 4; // Default to quarterly
         }
     };
 
@@ -1355,7 +1717,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
         const newTaxableIncome = newGrossPay - newPreTaxDeductionsTotal;
         
         // Calculate new federal tax
-        const newFederalTax = calculateTaxProgressive(newTaxableIncome, payFrequency, TAX_BRACKETS_2024.FEDERAL);
+        const newFederalTax = calculateProgressiveTax(newTaxableIncome, TAX_BRACKETS_2024.FEDERAL);
         
         // Calculate new state tax
         const newStateTax = newStateTaxRate * newTaxableIncome;
@@ -1390,114 +1752,66 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     return (
-        <div className="container mx-auto p-4">
-            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="light" />
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-3xl font-bold mb-6">Salary Journal</h1>
             
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Salary Journal</h1>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            {/* User selector and add new user button */}
+            <div className="flex items-center space-x-2 mb-6">
+                <label className="font-medium">User:</label>
+                <select
+                    className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={activeUserId}
+                    onChange={(e) => switchActiveUser(e.target.value)}
                 >
-                    {showForm ? 'Cancel' : 'Add New Entry'}
+                    {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                            {user.name}
+                        </option>
+                    ))}
+                </select>
+                <button
+                    type="button"
+                    onClick={() => setShowUserForm(true)}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                    Add User
                 </button>
             </div>
 
-            {/* Introduction and Description */}
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-3">Track Your Income Growth Over Time</h2>
-                <p className="mb-4">Enter your salary information to see how your compensation changes over time. This tool helps you track your career progression and financial growth.</p>
+            {/* Salary History Chart - Enhanced with better empty state */}
+            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+                <h2 className="text-2xl font-bold mb-4">Compensation History</h2>
                 
-                <div className="bg-blue-50 p-4 rounded-md">
-                    <div className="flex items-start">
-                        <div className="flex-shrink-0 mt-0.5">
-                            <svg className="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <div className="ml-3">
-                            <h3 className="text-sm font-medium text-blue-800">Why track your salary history?</h3>
-                            <div className="mt-2 text-sm text-blue-700">
-                                <ul className="list-disc pl-5 space-y-1">
-                                    <li>Visualize your career progression and salary growth</li>
-                                    <li>Calculate accurate net income after taxes and deductions</li>
-                                    <li>Project future earnings with the "What If" calculator</li>
-                                    <li>Keep track of bonuses, commissions, and total compensation</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* User Profile Selection */}
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Manage Household Members</h3>
-                    <button
-                        onClick={() => setShowUserForm(!showUserForm)}
-                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                    >
-                        {showUserForm ? 'Cancel' : 'Add Member'}
-                    </button>
-                </div>
-                
-                {showUserForm && (
-                    <div className="bg-blue-50 p-4 rounded mb-4">
-                        <div className="flex flex-col md:flex-row gap-2">
-                            <input
-                                type="text"
-                                value={newUserName}
-                                onChange={(e) => setNewUserName(e.target.value)}
-                                placeholder="Enter name"
-                                className="flex-grow p-2 border rounded"
-                            />
-                            <button
-                                onClick={handleAddUser}
-                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                            >
-                                Add
-                            </button>
-                        </div>
+                {salaryEntries.length > 0 ? (
+                    <Line data={prepareChartData(salaryEntries)} options={chartOptions} />
+                ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 className="mt-2 text-xl font-medium text-gray-900">Oh no! You haven't entered any salary details yet.</h3>
+                        <p className="mt-1 text-gray-500">Use the form above to add your salary information.</p>
+                        <button 
+                            onClick={() => setShowForm(true)}
+                            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            Add Salary Entry
+                        </button>
                     </div>
                 )}
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {users.map(user => (
-                        <div 
-                            key={user.id}
-                            className={`p-3 rounded border ${user.isActive ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200'} flex justify-between items-center`}
-                        >
-                            <span className={user.isActive ? 'font-medium' : ''}>{user.name}</span>
-                            <div>
-                                {!user.isActive && (
-                                    <button
-                                        onClick={() => switchActiveUser(user.id)}
-                                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded mr-2 text-xs hover:bg-blue-200"
-                                    >
-                                        Switch
-                                    </button>
-                                )}
-                                {user.id !== 'primary' && (
-                                    <button
-                                        onClick={() => removeUser(user.id)}
-                                        className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200"
-                                    >
-                                        Remove
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
             </div>
-            
-            {/* Active user indicator */}
-            <div className="bg-blue-50 p-3 rounded mb-6 text-sm text-blue-700">
-                Currently managing salary information for: <span className="font-semibold">{users.find(u => u.id === activeUserId)?.name || 'Primary User'}</span>
+
+            {/* Add Salary Form Button */}
+            <div className="text-right mb-6">
+                <button
+                    onClick={() => setShowForm(!showForm)}
+                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                >
+                    {showForm ? 'Cancel' : 'Add Salary Entry'}
+                </button>
             </div>
-            
-            {/* Salary Entry Form */}
+
+            {/* Add Salary Form */}
             {showForm && (
                 <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                     {/* Required Fields */}
@@ -1741,18 +2055,114 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                     {/* Preview Net Income */}
                     <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                         <h3 className="text-lg font-semibold text-gray-700 mb-4">Net Income Preview</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <p className="text-sm text-gray-500">Gross Pay ({PAY_FREQUENCIES[payFrequency].label})</p>
+                                <p className="text-sm text-gray-500">Gross Pay ({getPayFrequencyData(payFrequency, 'label')})</p>
                                 <p className="text-lg font-semibold">{formatCurrency(calculateGrossPay())}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500">Estimated Net Pay ({PAY_FREQUENCIES[payFrequency].label})</p>
-                                <p className="text-lg font-semibold text-green-600">{formatCurrency(calculatePaycheck().netPay)}</p>
+                                <p className="text-sm text-gray-500">Estimated Net Pay ({getPayFrequencyData(payFrequency, 'label')})</p>
+                                <p className="text-lg font-semibold text-green-600">{formatCurrency(calculations.netPay)}</p>
+                            </div>
+                        </div>
+                        
+                        {/* Detailed Breakdown */}
+                        <div className="border-t border-gray-200 pt-4 mt-2">
+                            <h4 className="text-md font-medium text-gray-700 mb-2">Detailed Breakdown</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Pre-tax Deductions */}
+                                <div>
+                                    <h5 className="text-sm font-medium text-gray-700 mb-1">Pre-tax Deductions</h5>
+                                    {preTaxDeductions.map(deduction => (
+                                        <div key={deduction.id} className="flex justify-between text-sm">
+                                            <span className="text-gray-600">{deduction.name}</span>
+                                            <span className="text-gray-800">
+                                                {deduction.type === 'percentage' 
+                                                    ? `${deduction.amount}% (${formatCurrency(calculateGrossPay() * deduction.amount / 100)})`
+                                                    : formatCurrency(deduction.amount)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-between text-sm font-medium mt-1">
+                                        <span>Total Pre-tax Deductions</span>
+                                        <span>{formatCurrency(calculations.preTaxDeductionsTotal)}</span>
+                                    </div>
+                                </div>
+                                
+                                {/* Taxes */}
+                                <div>
+                                    <h5 className="text-sm font-medium text-gray-700 mb-1">Estimated Taxes</h5>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Federal Income Tax</span>
+                                        <span className="text-gray-800">{formatCurrency(calculations.federalTax)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">State Income Tax</span>
+                                        <span className="text-gray-800">{formatCurrency(calculations.stateTax)}</span>
+                                    </div>
+                                    {calculations.localTax > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Local Income Tax</span>
+                                            <span className="text-gray-800">{formatCurrency(calculations.localTax)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Social Security</span>
+                                        <span className="text-gray-800">{formatCurrency(calculations.socialSecurity)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Medicare</span>
+                                        <span className="text-gray-800">{formatCurrency(calculations.medicare)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm font-medium mt-1">
+                                        <span>Total Taxes</span>
+                                        <span>{formatCurrency(calculations.totalTax)}</span>
+                                    </div>
+                                </div>
+                                
+                                {/* Post-tax Deductions */}
+                                <div>
+                                    <h5 className="text-sm font-medium text-gray-700 mb-1">Post-tax Deductions</h5>
+                                    {postTaxDeductions.map(deduction => (
+                                        <div key={deduction.id} className="flex justify-between text-sm">
+                                            <span className="text-gray-600">{deduction.name}</span>
+                                            <span className="text-gray-800">
+                                                {deduction.type === 'percentage' 
+                                                    ? `${deduction.amount}% (${formatCurrency(calculateGrossPay() * deduction.amount / 100)})`
+                                                    : formatCurrency(deduction.amount)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-between text-sm font-medium mt-1">
+                                        <span>Total Post-tax Deductions</span>
+                                        <span>{formatCurrency(calculations.postTaxDeductionsTotal)}</span>
+                                    </div>
+                                </div>
+                                
+                                {/* Benefits */}
+                                <div>
+                                    <h5 className="text-sm font-medium text-gray-700 mb-1">Benefits</h5>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Health Insurance</span>
+                                        <span className="text-gray-800">{formatCurrency(parseFloat(healthInsurance) || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Dental Insurance</span>
+                                        <span className="text-gray-800">{formatCurrency(parseFloat(dentalInsurance) || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Vision Insurance</span>
+                                        <span className="text-gray-800">{formatCurrency(parseFloat(visionInsurance) || 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">401(k) Contribution</span>
+                                        <span className="text-gray-800">{formatCurrency(parseFloat(retirement401k) || 0)}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-
+                    
                     {/* Submit Button */}
                     <div className="flex items-center justify-between">
                         <button 
@@ -1800,20 +2210,28 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {salaryEntries.map((entry, index) => (
-                            <tr key={index} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.company}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.position}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(entry.salary_amount)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(entry.bonus_amount)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(entry.commission_amount)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(calculateNetIncome(entry))}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {new Date(entry.date_of_change).toLocaleDateString()}
+                        {Array.isArray(salaryEntries) && salaryEntries.length > 0 ? (
+                            salaryEntries.map((entry, index) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.company}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.position}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(entry.salary_amount)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(entry.bonus_amount)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(entry.commission_amount)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(calculateNetIncome(entry))}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {new Date(entry.date_of_change).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-900">{entry.notes}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                                    No salary entries found. Add your first entry above.
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-900">{entry.notes}</td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -2216,7 +2634,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Paycheck Summary</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-sm text-gray-500">Gross Pay ({PAY_FREQUENCIES[payFrequency].label})</p>
+                            <p className="text-sm text-gray-500">Gross Pay ({getPayFrequencyData(payFrequency, 'label')})</p>
                             <p className="text-lg font-semibold">{formatCurrency(calculateGrossPay())}</p>
                         </div>
                         <div>
@@ -2234,7 +2652,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                             <p className="text-lg font-semibold">{formatCurrency(calculateStateTax())}</p>
                         </div>
                         <div className="col-span-2">
-                            <p className="text-sm text-gray-500">Net Pay ({PAY_FREQUENCIES[payFrequency].label})</p>
+                            <p className="text-sm text-gray-500">Net Pay ({getPayFrequencyData(payFrequency, 'label')})</p>
                             <p className="text-2xl font-bold text-green-600">{formatCurrency(calculateNetPay())}</p>
                         </div>
                     </div>

@@ -91,8 +91,13 @@ function Sidebar() {
 
   // Handle navigation
   const navigateTo = (path) => {
-    navigate(path);
-    setMobileOpen(false);
+    try {
+      log('Sidebar', `Navigating to ${path}`);
+      navigate(path);
+      setMobileOpen(false);
+    } catch (error) {
+      logError('Sidebar', `Failed to navigate to ${path}`, error);
+    }
   };
 
   // Is current route
@@ -100,63 +105,69 @@ function Sidebar() {
     if (path === '/' && location.pathname === '/') {
       return true;
     }
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+    return location.pathname === path;
   };
 
   // Desktop sidebar
   const renderDesktopSidebar = () => (
     <div 
-      className={`hidden md:flex flex-col bg-blue-900 text-white h-screen fixed left-0 top-0 z-20 transition-all duration-300 ${
+      className={`fixed top-0 left-0 h-full bg-gray-800 text-white transition-all duration-300 ease-in-out z-20 ${
         isSidebarOpen ? 'w-64' : 'w-16'
       }`}
     >
-      {/* Logo section */}
-      <div className="flex items-center justify-between p-4 border-b border-blue-800">
-        {isSidebarOpen && (
-          <div className="font-bold text-lg">Finance Dashboard</div>
-        )}
-        <button 
-          onClick={toggleSidebar}
-          className="p-1 rounded-full hover:bg-blue-800 focus:outline-none"
-          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
           {isSidebarOpen ? (
-            <HiOutlineChevronLeft className="w-5 h-5" />
+            <span className="text-xl font-semibold">Finance Dashboard</span>
           ) : (
-            <HiOutlineChevronRight className="w-5 h-5" />
+            <span className="text-xl font-semibold">PF</span>
           )}
-        </button>
-      </div>
-      
-      {/* Navigation links */}
-      <div className="flex-1 overflow-y-auto py-4">
-        {navItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigateTo(item.path)}
-            className={`w-full flex items-center px-4 py-3 mb-1 transition-colors duration-200 ${
-              isActive(item.path)
-                ? 'bg-blue-800 text-white'
-                : 'text-blue-300 hover:bg-blue-800 hover:text-white'
-            }`}
-            aria-label={item.name}
+          <button 
+            onClick={() => toggleSidebar()}
+            className="p-1 rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
-            <span className="mr-3">{item.icon}</span>
-            {isSidebarOpen && <span>{item.name}</span>}
+            {isSidebarOpen ? (
+              <HiOutlineChevronLeft className="w-5 h-5" />
+            ) : (
+              <HiOutlineChevronRight className="w-5 h-5" />
+            )}
           </button>
-        ))}
-      </div>
-      
-      {/* Logout button */}
-      <div className="p-4 border-t border-blue-800">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center px-4 py-2 text-blue-300 hover:bg-blue-800 hover:text-white rounded transition-colors duration-200"
-          aria-label="Logout"
-        >
-          <HiOutlineLogout className="w-6 h-6 mr-3" />
-          {isSidebarOpen && <span>Logout</span>}
-        </button>
+        </div>
+        
+        <div className="flex-grow py-4 overflow-y-auto">
+          <ul className="space-y-2 px-2">
+            {navItems.map((item) => (
+              <li key={item.path}>
+                <button
+                  onClick={() => navigateTo(item.path)}
+                  className={`flex items-center w-full p-2 rounded-lg transition-colors duration-200 ${
+                    isActive(item.path)
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-center">
+                    {item.icon}
+                  </div>
+                  {isSidebarOpen && (
+                    <span className="ml-3">{item.name}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="flex items-center w-full p-2 text-gray-300 rounded-lg transition-colors duration-200 hover:bg-gray-700"
+          >
+            <HiOutlineLogout className="w-6 h-6" />
+            {isSidebarOpen && <span className="ml-3">Logout</span>}
+          </button>
+        </div>
       </div>
     </div>
   );

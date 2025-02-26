@@ -51,7 +51,8 @@ const AccountList = ({
   userId, 
   onUpdate, 
   onRemove,
-  isLoading = false 
+  isLoading = false,
+  errorMessage
 }) => {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
@@ -132,69 +133,87 @@ const AccountList = ({
   
   return (
     <div className="space-y-4">
-      {accounts.map(account => {
-        const status = getAccountStatus(account);
-        const hasError = status === 'error';
-        
-        return (
-          <Card key={account.id} className={hasError ? 'border-red-200' : ''}>
-            <Card.Body>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                <div className="flex items-start space-x-3">
-                  {account.institution?.logo && (
-                    <img 
-                      src={account.institution.logo} 
-                      alt={`${account.institution.name} logo`} 
-                      className="w-10 h-10 object-contain rounded"
-                    />
-                  )}
-                  
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-medium">{account.institution?.name || 'Financial Institution'}</h3>
-                      <AccountStatusBadge status={status} />
-                    </div>
-                    
-                    <p className="text-sm text-gray-600">
-                      {account.mask ? `••••${account.mask}` : 'Account'} • {account.subtype || account.type || 'Bank Account'}
-                    </p>
-                    
-                    {hasError && account.errorMessage && (
-                      <p className="text-sm text-red-600 mt-1">{account.errorMessage}</p>
-                    )}
-                  </div>
-                </div>
+      <div className="mt-4">
+        {isLoading ? (
+          <div className="w-full flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : errorMessage ? (
+          <div className="text-red-500 text-center">{errorMessage}</div>
+        ) : (
+          <div>
+            {Array.isArray(accounts) && accounts.length > 0 ? (
+              accounts.map(account => {
+                const status = getAccountStatus(account);
+                const hasError = status === 'error';
                 
-                <div className="flex items-center space-x-2 mt-3 sm:mt-0">
-                  {hasError && (
-                    <PlaidLink
-                      userId={userId}
-                      onSuccess={(result, metadata) => handleUpdateSuccess(result, metadata)}
-                      buttonText="Fix Connection"
-                      buttonVariant="outline"
-                      isUpdateMode={true}
-                      accessToken={account.accessToken}
-                      itemId={account.itemId}
-                      institutionId={account.institution?.id}
-                    />
-                  )}
-                  
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedAccount(account);
-                      setIsRemoveModalOpen(true);
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </div>
+                return (
+                  <Card key={account.id} className={hasError ? 'border-red-200' : ''}>
+                    <Card.Body>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div className="flex items-start space-x-3">
+                          {account.institution?.logo && (
+                            <img 
+                              src={account.institution.logo} 
+                              alt={`${account.institution.name} logo`} 
+                              className="w-10 h-10 object-contain rounded"
+                            />
+                          )}
+                          
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-medium">{account.institution?.name || 'Financial Institution'}</h3>
+                              <AccountStatusBadge status={status} />
+                            </div>
+                            
+                            <p className="text-sm text-gray-600">
+                              {account.mask ? `••••${account.mask}` : 'Account'} • {account.subtype || account.type || 'Bank Account'}
+                            </p>
+                            
+                            {hasError && account.errorMessage && (
+                              <p className="text-sm text-red-600 mt-1">{account.errorMessage}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 mt-3 sm:mt-0">
+                          {hasError && (
+                            <PlaidLink
+                              userId={userId}
+                              onSuccess={(result, metadata) => handleUpdateSuccess(result, metadata)}
+                              buttonText="Fix Connection"
+                              buttonVariant="outline"
+                              isUpdateMode={true}
+                              accessToken={account.accessToken}
+                              itemId={account.itemId}
+                              institutionId={account.institution?.id}
+                            />
+                          )}
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAccount(account);
+                              setIsRemoveModalOpen(true);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                );
+              })
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500">No accounts found.</p>
               </div>
-            </Card.Body>
-          </Card>
-        );
-      })}
+            )}
+          </div>
+        )}
+      </div>
       
       <div className="pt-2">
         <PlaidLink
@@ -282,6 +301,7 @@ AccountList.propTypes = {
   onUpdate: PropTypes.func.isRequired,
   onRemove: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
+  errorMessage: PropTypes.string,
 };
 
 export default AccountList; 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { useSidebar } from '../../App';
 
 import DashboardSidebar from './DashboardSidebar';
 import DashboardHeader from './DashboardHeader';
@@ -19,31 +20,27 @@ import DashboardFooter from './DashboardFooter';
  */
 const DashboardLayout = () => {
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [isMobileView, setIsMobileView] = useState(false);
-  
-  // Toggle sidebar visibility
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
   
   // Close sidebar on route change on mobile
   useEffect(() => {
     if (isMobileView) {
-      setIsSidebarOpen(false);
+      toggleSidebar(false);
     }
-  }, [location, isMobileView]);
+  }, [location, isMobileView, toggleSidebar]);
   
   // Detect mobile view
   useEffect(() => {
     const handleResize = () => {
-      setIsMobileView(window.innerWidth < 1024);
+      const isMobile = window.innerWidth < 1024;
+      setIsMobileView(isMobile);
       
       // Auto-close sidebar on mobile, auto-open on desktop
-      if (window.innerWidth < 1024) {
-        setIsSidebarOpen(false);
+      if (isMobile) {
+        toggleSidebar(false);
       } else {
-        setIsSidebarOpen(true);
+        toggleSidebar(true);
       }
     };
     
@@ -57,7 +54,7 @@ const DashboardLayout = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [toggleSidebar]);
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -68,14 +65,14 @@ const DashboardLayout = () => {
       <DashboardSidebar 
         isOpen={isSidebarOpen} 
         isMobileView={isMobileView} 
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={() => toggleSidebar(false)}
       />
       
       {/* Mobile overlay - only visible when sidebar is open on mobile */}
       {isMobileView && isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-gray-600 bg-opacity-50 z-10 transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
+          onClick={() => toggleSidebar(false)}
         />
       )}
       

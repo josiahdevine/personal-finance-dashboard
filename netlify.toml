@@ -1,6 +1,7 @@
 [build]
   command = "set \"CI=false\" && npm run build"
   publish = "build"
+  functions = "functions"
 
 [build.environment]
   CI = "false"
@@ -13,9 +14,22 @@
   REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
   REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
 
+# Handle requests coming to the api subdomain - redirect to Netlify Functions
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+  conditions = {Host = ["api.trypersonalfinance.com"]}
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+
+# Handle /api/ path on main domain as fallback
 [[redirects]]
   from = "/api/*"
-  to = "https://api.trypersonalfinance.com/api/:splat"
+  to = "/.netlify/functions/:splat"
   status = 200
   force = true
   [redirects.headers]

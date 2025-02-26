@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -6,7 +6,7 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 // Import Firebase initialization
-import { auth } from '../services/firebase';
+import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '../services/firebase';
 import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -495,17 +495,56 @@ export const AuthProvider = ({ children }) => {
     }
   }, [firebaseInitialized]);
 
+  // Add loginWithGoogle function
+  const loginWithGoogle = async () => {
+    setLoading(true);
+    setAuthError(null);
+    
+    try {
+      log('AuthContext', 'Attempting Google sign in');
+      const result = await firebaseSignInWithGoogle();
+      
+      if (result.user) {
+        setCurrentUser(result.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('auth_provider', 'google');
+        log('AuthContext', 'Google sign in successful', { uid: result.user.uid });
+        
+        // Update user data in backend if needed
+        try {
+          await apiService.post('/api/users/auth', { 
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            provider: 'google'
+          });
+        } catch (apiError) {
+          console.warn('Failed to update user data in backend:', apiError);
+        }
+        
+        return result.user;
+      }
+    } catch (error) {
+      logError('AuthContext', 'Google sign in failed', error);
+      setAuthError(error);
+      toast.error(error.message || 'Failed to sign in with Google');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Make sure value is properly memoized to prevent unnecessary re-renders
-  const value = React.useMemo(() => ({
+  const value = useMemo(() => ({
     currentUser,
     loading,
     isAuthenticated,
     authError,
-    firebaseInitialized,
     register,
     login,
-    logout
-  }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout]);
+    logout,
+    loginWithGoogle
+  }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout, loginWithGoogle]);
 
   return (
     <ErrorBoundary componentName="AuthProvider" showDetails={process.env.NODE_ENV === 'development'}>

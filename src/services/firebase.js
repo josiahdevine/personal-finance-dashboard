@@ -8,7 +8,9 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  connectAuthEmulator
+  connectAuthEmulator,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { log, logError, timeOperation } from '../utils/logger';
 
@@ -485,4 +487,45 @@ export {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut
+};
+
+// Added for Google Authentication
+const googleProvider = new GoogleAuthProvider();
+
+// Add Google Sign-in function
+export const signInWithGoogle = async () => {
+  return timeOperation('Firebase', 'Google Sign In', async () => {
+    log('Firebase', 'Attempting to sign in with Google');
+    console.log('[Firebase Debug] Google Sign In attempt');
+    
+    try {
+      // Use the ensureAuth function to verify auth is initialized
+      const currentAuth = ensureAuth();
+      
+      // Configure Google Auth Provider
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // Proceed with Google sign in
+      console.log('[Firebase Debug] Attempting signInWithPopup with Google provider...');
+      const userCredential = await signInWithPopup(currentAuth, googleProvider);
+      
+      log('Firebase', 'Google sign in successful', { 
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        emailVerified: userCredential.user.emailVerified 
+      });
+      console.log('[Firebase Debug] Google Login successful');
+      
+      // Set/update deployment tracking info
+      localStorage.setItem('deployment_platform', isNetlify ? 'netlify' : (isTryPersonalFinance ? 'custom-domain' : 'other'));
+      
+      return userCredential;
+    } catch (error) {
+      log('Firebase', 'Google sign in failed', { error });
+      console.error('[Firebase] Google Sign In Error:', error);
+      throw error;
+    }
+  });
 }; 

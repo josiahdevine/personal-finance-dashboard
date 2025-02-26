@@ -1,15 +1,26 @@
 // Plaid Transactions API Function
 exports.handler = async function(event, context) {
+  console.log("Received plaid-transactions request:", {
+    httpMethod: event.httpMethod,
+    path: event.path,
+    origin: event.headers.origin || event.headers.Origin || '*'
+  });
+
+  // Get the requesting origin or default to *
+  const origin = event.headers.origin || event.headers.Origin || '*';
+  
   // CORS headers for cross-origin requests
   const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
     "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
     "Content-Type": "application/json"
   };
 
   // Handle preflight OPTIONS request
   if (event.httpMethod === "OPTIONS") {
+    console.log("Handling OPTIONS preflight request");
     return {
       statusCode: 204,
       headers,
@@ -19,6 +30,7 @@ exports.handler = async function(event, context) {
 
   // Only allow GET requests
   if (event.httpMethod !== "GET") {
+    console.log(`Method not allowed: ${event.httpMethod}`);
     return {
       statusCode: 405,
       headers,
@@ -27,6 +39,7 @@ exports.handler = async function(event, context) {
   }
 
   try {
+    console.log("Processing GET request for plaid transactions");
     // Here you would normally query Plaid for the user's transactions
     // For now, we'll return mock data
     
@@ -74,6 +87,7 @@ exports.handler = async function(event, context) {
       };
     }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
 
+    console.log("Returning mock transaction data");
     return {
       statusCode: 200,
       headers,

@@ -56,21 +56,33 @@ export function PlaidProvider({ children }) {
   useEffect(() => {
     const checkApiInitialization = async () => {
       try {
-        // Verify that the API object exists and has the required methods
-        if (typeof api !== 'object' || api === null) {
-          throw new Error(`API not properly initialized: ${typeof api}`);
+        // Verify that the API object exists (could be an object or function with Axios methods)
+        if (!api) {
+          throw new Error('API is undefined or null');
         }
         
-        if (typeof api.get !== 'function' || typeof api.post !== 'function') {
-          throw new Error('API object exists but required methods are missing');
+        // Check if api has the necessary methods directly or as a function object
+        const hasGetMethod = typeof api.get === 'function';
+        const hasPostMethod = typeof api.post === 'function';
+        
+        if (!hasGetMethod || !hasPostMethod) {
+          throw new Error('API missing required methods: ' + 
+            (!hasGetMethod ? 'get ' : '') + 
+            (!hasPostMethod ? 'post' : '')
+          );
         }
         
-        // Test API health check if available
-        if (typeof api.checkHealth === 'function') {
-          const healthResult = await api.checkHealth();
-          if (healthResult.status !== 'healthy') {
-            console.warn('API health check warning:', healthResult.error);
+        // Test API health check if available, but don't make it required
+        try {
+          if (typeof api.checkHealth === 'function') {
+            const healthResult = await api.checkHealth();
+            if (healthResult.status !== 'healthy') {
+              console.warn('API health check warning:', healthResult.error);
+            }
           }
+        } catch (healthError) {
+          // Log but don't fail just because health check failed
+          console.warn('API health check failed but continuing:', healthError);
         }
         
         setIsApiInitialized(true);

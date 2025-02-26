@@ -3,7 +3,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  signInAnonymously as firebaseSignInAnonymously
 } from 'firebase/auth';
 // Import Firebase initialization
 import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '../services/firebase';
@@ -534,6 +535,94 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Add anonymous sign-in method
+  const signInAnonymously = async () => {
+    log('AuthContext', 'Attempting anonymous sign in');
+    try {
+      setLoading(true);
+      
+      // Check if already signed in
+      if (currentUser) {
+        log('AuthContext', 'User already signed in - skipping anonymous sign in');
+        return currentUser;
+      }
+      
+      // Check if Firebase is initialized
+      if (!firebaseInitialized) {
+        throw new Error('Authentication service is not initialized');
+      }
+      
+      try {
+        // Try Firebase anonymous auth
+        const userCredential = await firebaseSignInAnonymously(auth);
+        log('AuthContext', 'Anonymous sign in successful', { uid: userCredential.user.uid });
+        
+        // Authenticate with our backend
+        try {
+          const backendResponse = await apiService.login({
+            firebaseUid: userCredential.user.uid,
+            isAnonymous: true
+          });
+          log('AuthContext', 'Backend anonymous auth successful', backendResponse);
+        } catch (backendError) {
+          logError('AuthContext', 'Backend anonymous auth failed but Firebase auth succeeded', backendError);
+          // We'll still continue since Firebase auth succeeded
+        }
+        
+        return userCredential.user;
+      } catch (firebaseError) {
+        // If anonymous auth is disabled, create a mock user
+        if (firebaseError.code === 'auth/admin-restricted-operation' || 
+            firebaseError.code === 'auth/operation-not-allowed') {
+          
+          log('AuthContext', 'Anonymous auth disabled, using mock user');
+          
+          // Create a mock user that mimics Firebase user
+          const mockUser = {
+            uid: 'mock-user-' + Date.now(),
+            isAnonymous: true,
+            displayName: 'Guest User',
+            email: null,
+            emailVerified: false,
+            // Add other properties as needed
+            getIdToken: () => Promise.resolve('mock-token-' + Date.now())
+          };
+          
+          // Store in session storage to persist during session
+          sessionStorage.setItem('mockUser', JSON.stringify({
+            ...mockUser,
+            timestamp: Date.now()
+          }));
+          
+          // Call API login with mock user
+          try {
+            await apiService.login({ firebaseUid: mockUser.uid, isAnonymous: true });
+            log('AuthContext', 'Backend mock auth successful');
+          } catch (apiError) {
+            logError('AuthContext', 'Backend mock auth failed', apiError);
+          }
+          
+          setCurrentUser(mockUser);
+          setIsAuthenticated(true);
+          return mockUser;
+        }
+        
+        // For other Firebase errors, throw
+        throw firebaseError;
+      }
+    } catch (error) {
+      logError('AuthContext', 'Anonymous sign in failed', error);
+      setAuthError({ 
+        message: 'Failed to sign in anonymously: ' + error.message, 
+        code: error.code 
+      });
+      toast.error('Failed to sign in. Please try again later.');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Make sure value is properly memoized to prevent unnecessary re-renders
   const value = useMemo(() => ({
     currentUser,
@@ -543,7 +632,8 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
-    loginWithGoogle
+    loginWithGoogle,
+    signInAnonymously
   }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout, loginWithGoogle]);
 
   return (

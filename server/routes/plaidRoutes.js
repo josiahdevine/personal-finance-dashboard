@@ -4,7 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 const PlaidController = require('../controller/PlaidController');
 const PlaidModel = require('../models/PlaidModel');
 const ManualAccountModel = require('../models/ManualAccountModel');
-const plaidClient = require('../plaid');
+const { plaidClient } = require('../plaid');
 
 // Protect all routes with authentication
 router.use(authenticateToken);
@@ -18,8 +18,14 @@ router.post('/exchange-token', PlaidController.exchangePublicToken);
 // Get accounts
 router.get('/accounts', PlaidController.getAccounts);
 
+// Get transactions
+router.get('/transactions', PlaidController.getTransactions);
+
 // Get balance history
 router.get('/balance-history', PlaidController.getBalanceHistory);
+
+// Check Plaid connection status
+router.get('/status', PlaidController.getStatus);
 
 // Sync balances
 router.post('/sync-balances', async (req, res) => {
@@ -30,7 +36,7 @@ router.post('/sync-balances', async (req, res) => {
 
         const BATCH_SIZE = 50;
 
-        const processBatchedAccounts = async (accounts, userId) => {
+        const processBatchedAccounts = async (accounts, userId, item) => {
             for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
                 const batch = accounts.slice(i, i + BATCH_SIZE);
                 await Promise.all(batch.map(account => 
@@ -61,7 +67,7 @@ router.post('/sync-balances', async (req, res) => {
                 });
 
                 // Record each account's balance in history
-                await processBatchedAccounts(response.data.accounts, userId);
+                await processBatchedAccounts(response.data.accounts, userId, item);
 
                 response.data.accounts.forEach(account => {
                     allBalances.push({
@@ -131,22 +137,60 @@ router.post('/sync-balances', async (req, res) => {
     }
 });
 
-// Add new endpoint to get balance history
-router.get('/balance-history', async (req, res) => {
+// Webhook endpoint (no authentication required for this endpoint)
+router.use('/webhooks', express.raw({ type: 'application/json' }));
+router.post('/webhooks', async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { startDate, endDate } = req.query;
-        
-        // Default to last year if no dates provided
-        const end = endDate ? new Date(endDate) : new Date();
-        const start = startDate ? new Date(startDate) : new Date(end);
-        start.setFullYear(start.getFullYear() - 1);
+        // For security, you should verify the webhook
+        /* uncomment in production:
+        const { plaid_signature } = req.headers;
 
-        const history = await PlaidModel.getBalanceHistory(userId, start, end);
-        res.json({ history });
+        // Verify the webhook signature
+        // See https://plaid.com/docs/api/webhooks/#webhook-verification
+        try {
+            plaidClient.webhookVerify({
+                webhook_type: 'TRANSACTIONS',
+                webhook_code: 'DEFAULT_UPDATE',
+                item_id: 'abc123',
+                request_body: JSON.stringify(req.body),
+                webhook_signature: plaid_signature
+            });
+        } catch (err) {
+            return res.status(401).json({ error: 'Invalid webhook signature' });
+        }
+        */
+
+        const webhookType = req.body.webhook_type;
+        const webhookCode = req.body.webhook_code;
+        const itemId = req.body.item_id;
+
+        console.log(`Received webhook: ${webhookType} / ${webhookCode} for item ${itemId}`);
+        
+        // Store webhook in database for audit
+        // await PlaidModel.storeWebhook(webhookType, webhookCode, itemId, req.body);
+
+        // Handle different webhook types
+        switch (webhookType) {
+            case 'TRANSACTIONS':
+                // Handle transaction webhooks
+                // You might want to start a background job to fetch new transactions
+                console.log('Transaction webhook received');
+                break;
+            
+            case 'ITEM':
+                // Handle item webhooks (e.g., error, pending expiration)
+                console.log('Item webhook received');
+                break;
+            
+            default:
+                console.log(`Unhandled webhook type: ${webhookType}`);
+        }
+
+        // Acknowledge receipt of webhook
+        res.status(200).json({ received: true });
     } catch (error) {
-        console.error('Error fetching balance history:', error);
-        res.status(500).json({ error: 'Failed to fetch balance history' });
+        console.error('Error processing webhook:', error);
+        res.status(500).json({ error: 'Error processing webhook' });
     }
 });
 

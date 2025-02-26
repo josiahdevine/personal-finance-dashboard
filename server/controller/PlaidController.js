@@ -1,12 +1,12 @@
 const PlaidModel = require('../models/PlaidModel');
+const { plaidClient, PLAID_PRODUCTS, PLAID_COUNTRY_CODES, PLAID_REDIRECT_URI } = require('../plaid');
 
 // Create a link token
 const createLinkToken = async (req, res) => {
     try {
         const userId = req.user.userId;
         console.log('Creating link token for user:', userId);
-        
-        const plaidClient = req.app.locals.plaidClient;
+
         if (!plaidClient) {
             console.error('Plaid client not initialized');
             return res.status(500).json({ error: 'Plaid client not initialized' });
@@ -15,10 +15,15 @@ const createLinkToken = async (req, res) => {
         const request = {
             user: { client_user_id: userId.toString() },
             client_name: 'Personal Finance Dashboard',
-            products: ['auth', 'transactions'],
-            country_codes: ['US'],
+            products: PLAID_PRODUCTS,
+            country_codes: PLAID_COUNTRY_CODES,
             language: 'en'
         };
+
+        // Add redirect URI if available
+        if (PLAID_REDIRECT_URI) {
+            request.redirect_uri = PLAID_REDIRECT_URI;
+        }
 
         console.log('Link token request:', request);
         
@@ -51,7 +56,6 @@ const exchangePublicToken = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { public_token, institution } = req.body;
-        const plaidClient = req.app.locals.plaidClient;
 
         if (!plaidClient) {
             console.error('Plaid client not initialized');
@@ -139,7 +143,6 @@ const getAccounts = async (req, res) => {
 const syncBalances = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const plaidClient = req.app.locals.plaidClient;
 
         if (!plaidClient) {
             console.error('Plaid client not initialized');
@@ -178,9 +181,106 @@ const syncBalances = async (req, res) => {
     }
 };
 
+// Get balance history for a user
+const getBalanceHistory = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { startDate, endDate } = req.query;
+        
+        // Default to last year if no dates provided
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date(end);
+        start.setFullYear(start.getFullYear() - 1);
+
+        const history = await PlaidModel.getBalanceHistory(userId, start, end);
+        res.json({ history });
+    } catch (error) {
+        console.error('Error fetching balance history:', error);
+        res.status(500).json({ error: 'Failed to fetch balance history' });
+    }
+};
+
+// Get transactions for a user
+const getTransactions = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { startDate, endDate } = req.query;
+        
+        if (!plaidClient) {
+            console.error('Plaid client not initialized');
+            return res.status(500).json({ error: 'Plaid client not initialized' });
+        }
+        
+        // Default to last 30 days if no dates provided
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date(end);
+        if (!startDate) {
+            start.setDate(start.getDate() - 30);
+        }
+        
+        const items = await PlaidModel.getPlaidItemsByUserId(userId);
+        const allTransactions = [];
+        
+        for (const item of items) {
+            try {
+                const request = {
+                    access_token: item.plaid_access_token,
+                    start_date: start.toISOString().split('T')[0],
+                    end_date: end.toISOString().split('T')[0],
+                    options: {
+                        count: 500,
+                        offset: 0
+                    }
+                };
+                
+                const response = await plaidClient.transactionsGet(request);
+                
+                // Add institution info to each transaction
+                const enrichedTransactions = response.data.transactions.map(transaction => ({
+                    ...transaction,
+                    institution_name: item.institution_name,
+                    institution_id: item.plaid_institution_id
+                }));
+                
+                allTransactions.push(...enrichedTransactions);
+            } catch (error) {
+                console.error(`Error fetching transactions for item ${item.plaid_item_id}:`, error);
+            }
+        }
+        
+        res.json({ 
+            transactions: allTransactions,
+            total: allTransactions.length
+        });
+    } catch (error) {
+        console.error('Error getting transactions:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Check Plaid connection status
+const getStatus = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const items = await PlaidModel.getPlaidItemsByUserId(userId);
+        const connected = items.length > 0;
+        
+        res.json({
+            connected,
+            itemCount: items.length
+        });
+    } catch (error) {
+        console.error('Error checking Plaid status:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     createLinkToken,
     exchangePublicToken,
     getAccounts,
-    syncBalances
+    syncBalances,
+    getBalanceHistory,
+    getTransactions,
+    getStatus
 }; 

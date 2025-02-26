@@ -71,4 +71,26 @@
     Access-Control-Allow-Origin = "*"
     # Add custom headers for better debugging
     X-Environment = "production"
-    X-Deployed-From = "netlify" 
+    X-Deployed-From = "netlify"
+
+# Add a specific redirect for Plaid accounts endpoint
+[[redirects]]
+  from = "/api/plaid/accounts"
+  to = "/.netlify/functions/plaid-accounts"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+
+# Add a specific redirect for API subdomain Plaid accounts endpoint
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/api/plaid/accounts"
+  to = "https://trypersonalfinance.com/.netlify/functions/plaid-accounts"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin" 

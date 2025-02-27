@@ -15,6 +15,10 @@
   REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
   NPM_FLAGS = "--no-audit --silent"
 
+# Netlify Functions plugin to ensure dependencies are installed correctly
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
 # Global headers for all paths
 [[headers]]
   for = "/*"

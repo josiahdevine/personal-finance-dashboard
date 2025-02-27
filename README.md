@@ -2,6 +2,16 @@
 
 A comprehensive web application for managing personal finances, tracking net worth, and analyzing spending patterns. Built with React, Node.js, and PostgreSQL.
 
+## Current Version: 0.1
+
+The application is currently in active development. Recent improvements include:
+- Enhanced authentication stability with Firebase
+- Improved Plaid integration reliability
+- Better error handling and user feedback
+- Optimized performance and state management
+
+For detailed changes, see [DEVELOPMENT-CHANGELOG.md](DEVELOPMENT-CHANGELOG.md).
+
 ## Features
 
 - **Net Worth Tracking**
@@ -86,37 +96,33 @@ Upcoming features in development:
 
 ## Getting Started
 
+### Prerequisites
+- Node.js 16.x or higher
+- PostgreSQL 13.x or higher
+- Firebase account
+- Plaid developer account
+
+### Installation
 1. Clone the repository
 ```bash
-git clone [repository-url]
+git clone https://github.com/yourusername/personal-finance-dashboard.git
 cd personal-finance-dashboard
 ```
 
 2. Install dependencies
 ```bash
 npm install
-cd functions
-npm install
-cd ..
 ```
 
 3. Set up environment variables
-Create a `.env` file in the root directory with:
-```
-REACT_APP_API_URL=your_api_url
-PLAID_CLIENT_ID=your_plaid_client_id
-PLAID_SECRET=your_plaid_secret
-PLAID_ENV=sandbox
-REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_PRIVATE_KEY=your_firebase_private_key
-FIREBASE_CLIENT_EMAIL=your_firebase_client_email
-DATABASE_URL=postgres://username:password@hostname.neon.tech/neondb?sslmode=require
+```bash
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
 4. Start the development server
 ```bash
-npm start
+npm run dev
 ```
 
 ## Environment Setup

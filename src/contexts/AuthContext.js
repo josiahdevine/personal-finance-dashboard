@@ -7,7 +7,7 @@ import {
   signInAnonymously as firebaseSignInAnonymously
 } from 'firebase/auth';
 // Import Firebase initialization
-import { auth, signInWithGoogle as firebaseSignInWithGoogle } from '../services/firebase';
+import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth } from '../services/firebase';
 import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -54,77 +54,78 @@ export const AuthProvider = ({ children }) => {
 
   // Check Firebase initialization status
   useEffect(() => {
-    const checkFirebaseInit = () => {
+    const checkFirebaseInit = async () => {
       try {
-        // Check localStorage for firebase initialization status
-        const firebaseInitError = localStorage.getItem('firebase_init_error');
-        const authInitTimestamp = localStorage.getItem('auth_init_timestamp');
-        
-        if (authInitTimestamp) {
-          // Firebase was successfully initialized
-          log('AuthContext', 'Firebase initialization detected', { timestamp: authInitTimestamp });
-          setFirebaseInitialized(true);
-          return true;
-        } else if (firebaseInitError) {
-          // There was an error initializing Firebase
-          try {
-            const errorInfo = JSON.parse(firebaseInitError);
-            logError('AuthContext', 'Firebase initialization error detected', new Error(errorInfo.message), errorInfo);
-            setAuthError({
-              message: 'Authentication service failed to initialize',
-              code: 'auth/initialization-failed',
-              details: errorInfo
-            });
-          } catch (e) {
-            logError('AuthContext', 'Failed to parse Firebase init error', e);
-          }
-          return false;
-        }
-        
-        // Check if auth is accessible directly
-        if (auth) {
-          log('AuthContext', 'Firebase auth object is available');
+        // Try to get the auth instance
+        const authInstance = ensureAuth();
+        if (authInstance) {
           setFirebaseInitialized(true);
           return true;
         }
-        
         return false;
       } catch (error) {
         logError('AuthContext', 'Error checking Firebase initialization', error);
         return false;
       }
     };
-    
-    // Perform the initial check
-    const isInitialized = checkFirebaseInit();
-    
-    // If not initialized yet, set up a retry mechanism
-    if (!isInitialized) {
-      log('AuthContext', 'Firebase not initialized yet, setting up retry checks');
-      
-      let retryCount = 0;
-      const maxRetries = 5;
-      const intervalId = setInterval(() => {
-        retryCount++;
-        log('AuthContext', `Retry ${retryCount}/${maxRetries} checking Firebase initialization`);
-        
-        if (checkFirebaseInit() || retryCount >= maxRetries) {
-          clearInterval(intervalId);
-          
-          if (retryCount >= maxRetries && !firebaseInitialized) {
-            log('AuthContext', 'Max retries reached, Firebase still not initialized');
-            setAuthError({
-              message: 'Authentication service could not be initialized',
-              code: 'auth/initialization-timeout'
-            });
-            setLoading(false); // Allow app to load even without auth
-          }
+
+    // Initial check
+    checkFirebaseInit();
+
+    // Set up retry mechanism if not initialized
+    if (!firebaseInitialized) {
+      const retryInterval = setInterval(async () => {
+        const initialized = await checkFirebaseInit();
+        if (initialized) {
+          clearInterval(retryInterval);
         }
-      }, 2000); // Check every 2 seconds
-      
-      return () => clearInterval(intervalId);
+      }, 1000);
+
+      // Cleanup
+      return () => clearInterval(retryInterval);
     }
   }, []);
+
+  // Handle auth state changes with Firebase
+  useEffect(() => {
+    if (!firebaseInitialized) {
+      return;
+    }
+
+    try {
+      const authInstance = ensureAuth();
+      if (!authInstance) {
+        throw new Error('Auth not available');
+      }
+
+      const unsubscribe = onAuthStateChanged(
+        authInstance,
+        (user) => {
+          if (user) {
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+          } else {
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          logError('AuthContext', 'Auth state change error', error);
+          setAuthError({
+            message: 'Error monitoring authentication state',
+            code: error.code
+          });
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (error) {
+      logError('AuthContext', 'Error setting up auth state listener', error);
+      setLoading(false);
+    }
+  }, [firebaseInitialized]);
 
   // Register a new user
   const register = async (username, email, password) => {
@@ -424,77 +425,6 @@ export const AuthProvider = ({ children }) => {
       }
     });
   };
-
-  // Handle auth state changes with Firebase - Enhanced retry mechanism
-  useEffect(() => {
-    log('AuthContext', 'Setting up auth state listener', { firebaseInitialized });
-    
-    // Wait for Firebase to be initialized before setting up the auth state listener
-    if (!firebaseInitialized) {
-      log('AuthContext', 'Delaying auth state listener until Firebase is initialized');
-      return;
-    }
-    
-    if (!auth) {
-      logError('AuthContext', 'Auth not available for state listener', new Error('Auth not initialized'));
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      // Create the unsubscribe function for the auth state listener
-      const unsubscribe = onAuthStateChanged(
-        auth, 
-        (user) => {
-          log('AuthContext', 'Auth state changed', { userExists: !!user });
-          
-          if (user) {
-            // Make sure we handle the user data properly before updating state
-            const safeUser = {
-              uid: user.uid,
-              email: user.email,
-              displayName: user.displayName,
-              emailVerified: user.emailVerified,
-              // Do not include complex Firebase objects that can't be serialized
-              // This prevents issues with rendering
-            };
-            
-            setCurrentUser(safeUser);
-            setIsAuthenticated(true);
-          } else {
-            setCurrentUser(null);
-            setIsAuthenticated(false);
-          }
-          
-          setLoading(false);
-        },
-        (error) => {
-          logError('AuthContext', 'Auth state change error', error);
-          setAuthError({ 
-            message: 'Error monitoring authentication state', 
-            code: error.code 
-          });
-          setLoading(false);
-        }
-      );
-      
-      // Set the flag that the listener is active
-      authStateListenerSet.current = true;
-      
-      return () => {
-        log('AuthContext', 'Cleaning up auth state listener');
-        unsubscribe();
-        authStateListenerSet.current = false;
-      };
-    } catch (error) {
-      logError('AuthContext', 'Error setting up auth state listener', error);
-      setAuthError({ 
-        message: 'Error initializing authentication', 
-        code: error.code 
-      });
-      setLoading(false);
-    }
-  }, [firebaseInitialized]);
 
   // Add loginWithGoogle function
   const loginWithGoogle = async () => {

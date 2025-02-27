@@ -206,22 +206,46 @@ function generateMockSalaryEntries() {
 }
 
 // Set to true to use mock data even in production (for demo purposes)
-const USE_MOCK_DATA = process.env.REACT_APP_USE_MOCK_DATA === 'true';
+const USE_MOCK_DATA = false;
+
+// Get the current port from the window location
+const getCurrentPort = () => {
+  if (typeof window !== 'undefined') {
+    // For development, check if we're running on localhost
+    if (window.location.hostname === 'localhost') {
+      // Try to get the port from environment variable first
+      const envPort = process.env.REACT_APP_API_PORT || process.env.PORT;
+      if (envPort) return envPort;
+      
+      // If no environment port, use the current window port
+      return window.location.port || '5000'; // Default to 5000 if no port specified
+    }
+    return window.location.port; // Use actual port in production
+  }
+  return '5000'; // Default fallback
+};
 
 // Create an axios instance with default config
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 
-           (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 
-           window.location.origin.includes('localhost') ? 'http://localhost:5000' : 
-           `${window.location.origin}/api`),
-  timeout: 15000,
+           (window.location.hostname === 'localhost' ? 
+           `http://localhost:${getCurrentPort()}` : 
+           window.location.origin),
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+  },
+  validateStatus: function (status) {
+    return status >= 200 && status < 500;
   }
 });
 
 // Log API initialization for debugging
-console.log('API client initialized with baseURL:', api.defaults.baseURL);
+console.log('[API] Client initialized with:', {
+  baseURL: api.defaults.baseURL,
+  port: getCurrentPort(),
+  environment: process.env.NODE_ENV
+});
 
 // Add a simple health check function to test API connectivity
 api.checkHealth = async () => {
@@ -323,99 +347,63 @@ const handleMockResponse = async (config) => {
   throw error;
 };
 
-// Request interceptor to add auth token and handle mock data
+// Add request interceptor for authentication and logging
 api.interceptors.request.use(
   async (config) => {
-    // Get the token from auth service or local storage
-    const token = await getToken();
-    
-    // If token exists, add to headers
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // If we're in development or using mock data, and not making a third-party request
-    if (shouldUseMockData() && !config.url.startsWith('http')) {
-      try {
-        // Get the original adapter safely
-        const originalAdapter = config.adapter;
-        
-        // Replace the adapter with our mock handler
-        config.adapter = async (config) => {
-          try {
-            // First try to handle with our mock
-            return await handleMockResponse(config);
-          } catch (error) {
-            console.warn('Error in mock handler, falling back to original adapter:', error);
-            // If there's an error in our mock handler and we have an original adapter, try using it
-            if (typeof originalAdapter === 'function') {
-              return originalAdapter(config);
-            }
-            // If no original adapter, create a basic error response
-            throw error;
-          }
-        };
-      } catch (err) {
-        console.error('Error configuring mock adapter:', err);
-        // Don't modify the adapter if something went wrong
+    try {
+      const token = await getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
+      
+      // Ensure /api prefix is present
+      if (!config.url.startsWith('/api')) {
+        config.url = `/api${config.url}`;
+      }
+      
+      // Log request for debugging
+      console.log('[API] Request:', {
+        method: config.method?.toUpperCase(),
+        url: `${config.baseURL}${config.url}`,
+        port: getCurrentPort(),
+        data: config.data || {}
+      });
+    } catch (error) {
+      console.error('[API] Error adding auth token:', error);
     }
-    
     return config;
-  },
-  (error) => {
-    console.error('API request error:', error);
-    return Promise.reject(error);
   }
 );
 
-// Response interceptor for error handling
+// Add response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Check if we're in development mode and should provide mock data
-    if (shouldUseMockData() && error.config && !error.config.url.startsWith('http')) {
-      // Try to extract the endpoint
-      let endpoint = error.config.url;
-      if (endpoint.includes('?')) {
-        endpoint = endpoint.split('?')[0];
-      }
-      
-      console.warn(`API error for ${endpoint}, using mock data instead:`, error.message);
-      
-      try {
-        // See if we have mock data for this endpoint
-        return handleMockResponse(error.config);
-      } catch (mockError) {
-        // If mock handling failed, continue with the original error
-        console.error('Mock data handling failed:', mockError);
-      }
-    }
-    
-    // Handle common error scenarios
+  async (error) => {
     if (error.response) {
-      // Server responded with error status
-      const { status, data } = error.response;
-      
-      // Handle authentication errors
-      if (status === 401 || status === 403) {
-        console.error('Authentication error:', data);
-        // Redirect to login or trigger auth refresh
-        // window.location.href = '/login';
-      }
-      
-      // Handle server errors
-      if (status >= 500) {
-        console.error('Server error:', data);
-      }
+      console.error('[API] Error Response:', {
+        status: error.response.status,
+        data: error.response.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
     } else if (error.request) {
-      // Request made but no response received
-      console.error('No response received:', error.request);
+      console.error('[API] Network Error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: error.message
+      });
+      
+      // Check if we should use mock data in development
+      if (shouldUseMockData() && error.config) {
+        try {
+          return await handleMockResponse(error.config);
+        } catch (mockError) {
+          console.error('[API] Mock data fallback failed:', mockError);
+        }
+      }
     } else {
-      // Error setting up request
-      console.error('Request setup error:', error.message);
+      console.error('[API] Request Error:', error.message);
     }
-    
     return Promise.reject(error);
   }
 );

@@ -49,123 +49,6 @@ export function PlaidProvider({ children }) {
   const [error, setError] = useState(null);
   const [contextReady, setContextReady] = useState(false);
   
-  // Initialize context
-  useEffect(() => {
-    if (currentUser) {
-      checkPlaidStatus();
-    } else {
-      // Reset state when user is not authenticated
-      setLinkToken(null);
-      setAccessToken(null);
-      setIsPlaidConnected(false);
-      setAccounts([]);
-      setTransactions([]);
-      setError(null);
-      setContextReady(false);
-    }
-  }, [currentUser]);
-
-  // Check Plaid connection status
-  const checkPlaidStatus = useCallback(async () => {
-    if (!currentUser) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      log('PlaidContext', 'Checking Plaid status');
-      
-      const status = await retryApiCall(() => apiService.getPlaidStatus());
-      log('PlaidContext', 'Plaid status result:', status);
-      
-      setIsPlaidConnected(status.connected === true);
-      
-      // If connected, fetch accounts
-      if (status.connected === true) {
-        fetchPlaidAccounts();
-      }
-      
-      setContextReady(true);
-      setLoading(false);
-    } catch (err) {
-      logError('PlaidContext', 'Error checking Plaid status:', err);
-      setError('Failed to check Plaid connection status');
-      setIsPlaidConnected(false);
-      setContextReady(true);
-      setLoading(false);
-    }
-  }, [currentUser]);
-  
-  // Create link token for Plaid Link
-  const createLinkToken = useCallback(async () => {
-    if (!currentUser) {
-      logError('PlaidContext', 'Cannot create link token: No authenticated user');
-      throw new Error('Authentication required');
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      log('PlaidContext', 'Creating link token');
-      
-      const response = await retryApiCall(() => apiService.getPlaidLinkToken());
-      
-      if (response && response.link_token) {
-        setLinkToken(response.link_token);
-        log('PlaidContext', 'Link token created successfully');
-        setLoading(false);
-        return response.link_token;
-      } else {
-        throw new Error('Invalid response from link token endpoint');
-      }
-    } catch (err) {
-      logError('PlaidContext', 'Error creating link token:', err);
-      setError('Failed to create Plaid link token');
-      setLoading(false);
-      throw err;
-    }
-  }, [currentUser]);
-  
-  // Exchange public token for access token
-  const exchangePublicToken = useCallback(async (publicToken) => {
-    if (!currentUser || !publicToken) {
-      logError('PlaidContext', 'Cannot exchange token: Missing user or public token');
-      throw new Error('Missing required parameters');
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      log('PlaidContext', 'Exchanging public token');
-      
-      const response = await retryApiCall(() => 
-        apiService.exchangePlaidPublicToken(publicToken)
-      );
-      
-      if (response && response.success) {
-        log('PlaidContext', 'Public token exchanged successfully');
-        setIsPlaidConnected(true);
-        
-        // Fetch accounts after successful connection
-        await fetchPlaidAccounts();
-        
-        toast.success('Your account was successfully connected!');
-        setLoading(false);
-        return true;
-      } else {
-        throw new Error('Failed to exchange token');
-      }
-    } catch (err) {
-      logError('PlaidContext', 'Error exchanging public token:', err);
-      setError('Failed to connect your financial account');
-      toast.error('Could not connect your account. Please try again.');
-      setLoading(false);
-      throw err;
-    }
-  }, [currentUser, fetchPlaidAccounts]);
-  
   // Fetch Plaid accounts
   const fetchPlaidAccounts = useCallback(async () => {
     if (!currentUser) {
@@ -228,6 +111,107 @@ export function PlaidProvider({ children }) {
     }
   }, [currentUser]);
   
+  // Create link token for Plaid Link
+  const createLinkToken = useCallback(async () => {
+    if (!currentUser) {
+      logError('PlaidContext', 'Cannot create link token: No authenticated user');
+      throw new Error('Authentication required');
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      log('PlaidContext', 'Creating link token');
+      
+      const response = await retryApiCall(() => apiService.getPlaidLinkToken());
+      
+      if (response && response.link_token) {
+        setLinkToken(response.link_token);
+        log('PlaidContext', 'Link token created successfully');
+        setLoading(false);
+        return response.link_token;
+      } else {
+        throw new Error('Invalid response from link token endpoint');
+      }
+    } catch (err) {
+      logError('PlaidContext', 'Error creating link token:', err);
+      setError('Failed to create Plaid link token');
+      setLoading(false);
+      throw err;
+    }
+  }, [currentUser]);
+  
+  // Check Plaid connection status
+  const checkPlaidStatus = useCallback(async () => {
+    if (!currentUser) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      log('PlaidContext', 'Checking Plaid status');
+      
+      const status = await retryApiCall(() => apiService.getPlaidStatus());
+      log('PlaidContext', 'Plaid status result:', status);
+      
+      setIsPlaidConnected(status.connected === true);
+      
+      // If connected, fetch accounts
+      if (status.connected === true) {
+        fetchPlaidAccounts();
+      }
+      
+      setContextReady(true);
+      setLoading(false);
+    } catch (err) {
+      logError('PlaidContext', 'Error checking Plaid status:', err);
+      setError('Failed to check Plaid connection status');
+      setIsPlaidConnected(false);
+      setContextReady(true);
+      setLoading(false);
+    }
+  }, [currentUser, fetchPlaidAccounts]);
+  
+  // Exchange public token for access token
+  const exchangePublicToken = useCallback(async (publicToken) => {
+    if (!currentUser || !publicToken) {
+      logError('PlaidContext', 'Cannot exchange token: Missing user or public token');
+      throw new Error('Missing required parameters');
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      log('PlaidContext', 'Exchanging public token');
+      
+      const response = await retryApiCall(() => 
+        apiService.exchangePlaidPublicToken(publicToken)
+      );
+      
+      if (response && response.success) {
+        log('PlaidContext', 'Public token exchanged successfully');
+        setIsPlaidConnected(true);
+        
+        // Fetch accounts after successful connection
+        await fetchPlaidAccounts();
+        
+        toast.success('Your account was successfully connected!');
+        setLoading(false);
+        return true;
+      } else {
+        throw new Error('Failed to exchange token');
+      }
+    } catch (err) {
+      logError('PlaidContext', 'Error exchanging public token:', err);
+      setError('Failed to connect your financial account');
+      toast.error('Could not connect your account. Please try again.');
+      setLoading(false);
+      throw err;
+    }
+  }, [currentUser, fetchPlaidAccounts]);
+  
   // Reset Plaid connection
   const resetPlaidConnection = useCallback(async () => {
     setLinkToken(null);
@@ -247,6 +231,22 @@ export function PlaidProvider({ children }) {
       logError('PlaidContext', 'Error creating new link token after reset:', err);
     }
   }, [createLinkToken]);
+  
+  // Initialize context
+  useEffect(() => {
+    if (currentUser) {
+      checkPlaidStatus();
+    } else {
+      // Reset state when user is not authenticated
+      setLinkToken(null);
+      setAccessToken(null);
+      setIsPlaidConnected(false);
+      setAccounts([]);
+      setTransactions([]);
+      setError(null);
+      setContextReady(false);
+    }
+  }, [currentUser, checkPlaidStatus]);
   
   // Memorize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

@@ -57,104 +57,43 @@ exports.handler = authHandler.requireAuth(async function(event, context) {
     };
 
     // Verify and create the table if it doesn't exist
-    try {
-      // First check if the table exists and has the required columns
-      await dbConnector.verifyTableSchema('salary_entries', requiredColumns);
-      
-      // Attempt to query the database
-      const result = await dbConnector.query(
-        `SELECT * FROM salary_entries WHERE user_id = $1 AND user_profile_id = $2 ORDER BY date DESC`,
-        [userId, userProfileId]
-      );
-
-      console.log(`Found ${result.rowCount} salary entries in database`);
-      
-      // Transform database rows to application format
-      const salaryEntries = result.rows.map(row => ({
-        id: row.id,
-        userProfileId: row.user_profile_id,
-        date: row.date,
-        grossPay: parseFloat(row.gross_pay),
-        netPay: parseFloat(row.net_pay),
-        taxes: parseFloat(row.taxes),
-        deductions: parseFloat(row.deductions),
-        details: row.details || {
-          federalTax: 0,
-          stateTax: 0,
-          socialSecurity: 0,
-          medicare: 0,
-          retirement401k: 0,
-          healthInsurance: 0
-        }
-      }));
-
-      return corsHandler.createCorsResponse(200, salaryEntries, origin);
-    } catch (dbError) {
-      console.error("Database error:", dbError);
-      
-      // If we hit a database error, fall back to mock data for development
-      console.log("Falling back to mock data for development");
-      
-      // Mock data for development and fallback
-      const mockSalaryEntries = [
-        {
-          id: '1',
-          userProfileId: userProfileId,
-          date: '2025-02-15',
-          grossPay: 5000.00,
-          netPay: 3750.00,
-          taxes: 1000.00,
-          deductions: 250.00,
-          details: {
-            federalTax: 800.00,
-            stateTax: 200.00,
-            socialSecurity: 310.00,
-            medicare: 72.50,
-            retirement401k: 250.00,
-            healthInsurance: 0.00
-          }
-        },
-        {
-          id: '2',
-          userProfileId: userProfileId,
-          date: '2025-01-31',
-          grossPay: 5000.00,
-          netPay: 3750.00,
-          taxes: 1000.00,
-          deductions: 250.00,
-          details: {
-            federalTax: 800.00,
-            stateTax: 200.00,
-            socialSecurity: 310.00,
-            medicare: 72.50,
-            retirement401k: 250.00,
-            healthInsurance: 0.00
-          }
-        },
-        {
-          id: '3',
-          userProfileId: userProfileId,
-          date: '2025-01-15',
-          grossPay: 5000.00,
-          netPay: 3750.00,
-          taxes: 1000.00,
-          deductions: 250.00,
-          details: {
-            federalTax: 800.00,
-            stateTax: 200.00,
-            socialSecurity: 310.00,
-            medicare: 72.50,
-            retirement401k: 250.00,
-            healthInsurance: 0.00
-          }
-        }
-      ];
-
-      // Log that we're returning mock data
-      console.log(`Returning ${mockSalaryEntries.length} mock salary entries for development`);
-      
-      return corsHandler.createCorsResponse(200, mockSalaryEntries, origin);
+    const schemaResult = await dbConnector.verifyTableSchema('salary_entries', requiredColumns);
+    if (!schemaResult.success) {
+      console.error("Failed to verify database schema:", schemaResult.error);
+      return corsHandler.createCorsResponse(500, {
+        error: "Database schema verification failed",
+        message: schemaResult.error
+      }, origin);
     }
+
+    // Attempt to query the database
+    const result = await dbConnector.query(
+      `SELECT * FROM salary_entries WHERE user_id = $1 AND user_profile_id = $2 ORDER BY date DESC`,
+      [userId, userProfileId]
+    );
+
+    console.log(`Found ${result.rowCount} salary entries in database`);
+    
+    // Transform database rows to application format
+    const salaryEntries = result.rows.map(row => ({
+      id: row.id,
+      userProfileId: row.user_profile_id,
+      date: row.date,
+      grossPay: parseFloat(row.gross_pay),
+      netPay: parseFloat(row.net_pay),
+      taxes: parseFloat(row.taxes),
+      deductions: parseFloat(row.deductions),
+      details: row.details || {
+        federalTax: 0,
+        stateTax: 0,
+        socialSecurity: 0,
+        medicare: 0,
+        retirement401k: 0,
+        healthInsurance: 0
+      }
+    }));
+
+    return corsHandler.createCorsResponse(200, salaryEntries, origin);
   } catch (error) {
     console.error("Error handling salary entries:", error);
     

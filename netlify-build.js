@@ -9,6 +9,16 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+// Check if we're running in a Linux/Unix environment and ensure script is executable
+if (process.platform !== 'win32') {
+  try {
+    console.log('Setting executable permissions on build script...');
+    execSync('chmod +x ' + __filename);
+  } catch (error) {
+    console.log('Note: Unable to set executable permissions, but continuing build process');
+  }
+}
+
 // Create patches directory if it doesn't exist
 const patchesDir = path.join(__dirname, 'patches');
 if (!fs.existsSync(patchesDir)) {

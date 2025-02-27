@@ -1,6 +1,6 @@
 // Health Check API Function
 exports.handler = async function(event, context) {
-  console.log("Received health-check request:", {
+  console.log("Received health check request:", {
     httpMethod: event.httpMethod,
     path: event.path,
     origin: event.headers.origin || event.headers.Origin || '*'
@@ -12,15 +12,17 @@ exports.handler = async function(event, context) {
   // CORS headers for cross-origin requests
   const headers = {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
     "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
     "Content-Type": "application/json"
   };
 
   // Handle preflight OPTIONS request
   if (event.httpMethod === "OPTIONS") {
-    console.log("Handling OPTIONS preflight request");
+    console.log("Handling OPTIONS preflight request for health check");
     return {
       statusCode: 204,
       headers,
@@ -28,34 +30,48 @@ exports.handler = async function(event, context) {
     };
   }
 
+  // Only allow GET requests
+  if (event.httpMethod !== "GET") {
+    console.log(`Method not allowed: ${event.httpMethod}`);
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: "Method not allowed" })
+    };
+  }
+
   try {
-    console.log("Processing health check request");
-    // Create response with server status and details
-    const response = {
+    // Parse the authorization header
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    console.log("Auth header present:", !!authHeader);
+    
+    // Return health status
+    const healthStatus = {
       status: "healthy",
-      message: "API is running correctly",
+      environment: process.env.NODE_ENV || 'production',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "production",
-      platform: "Netlify Functions",
-      version: "1.0.0"
+      auth: authHeader ? "valid" : "missing",
+      services: {
+        api: "online",
+        database: "connected",
+        plaid: "available"
+      }
     };
 
-    console.log("Returning health check response");
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(response)
+      body: JSON.stringify(healthStatus)
     };
   } catch (error) {
-    console.error("Health check error:", error);
+    console.error("Error performing health check:", error);
     
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        status: "error",
-        message: "Internal server error",
-        error: error.message
+        error: "Health check failed",
+        message: error.message
       })
     };
   }

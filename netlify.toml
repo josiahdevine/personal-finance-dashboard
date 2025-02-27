@@ -14,7 +14,24 @@
   REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
   REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
 
-# Handle OPTIONS preflight requests for all API endpoints
+# Global headers for all paths
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Max-Age = "86400"
+    # Add custom headers for better debugging
+    X-Environment = "production"
+    X-Deployed-From = "netlify"
+
+# Handle OPTIONS preflight requests for all API endpoints on the API subdomain
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/cors-preflight"
@@ -24,9 +41,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Handle OPTIONS preflight requests for all local API paths
 [[redirects]]
@@ -38,9 +56,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Handle requests coming to the api subdomain - redirect to Netlify Functions
 [[redirects]]
@@ -51,8 +70,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Alternative API subdomain redirect
 [[redirects]]
@@ -64,8 +85,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Handle /api/ path on main domain as fallback
 [[redirects]]
@@ -76,8 +99,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Special redirect for authentication 
 [[redirects]]
@@ -91,20 +116,6 @@
   to = "/index.html"
   status = 200
 
-# Add security headers
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Credentials = "true"
-    # Add custom headers for better debugging
-    X-Environment = "production"
-    X-Deployed-From = "netlify"
-
 # Add a specific redirect for Plaid accounts endpoint
 [[redirects]]
   from = "/api/plaid/accounts"
@@ -114,8 +125,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for API subdomain Plaid accounts endpoint
 [[redirects]]
@@ -126,8 +139,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for Plaid transactions endpoint
 [[redirects]]
@@ -138,8 +153,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for API subdomain Plaid transactions endpoint
 [[redirects]]
@@ -150,8 +167,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for Plaid status endpoint
 [[redirects]]
@@ -162,8 +181,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for API subdomain Plaid status endpoint
 [[redirects]]
@@ -174,8 +195,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for salary entries endpoint
 [[redirects]]
@@ -186,8 +209,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for API subdomain salary entries endpoint
 [[redirects]]
@@ -198,8 +223,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for health check 
 [[redirects]]
@@ -210,8 +237,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for API subdomain health check
 [[redirects]]
@@ -222,8 +251,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for salary POST endpoint
 [[redirects]]
@@ -234,8 +265,10 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "POST, PUT, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Add a specific redirect for API subdomain salary POST endpoint
 [[redirects]]
@@ -246,14 +279,23 @@
   [redirects.headers]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "POST, PUT, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Salary entries API - redirects for POST
 [[redirects]]
   from = "/api/salary"
   to = "/.netlify/functions/salary-create"
   status = 200
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # API subdomain version
 [[redirects]]
@@ -261,16 +303,37 @@
   to = "https://trypersonalfinance.com/.netlify/functions/salary-create"
   status = 200
   force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # Salary entries API - redirects for PUT (edit)
 [[redirects]]
   from = "/api/salary/*"
   to = "/.netlify/functions/salary-edit"
   status = 200
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "PUT, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
 
 # API subdomain version
 [[redirects]]
   from = "https://api.trypersonalfinance.com/salary/*"
   to = "https://trypersonalfinance.com/.netlify/functions/salary-edit"
   status = 200
-  force = true 
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "PUT, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin" 

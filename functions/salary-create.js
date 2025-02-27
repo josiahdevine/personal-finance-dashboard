@@ -5,12 +5,17 @@ exports.handler = async (event, context) => {
     console.log(`Origin: ${event.headers.origin || 'No origin'}`);
     console.log(`Query parameters: ${JSON.stringify(event.queryStringParameters || {})}`);
     
+    // Get the requesting origin or default to *
+    const origin = event.headers.origin || event.headers.Origin || '*';
+    
     // Set CORS headers to allow cross-origin requests
     const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin',
         'Content-Type': 'application/json'
     };
     
@@ -47,7 +52,7 @@ exports.handler = async (event, context) => {
         }
         
         // Parse the Authorization header (in a real app, validate this token)
-        const authHeader = event.headers.authorization;
+        const authHeader = event.headers.authorization || event.headers.Authorization;
         const userProfileId = salaryEntry.user_profile_id || 'primary';
         
         console.log(`Creating salary entry for user profile ${userProfileId}`);

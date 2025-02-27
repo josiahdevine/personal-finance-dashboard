@@ -34,6 +34,138 @@ The Personal Finance Dashboard is a comprehensive web application designed to he
 - **Domain**: trypersonalfinance.com
 - **CI/CD**: Netlify auto-deploy from GitHub
 
+## Database Architecture
+
+### Neon Tech PostgreSQL
+
+The Personal Finance Dashboard uses Neon Tech's serverless PostgreSQL database for data storage. This provides several advantages:
+
+- **Serverless Architecture**: Auto-scales with application needs
+- **High Availability**: Distributed across multiple availability zones
+- **Branching Capability**: Create instant database branches for testing
+- **Cost Efficiency**: Pay only for resources used
+
+### Connection Configuration
+
+Database connections are established using the `pg` Node.js module:
+
+```javascript
+const { Pool } = require('pg');
+
+// Create a PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Set to true in production
+  }
+});
+```
+
+### Schema Overview
+
+The database includes the following key tables:
+
+#### 1. `financial_goals`
+Stores user-defined financial targets and savings objectives:
+```
+- id: UUID (Primary Key)
+- user_id: UUID (References users table)
+- name: TEXT (Goal name)
+- target_amount: DECIMAL(12,2) (Target amount)
+- current_amount: DECIMAL(12,2) (Current progress)
+- target_date: DATE (Target completion date)
+- category: TEXT (Goal category)
+- description: TEXT (Optional details)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### 2. `transactions`
+Records financial transactions from both Plaid and manual entry:
+```
+- id: UUID (Primary Key)
+- user_id: UUID (References users table)
+- date: DATE (Transaction date)
+- amount: DECIMAL(12,2) (Transaction amount)
+- description: TEXT (Transaction description)
+- category: TEXT (Transaction category)
+- account_id: TEXT (Source account ID)
+- source: TEXT ('plaid' or 'manual')
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### 3. `plaid_items`
+Stores Plaid API connection information:
+```
+- id: SERIAL (Primary Key)
+- user_id: UUID (References users table)
+- plaid_item_id: TEXT (Plaid's item identifier)
+- plaid_access_token: TEXT (Encrypted access token)
+- institution_id: TEXT (Financial institution ID)
+- institution_name: TEXT (Financial institution name)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### 4. `plaid_accounts`
+Stores individual financial accounts from Plaid connections:
+```
+- id: SERIAL (Primary Key)
+- plaid_item_id: TEXT (References plaid_items table)
+- plaid_account_id: TEXT (Plaid's account identifier)
+- name: TEXT (Account name)
+- mask: TEXT (Last 4 digits)
+- type: TEXT (Account type)
+- subtype: TEXT (Account subtype)
+- created_at: TIMESTAMP
+- updated_at: TIMESTAMP
+```
+
+#### 5. `salary_entries`
+Stores salary and income information:
+```
+- id: SERIAL (Primary Key)
+- user_id: UUID (References users table)
+- company: TEXT (Employer name)
+- position: TEXT (Job title)
+- salary_amount: DECIMAL(19,4) (Salary amount)
+- pay_type: TEXT (Hourly/Salary)
+- pay_frequency: TEXT (Weekly/Biweekly/Monthly/etc)
+- bonus_amount: DECIMAL(19,4) (Bonus amount)
+- commission_amount: DECIMAL(19,4) (Commission amount)
+- date: DATE (Entry date)
+- notes: TEXT (Additional details)
+```
+
+### Development Considerations
+
+When working with the Neon Tech database:
+
+1. **Connection Limits**: Be mindful of connection pool settings as Neon has limits based on plan
+2. **SSL Required**: All connections must use SSL
+3. **Migrations**: Run migrations with the provided scripts in `db-migration/`
+4. **Column Names**: Use consistent naming conventions when adding new schemas
+5. **Foreign Keys**: Ensure proper foreign key constraints for data integrity
+6. **Indexing**: Add appropriate indexes for frequently queried columns
+
+### Database Environment Setup
+
+1. Configuration is stored in environment variables:
+   ```
+   DATABASE_URL=postgres://username:password@hostname.neon.tech/neondb?sslmode=require
+   ```
+
+2. Migration scripts are located in:
+   - `db-migration/run_neon_migration.js` (for salary tables)
+   - `db-migration/run_plaid_migration.js` (for Plaid tables)
+   - `server/migrations/` (for other core tables)
+
+3. Connection testing can be performed with:
+   ```
+   node server/test-db.js
+   ```
+
 ## Directory Structure
 
 ```

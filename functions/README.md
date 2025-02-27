@@ -1,6 +1,99 @@
-# Netlify Functions for Personal Finance Dashboard
+# Personal Finance Dashboard - Netlify Functions
 
-This directory contains serverless functions that power the API for the Personal Finance Dashboard application.
+This directory contains the serverless functions that power the Personal Finance Dashboard API. These functions are deployed and run on Netlify's serverless infrastructure.
+
+## Structure
+
+```
+functions/
+├── utils/                    # Shared utility modules
+│   ├── cors-handler.js       # CORS utilities
+│   ├── db-connector.js       # Database connection utilities
+│   └── auth-handler.js       # Authentication utilities
+├── plaid-status.js          # Plaid connection status
+├── plaid-link-token.js      # Create Plaid link token
+├── plaid-accounts.js        # Retrieve Plaid accounts
+├── plaid-transactions.js    # Retrieve Plaid transactions
+├── salary-entries.js        # List salary entries
+├── salary-create.js         # Create salary entry
+├── salary-edit.js           # Edit salary entry
+├── goals.js                 # Financial goals API
+├── health-check.js          # API health check
+├── cors-debug.js            # CORS debugging
+├── cors-preflight.js        # CORS preflight handler
+└── package.json             # Functions dependencies
+```
+
+## Utility Modules
+
+### CORS Handler (`utils/cors-handler.js`)
+
+The CORS handler provides standardized CORS handling for all API functions. It includes:
+
+- `getCorsHeaders()` - Generates standardized CORS headers
+- `handleCorsPreflightRequest()` - Handles OPTIONS preflight requests
+- `createCorsResponse()` - Creates responses with proper CORS headers
+
+### Database Connector (`utils/db-connector.js`)
+
+The DB connector provides database connectivity utilities:
+
+- `getDbPool()` - Gets a connection pool to the Neon Tech PostgreSQL database
+- `query()` - Executes a database query with error handling and logging
+- `checkDbStatus()` - Checks database connectivity and table existence
+- `verifyTableSchema()` - Verifies and updates table schemas as needed
+
+### Authentication Handler (`utils/auth-handler.js`)
+
+The authentication handler provides Firebase authentication utilities:
+
+- `getFirebaseAdmin()` - Initializes and gets the Firebase Admin SDK
+- `verifyAuthToken()` - Verifies a Firebase authentication token
+- `getUserFromRequest()` - Extracts user info from a request
+- `requireAuth()` - Authentication middleware for Netlify functions
+
+## Using the Utilities
+
+Example of a protected function with CORS and auth:
+
+```javascript
+const corsHandler = require('./utils/cors-handler');
+const authHandler = require('./utils/auth-handler');
+
+exports.handler = authHandler.requireAuth(async function(event, context) {
+  // User information is available in event.user
+  const { uid, isAuthenticated } = event.user;
+  
+  // Handle your API logic here
+  
+  // Return a response with proper CORS headers
+  return corsHandler.createCorsResponse(200, {
+    message: "Success",
+    data: { /* your data */ }
+  }, event.headers.origin || '*');
+}, { corsHandler });
+```
+
+## Authentication
+
+All API endpoints automatically handle CORS preflight requests. Protected endpoints use Firebase authentication tokens. To call protected endpoints, include a Firebase ID token in the `Authorization` header:
+
+```
+Authorization: Bearer <firebase-id-token>
+```
+
+## Development
+
+To install dependencies:
+
+```bash
+cd functions
+npm install
+```
+
+## API Subdomain
+
+The API is served from `https://api.trypersonalfinance.com` and is configured via redirects in `netlify.toml`. All CORS handling is managed both in the Netlify configuration and in individual functions.
 
 ## Available Endpoints
 

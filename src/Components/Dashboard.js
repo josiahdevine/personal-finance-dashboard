@@ -17,6 +17,7 @@ import { useTheme, Card, Button } from '../contexts/ThemeContext';
 import { log, logError } from '../utils/logger';
 import { Link } from 'react-router-dom';
 import BillsAnalysis from './BillsAnalysis';
+import FinancialCharts from './FinancialCharts';
 import { 
   adaptBalanceHistoryResponse, 
   adaptMonthlySalaryResponse, 
@@ -185,18 +186,14 @@ function Dashboard() {
   const { savingsColor, savingsBg } = getIncomeExpenseColors();
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Hello, {currentUser?.displayName || 'there'}!
-        </h1>
-        <p className="text-gray-600">
-          Here's an overview of your finances
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
+        <p className="text-gray-600">Welcome back, {currentUser?.displayName || currentUser?.email || 'User'}!</p>
       </div>
-      
-      {/* Financial Summary Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <DashboardPanel 
           title="Monthly Income" 
           loading={loading && financeDataLoading}
@@ -246,6 +243,18 @@ function Dashboard() {
             </p>
           </div>
         </DashboardPanel>
+      </div>
+
+      {/* Enhanced Financial Charts Component */}
+      <div className="mb-8">
+        <ErrorBoundary fallback={
+          <div className="bg-red-50 p-4 rounded-lg text-red-700">
+            <h3 className="font-bold">Chart Error</h3>
+            <p>There was an error loading the financial charts. Please try refreshing the page.</p>
+          </div>
+        }>
+          <FinancialCharts />
+        </ErrorBoundary>
       </div>
 
       {/* Detailed Financial Information */}

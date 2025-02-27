@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CORS Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 10px 5px;
+      cursor: pointer;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>CORS Test for Personal Finance Dashboard API</h1>
+  
+  <div>
+    <button id="test-status">Test Plaid Status</button>
+    <button id="test-link-token">Test Create Link Token</button>
+    <button id="test-salary">Test Salary Entries</button>
+  </div>
+  
+  <h3>Results:</h3>
+  <div id="results">
+    <p>Click a button to test the API endpoints.</p>
+  </div>
+  
+  <script>
+    const resultsEl = document.getElementById('results');
+    
+    function addResult(message, isError = false) {
+      const resultEl = document.createElement('pre');
+      resultEl.className = isError ? 'error' : 'success';
+      resultEl.textContent = message;
+      resultsEl.appendChild(resultEl);
+    }
+    
+    async function testEndpoint(name, url, method = 'GET', body = null) {
+      try {
+        addResult(`Testing ${name} (${method} ${url})...`);
+        
+        const options = {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        };
+        
+        if (body) {
+          options.body = JSON.stringify(body);
+        }
+        
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        addResult(`Success! Response:\n${JSON.stringify(data, null, 2)}`);
+        return data;
+      } catch (error) {
+        addResult(`Error testing ${name}: ${error.message}`, true);
+        console.error('Error details:', error);
+        return null;
+      }
+    }
+    
+    document.getElementById('test-status').addEventListener('click', () => {
+      testEndpoint('Plaid Status', 'https://api.trypersonalfinance.com/api/plaid/status');
+    });
+    
+    document.getElementById('test-link-token').addEventListener('click', () => {
+      testEndpoint('Create Link Token', 'https://api.trypersonalfinance.com/api/plaid/create-link-token', 'POST', { userId: 'test-user' });
+    });
+    
+    document.getElementById('test-salary').addEventListener('click', () => {
+      testEndpoint('Salary Entries', 'https://api.trypersonalfinance.com/api/salary/entries?userProfileId=test-user');
+    });
+  </script>
+</body>
+</html> 

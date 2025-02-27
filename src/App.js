@@ -32,6 +32,7 @@ import Transactions from './Components/Transactions';
 import AskAI from './Components/AskAI';
 import SubscriptionPlans from './Components/SubscriptionPlans';
 import UIComponentDemo from './Components/examples/UIComponentDemo';
+import Profile from './pages/Profile';
 
 // Import mobile versions of components
 import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
@@ -440,6 +441,17 @@ function App() {
                           <PrivateRoute>
                             <AuthenticatedLayout>
                               <SubscriptionPlans />
+                            </AuthenticatedLayout>
+                          </PrivateRoute>
+                        } 
+                      />
+                      
+                      <Route 
+                        path="/profile" 
+                        element={
+                          <PrivateRoute>
+                            <AuthenticatedLayout>
+                              <Profile />
                             </AuthenticatedLayout>
                           </PrivateRoute>
                         } 

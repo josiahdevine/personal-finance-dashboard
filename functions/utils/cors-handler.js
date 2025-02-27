@@ -11,13 +11,17 @@
  * @returns {object} - Object containing CORS headers
  */
 function getCorsHeaders(origin = '*', methods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], credentials = true) {
+  // If origin is not specified, default to the production domain
+  const allowedOrigin = origin === '*' ? 'https://trypersonalfinance.com' : origin;
+  
   return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key",
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "*",
     "Access-Control-Allow-Methods": methods.join(', '),
     "Access-Control-Allow-Credentials": credentials ? "true" : "false",
     "Access-Control-Max-Age": "86400", // 24 hours
-    "Vary": "Origin"
+    "Vary": "Origin",
+    "Cache-Control": "no-cache"
   };
 }
 

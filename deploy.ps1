@@ -47,7 +47,7 @@ $deploy_option = Read-Host "Option (1 or 2)"
 
 if ($deploy_option -eq "1") {
     # Check if user is logged in to Netlify
-    $netlifyStatus = netlify status 2>&1
+    $script:netlifyStatus = netlify status 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Logging in to Netlify..." -ForegroundColor Yellow
         netlify login

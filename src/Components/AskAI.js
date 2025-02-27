@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import AIService from '../services/aiService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { HiOutlineLightningBolt, HiOutlineChartBar, HiOutlineCurrencyDollar, HiOutlineHome, HiOutlineCreditCard, HiOutlineBookOpen, HiOutlinePaperAirplane, HiOutlineEmojiHappy, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlineLightningBolt, HiOutlineChartBar, HiOutlineCurrencyDollar, HiOutlineHome, HiOutlineCreditCard, HiOutlineBookOpen, HiOutlinePaperAirplane, HiOutlineRefresh } from 'react-icons/hi';
 import api from '../services/api';
 
 const AskAI = () => {
@@ -23,7 +22,7 @@ const AskAI = () => {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const chatContainerRef = useRef(null);
-    const { user } = useAuth();
+    const { currentUser } = useAuth();
     const navigate = useNavigate();
 
     // Scroll to bottom of messages
@@ -62,7 +61,7 @@ const AskAI = () => {
         };
 
         fetchUserData();
-    }, [user]);
+    }, [currentUser]);
 
     const getDefaultSuggestedQuestions = () => {
         return [
@@ -237,7 +236,7 @@ const AskAI = () => {
         return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    if (!user) {
+    if (!currentUser) {
         navigate('/login');
         return null;
     }

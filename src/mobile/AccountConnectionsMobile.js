@@ -15,7 +15,7 @@ import {
   HiOutlineArrowsRightLeft,
   HiOutlineShieldCheck
 } from 'react-icons/hi2';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LoadingSpinner from '../Components/ui/LoadingSpinner';
 
 /**
  * Mobile-optimized version of Account Connections page

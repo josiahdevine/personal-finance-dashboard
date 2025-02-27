@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FiCheckCircle, FiAlertTriangle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertTriangle, FiXCircle, FiRefreshCw, FiInfo } from 'react-icons/fi';
 import axios from 'axios';
 
 const SystemHealthStatus = () => {
@@ -9,6 +9,32 @@ const SystemHealthStatus = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
+  const [showKnownIssues, setShowKnownIssues] = useState(false);
+
+  // Known issues list - will be updated as issues are resolved
+  const knownIssues = [
+    {
+      id: 'ask-ai-logout',
+      title: 'Ask AI Authentication Issue',
+      description: 'Users may be forcibly logged out when using the Ask AI feature. Our team is actively working on fixing this issue.',
+      status: 'critical',
+      lastUpdated: '2025-03-13'
+    },
+    {
+      id: 'api-inconsistency',
+      title: 'API Response Inconsistency',
+      description: 'Some API endpoints may return inconsistent responses. Please refresh or try again if you encounter errors.',
+      status: 'major',
+      lastUpdated: '2025-03-13'
+    },
+    {
+      id: 'rate-limiting',
+      title: 'Financial Provider Rate Limiting',
+      description: 'Users with many financial accounts may experience rate limiting issues when fetching transaction data.',
+      status: 'minor',
+      lastUpdated: '2025-03-13'
+    }
+  ];
 
   const fetchHealthStatus = async () => {
     setLoading(true);
@@ -54,10 +80,24 @@ const SystemHealthStatus = () => {
   const StatusIndicator = ({ status }) => {
     if (status === 'healthy' || status === 'operational' || status === true) {
       return <FiCheckCircle className="text-green-500 text-xl" />;
-    } else if (status === 'degraded') {
+    } else if (status === 'degraded' || status === 'minor' || status === 'major') {
       return <FiAlertTriangle className="text-yellow-500 text-xl" />;
+    } else if (status === 'critical') {
+      return <FiXCircle className="text-red-500 text-xl" />;
     } else {
       return <FiXCircle className="text-red-500 text-xl" />;
+    }
+  };
+
+  const IssueStatusBadge = ({ status }) => {
+    if (status === 'critical') {
+      return <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Critical</span>;
+    } else if (status === 'major') {
+      return <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Major</span>;
+    } else if (status === 'minor') {
+      return <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Minor</span>;
+    } else {
+      return <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">Unknown</span>;
     }
   };
 
@@ -164,6 +204,37 @@ const SystemHealthStatus = () => {
                 {healthData.environment.node_env} mode
               </p>
             </div>
+          </div>
+
+          {/* Known Issues Section */}
+          <div className="mt-6 border-t pt-4">
+            <div 
+              className="flex items-center justify-between cursor-pointer" 
+              onClick={() => setShowKnownIssues(!showKnownIssues)}
+            >
+              <div className="flex items-center">
+                <FiInfo className="text-blue-500 text-xl mr-2" />
+                <h3 className="font-medium">Known Issues ({knownIssues.length})</h3>
+              </div>
+              <button className="text-sm text-blue-500 hover:text-blue-700">
+                {showKnownIssues ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            
+            {showKnownIssues && (
+              <div className="mt-3 space-y-3">
+                {knownIssues.map(issue => (
+                  <div key={issue.id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-medium">{issue.title}</h4>
+                      <IssueStatusBadge status={issue.status} />
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{issue.description}</p>
+                    <p className="text-xs text-gray-500 mt-2">Last updated: {issue.lastUpdated}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Timestamp */}

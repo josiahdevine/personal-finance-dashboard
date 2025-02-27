@@ -1,5 +1,5 @@
 [build]
-  command = "npm i react-icons@latest && set \"CI=false\" && npm run build"
+  command = "node netlify-build.js"
   publish = "build"
   functions = "functions"
 
@@ -13,6 +13,7 @@
   REACT_APP_DEPLOY_PLATFORM = "netlify"
   REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
   REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
+  NPM_FLAGS = "--no-audit --silent"
 
 # Global headers for all paths
 [[headers]]

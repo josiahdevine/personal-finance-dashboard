@@ -1,0 +1,2 @@
+# This file ensures the patches directory is included in Git
+# It can be safely deleted once proper patch files are added 

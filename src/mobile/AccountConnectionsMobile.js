@@ -5,16 +5,17 @@ import { usePlaidLink } from 'react-plaid-link';
 import { toast } from 'react-toastify';
 import apiService from '../services/liveApi';
 import { log, logError } from '../utils/logger';
-import { HiOutlineRefresh } from 'react-icons/hi';
 import { 
-  HiOutlineCreditCard, 
-  HiOutlinePlusCircle,
-  HiOutlineExclamationCircle,
-  HiOutlineChevronRight,
-  HiOutlineBanknotes,
-  HiOutlineArrowsRightLeft,
-  HiOutlineShieldCheck
-} from 'react-icons/hi2';
+  IconRefresh,
+  IconCreditCard, 
+  IconPlusCircle,
+  IconExclamationCircle,
+  IconChevronRight,
+  IconBanknotes,
+  IconArrowsRightLeft,
+  IconShieldCheck,
+  getAccountIcon
+} from '../utils/iconHelpers';
 import LoadingSpinner from '../Components/ui/LoadingSpinner';
 
 /**
@@ -192,21 +193,6 @@ const AccountConnectionsMobile = () => {
     }, 0);
   };
 
-  // Get account icon based on account type
-  const getAccountIcon = (type, subtype) => {
-    if (type === 'depository' && (subtype === 'checking' || subtype === 'savings')) {
-      return <HiOutlineBanknotes className="h-5 w-5 text-blue-500" />;
-    } else if (type === 'credit' || subtype === 'credit card') {
-      return <HiOutlineCreditCard className="h-5 w-5 text-purple-500" />;
-    } else if (type === 'investment') {
-      return <HiOutlineArrowsRightLeft className="h-5 w-5 text-green-500" />;
-    } else if (type === 'loan') {
-      return <HiOutlineShieldCheck className="h-5 w-5 text-red-500" />;
-    } else {
-      return <HiOutlineBanknotes className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
   // Toggle account details view
   const toggleAccountDetails = (accountId) => {
     setShowAccountDetails(showAccountDetails === accountId ? null : accountId);
@@ -229,7 +215,7 @@ const AccountConnectionsMobile = () => {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
           <div className="flex">
-            <HiOutlineExclamationCircle className="h-5 w-5 mr-2" />
+            <IconExclamationCircle className="h-5 w-5 mr-2" />
             <span>{error}</span>
           </div>
         </div>
@@ -245,7 +231,7 @@ const AccountConnectionsMobile = () => {
             className="text-white opacity-80 hover:opacity-100 focus:outline-none disabled:opacity-50 p-1"
             aria-label="Refresh accounts"
           >
-            <HiOutlineRefresh className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <IconRefresh className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
         <div className="flex justify-between">
@@ -267,14 +253,14 @@ const AccountConnectionsMobile = () => {
           disabled={!ready || loading}
           className="flex-1 flex justify-center items-center py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <HiOutlineCreditCard className="mr-2 h-5 w-5" />
+          <IconCreditCard className="mr-2 h-5 w-5" />
           Connect Bank
         </button>
         <button
           onClick={() => setShowAddManual(true)}
           className="flex-1 flex justify-center items-center py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-lg"
         >
-          <HiOutlinePlusCircle className="mr-2 h-5 w-5" />
+          <IconPlusCircle className="mr-2 h-5 w-5" />
           Add Manual
         </button>
       </div>
@@ -286,7 +272,7 @@ const AccountConnectionsMobile = () => {
       
       {plaidAccounts.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-          <HiOutlineExclamationCircle className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+          <IconExclamationCircle className="h-10 w-10 text-gray-400 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Accounts Connected</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             Connect your financial accounts to see balances and transactions in one place.
@@ -324,7 +310,7 @@ const AccountConnectionsMobile = () => {
                   <span className="mr-2 font-medium text-gray-900 dark:text-white">
                     {formatCurrency(account.balance_current || account.balance)}
                   </span>
-                  <HiOutlineChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${
+                  <IconChevronRight className={`h-5 w-5 text-gray-400 transition-transform ${
                     showAccountDetails === (account.id || account.account_id) ? 'rotate-90' : ''
                   }`} />
                 </div>

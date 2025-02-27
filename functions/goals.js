@@ -2,6 +2,16 @@
  * Serverless function for handling financial goals API requests
  */
 
+const { Pool } = require('pg');
+
+// Create a PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
 // Export the handler function for Netlify Functions
 exports.handler = async function(event, context) {
   console.log("Received goals request:", {
@@ -14,7 +24,7 @@ exports.handler = async function(event, context) {
   // Get the requesting origin or default to *
   const origin = event.headers.origin || event.headers.Origin || '*';
   
-  // CORS headers - ensure they match exactly what's in the netlify.toml file
+  // CORS headers
   const headers = {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key",
@@ -35,69 +45,80 @@ exports.handler = async function(event, context) {
     };
   }
 
-  // Mock authentication check - in a real implementation, validate the token
-  // This would typically extract the user ID from a JWT token
-  let userId = 'demo-user';
+  // Authentication - extract and validate token
+  let userId = null;
   try {
     const authHeader = event.headers.authorization || event.headers.Authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       // In a real app, validate this token
       const token = authHeader.substring(7);
-      // For demo, we'll just extract a mock user ID
-      userId = token.split('.')[0] || 'demo-user';
+      // This is a simplified version - in production you'd verify the JWT
+      userId = token.split('.')[1]; // Extract user ID from token payload
+      
+      if (!userId) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ 
+            error: "Unauthorized", 
+            message: "Invalid authentication token" 
+          })
+        };
+      }
+    } else {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ 
+          error: "Unauthorized", 
+          message: "Authentication token is required" 
+        })
+      };
     }
   } catch (error) {
-    console.error("Error parsing auth token:", error);
+    console.error("Error authenticating request:", error);
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({
+        error: "Authentication failed",
+        message: error.message
+      })
+    };
   }
 
   // Handle different HTTP methods
   try {
+    const client = await pool.connect();
+    
     if (event.httpMethod === "GET") {
-      // Mock goals data for demo purposes
-      // In production, you would fetch this from your database
-      const mockGoals = [
-        {
-          id: "goal-1",
-          name: "Emergency Fund",
-          targetAmount: 10000,
-          currentAmount: 5000,
-          startDate: "2023-01-01",
-          targetDate: "2023-12-31",
-          category: "Savings",
-          description: "Build an emergency fund for unexpected expenses"
-        },
-        {
-          id: "goal-2",
-          name: "Vacation",
-          targetAmount: 3000,
-          currentAmount: 1200,
-          startDate: "2023-02-15",
-          targetDate: "2023-08-15",
-          category: "Travel",
-          description: "Save for a summer vacation"
-        },
-        {
-          id: "goal-3",
-          name: "New Car Down Payment",
-          targetAmount: 5000,
-          currentAmount: 2500,
-          startDate: "2023-03-01",
-          targetDate: "2024-03-01",
-          category: "Transportation",
-          description: "Save for a down payment on a new car"
-        }
-      ];
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(mockGoals)
-      };
+      try {
+        const result = await client.query(
+          `SELECT * FROM financial_goals WHERE user_id = $1 ORDER BY created_at DESC`,
+          [userId]
+        );
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(result.rows)
+        };
+      } catch (dbError) {
+        console.error("Database error fetching goals:", dbError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: "Database error",
+            message: dbError.message
+          })
+        };
+      } finally {
+        client.release();
+      }
     } 
     
     else if (event.httpMethod === "POST") {
-      // Create a new goal
-      // In production, you would save this to your database
       const data = JSON.parse(event.body || '{}');
       
       // Validate required fields
@@ -112,23 +133,49 @@ exports.handler = async function(event, context) {
         };
       }
       
-      // Mock response - in production, this would be the saved goal with an ID
-      const newGoal = {
-        id: `goal-${Date.now()}`,
-        ...data,
-        createdAt: new Date().toISOString()
-      };
-      
-      return {
-        statusCode: 201,
-        headers,
-        body: JSON.stringify(newGoal)
-      };
+      try {
+        // Insert the new goal into the database
+        const query = `
+          INSERT INTO financial_goals 
+          (user_id, name, target_amount, current_amount, start_date, target_date, category, description)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING *
+        `;
+        
+        const values = [
+          userId,
+          data.name,
+          data.targetAmount,
+          data.currentAmount || 0,
+          data.startDate || new Date().toISOString(),
+          data.targetDate,
+          data.category || 'General',
+          data.description || ''
+        ];
+        
+        const result = await client.query(query, values);
+        
+        return {
+          statusCode: 201,
+          headers,
+          body: JSON.stringify(result.rows[0])
+        };
+      } catch (dbError) {
+        console.error("Database error creating goal:", dbError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: "Database error",
+            message: dbError.message
+          })
+        };
+      } finally {
+        client.release();
+      }
     } 
     
     else if (event.httpMethod === "PUT") {
-      // Update an existing goal
-      // In production, you would update this in your database
       const goalId = event.path.split('/').pop();
       const data = JSON.parse(event.body || '{}');
       
@@ -143,21 +190,67 @@ exports.handler = async function(event, context) {
         };
       }
       
-      // Mock response
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          id: goalId,
-          ...data,
-          updatedAt: new Date().toISOString()
-        })
-      };
+      try {
+        // Update the goal in the database
+        const query = `
+          UPDATE financial_goals
+          SET 
+            name = COALESCE($1, name),
+            target_amount = COALESCE($2, target_amount),
+            current_amount = COALESCE($3, current_amount),
+            target_date = COALESCE($4, target_date),
+            category = COALESCE($5, category),
+            description = COALESCE($6, description),
+            updated_at = NOW()
+          WHERE id = $7 AND user_id = $8
+          RETURNING *
+        `;
+        
+        const values = [
+          data.name,
+          data.targetAmount,
+          data.currentAmount,
+          data.targetDate,
+          data.category,
+          data.description,
+          goalId,
+          userId
+        ];
+        
+        const result = await client.query(query, values);
+        
+        if (result.rows.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({
+              error: "Not Found",
+              message: "Goal not found or you don't have permission to update it"
+            })
+          };
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(result.rows[0])
+        };
+      } catch (dbError) {
+        console.error("Database error updating goal:", dbError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: "Database error",
+            message: dbError.message
+          })
+        };
+      } finally {
+        client.release();
+      }
     } 
     
     else if (event.httpMethod === "DELETE") {
-      // Delete a goal
-      // In production, you would delete this from your database
       const goalId = event.path.split('/').pop();
       
       if (!goalId) {
@@ -171,15 +264,48 @@ exports.handler = async function(event, context) {
         };
       }
       
-      // Mock response
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          id: goalId,
-          deleted: true
-        })
-      };
+      try {
+        // Delete the goal from the database
+        const query = `
+          DELETE FROM financial_goals
+          WHERE id = $1 AND user_id = $2
+          RETURNING id
+        `;
+        
+        const result = await client.query(query, [goalId, userId]);
+        
+        if (result.rows.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({
+              error: "Not Found",
+              message: "Goal not found or you don't have permission to delete it"
+            })
+          };
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            id: result.rows[0].id,
+            deleted: true
+          })
+        };
+      } catch (dbError) {
+        console.error("Database error deleting goal:", dbError);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: "Database error",
+            message: dbError.message
+          })
+        };
+      } finally {
+        client.release();
+      }
     } 
     
     else {

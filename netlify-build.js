@@ -45,6 +45,17 @@ const steps = [
     critical: false
   },
   {
+    name: 'Install Netlify Functions dependencies',
+    command: () => {
+      const functionsDir = path.join(__dirname, 'functions');
+      if (fs.existsSync(functionsDir)) {
+        console.log('Installing Netlify Functions dependencies...');
+        execSync('cd functions && npm ci', { stdio: 'inherit' });
+      }
+    },
+    critical: true
+  },
+  {
     name: 'Build project',
     command: 'npm run build',
     critical: true

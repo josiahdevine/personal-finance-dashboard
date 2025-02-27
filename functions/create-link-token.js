@@ -4,7 +4,8 @@ exports.handler = async function(event, context) {
   console.log("Received create-link-token request:", {
     httpMethod: event.httpMethod,
     path: event.path,
-    origin: event.headers.origin || event.headers.Origin || '*'
+    origin: event.headers.origin || event.headers.Origin || '*',
+    query: event.queryStringParameters
   });
 
   // Get the requesting origin or default to *
@@ -13,9 +14,11 @@ exports.handler = async function(event, context) {
   // CORS headers
   const headers = {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
     "Content-Type": "application/json"
   };
 

@@ -45,7 +45,8 @@
     "update-docs": "node update-directory.js update",
     "watch-dir": "node update-directory.js watch",
     "record-changes": "node update-directory.js record",
-    "standardize-components": "node standardize-components.js"
+    "standardize-components": "node standardize-components.js",
+    "debug": "start \"\" \"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-port=9222 --user-data-dir=%TEMP%\\chrome-debug-profile && npm start"
   },
   "eslintConfig": {
     "extends": [

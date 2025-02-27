@@ -561,18 +561,18 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
         // Populate the form with the selected entry data
         setCompany(entry.company || '');
         setPosition(entry.position || '');
-        setSalaryAmount(entry.salary_amount?.toString() || '');
+        setSalaryAmount(entry.salary_amount ? entry.salary_amount.toString() : '');
         setPayType(entry.pay_type || 'annual');
         setPayFrequency(entry.pay_frequency || 'BIWEEKLY');
         setHoursPerWeek(entry.hours_per_week || 40);
         setDateOfChange(entry.date_of_change || '');
         setNotes(entry.notes || '');
-        setBonusAmount(entry.bonus_amount?.toString() || '');
-        setCommissionAmount(entry.commission_amount?.toString() || '');
-        setHealthInsurance(entry.health_insurance?.toString() || '');
-        setDentalInsurance(entry.dental_insurance?.toString() || '');
-        setVisionInsurance(entry.vision_insurance?.toString() || '');
-        setRetirement401k(entry.retirement_401k?.toString() || '');
+        setBonusAmount(entry.bonus_amount ? entry.bonus_amount.toString() : '');
+        setCommissionAmount(entry.commission_amount ? entry.commission_amount.toString() : '');
+        setHealthInsurance(entry.health_insurance ? entry.health_insurance.toString() : '');
+        setDentalInsurance(entry.dental_insurance ? entry.dental_insurance.toString() : '');
+        setVisionInsurance(entry.vision_insurance ? entry.vision_insurance.toString() : '');
+        setRetirement401k(entry.retirement_401k ? entry.retirement_401k.toString() : '');
         setSelectedState(entry.state || '');
         setSelectedCity(entry.city || '');
         

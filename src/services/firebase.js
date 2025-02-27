@@ -14,6 +14,10 @@ import {
 } from 'firebase/auth';
 import { log, logError, timeOperation } from '../utils/logger';
 
+// Initialize Firebase
+let app;
+let auth;
+
 // Production mode should be less verbose
 const isProduction = process.env.NODE_ENV === 'production';
 // Simplify platform detection - focus only on Netlify vs custom domain
@@ -141,10 +145,6 @@ const initializeFirebaseWithRetry = async () => {
   }
 };
 
-// Initialize Firebase
-let app;
-let auth;
-
 const initFirebase = async () => {
   while (initRetryCount < MAX_INIT_RETRIES) {
     try {
@@ -198,21 +198,33 @@ initFirebase().catch(error => {
 
 // Use a more robust check for auth initialization in all exported functions
 export const ensureAuth = () => {
-  if (!auth) {
-    console.error('[Firebase] Auth not initialized when function was called');
-    const storedError = localStorage.getItem('firebase_init_error');
-    let errorInfo = {};
-    try {
-      if (storedError) {
-        errorInfo = JSON.parse(storedError);
-      }
-    } catch (e) {}
+  try {
+    // If auth is not initialized, try to initialize it
+    if (!auth && app) {
+      console.log('[Firebase] Auth not initialized, attempting to initialize...');
+      auth = getAuth(app);
+    }
     
+    // If app is not initialized, initialize it
+    if (!app) {
+      console.log('[Firebase] App not initialized, attempting to initialize...');
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+    }
+
+    // Verify auth is working
+    if (auth) {
+      // Test a safe property access
+      const testTenantId = auth.tenantId;
+      console.log('[Firebase] Auth verification successful:', testTenantId === null ? 'No tenant ID (expected)' : 'Has tenant ID');
+      return auth;
+    }
+
+    console.error('[Firebase] Auth initialization failed');
     const error = new Error('Firebase authentication is not initialized');
     error.code = 'auth/service-unavailable';
     error.details = {
       initRetryCount,
-      lastError: errorInfo,
       environment: {
         isProduction,
         isNetlify,
@@ -221,8 +233,10 @@ export const ensureAuth = () => {
       }
     };
     throw error;
+  } catch (error) {
+    console.error('[Firebase] Error in ensureAuth:', error);
+    throw error;
   }
-  return auth;
 };
 
 // Updated login function with more robust auth initialization check

@@ -219,4 +219,116 @@
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
     Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for salary entries endpoint
+[[redirects]]
+  from = "/api/salary-entries"
+  to = "/.netlify/functions/salary-entries"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for API subdomain salary entries endpoint
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/api/salary-entries"
+  to = "https://trypersonalfinance.com/.netlify/functions/salary-entries"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for salary entries with ID endpoint
+[[redirects]]
+  from = "/api/salary-entries/*"
+  to = "/.netlify/functions/salary-entries"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for API subdomain salary entries with ID endpoint
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/api/salary-entries/*"
+  to = "https://trypersonalfinance.com/.netlify/functions/salary-entries"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for Plaid link token endpoint
+[[redirects]]
+  from = "/api/plaid/create-link-token"
+  to = "/.netlify/functions/plaid-link-token"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for API subdomain Plaid link token endpoint
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/api/plaid/create-link-token"
+  to = "https://trypersonalfinance.com/.netlify/functions/plaid-link-token"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for Plaid exchange token endpoint
+[[redirects]]
+  from = "/api/plaid/exchange-token"
+  to = "/.netlify/functions/plaid-exchange-token"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+
+# Add a specific redirect for API subdomain Plaid exchange token endpoint
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/api/plaid/exchange-token"
+  to = "https://trypersonalfinance.com/.netlify/functions/plaid-exchange-token"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
     Vary = "Origin" 

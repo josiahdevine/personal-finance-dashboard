@@ -1,17 +1,97 @@
 import axios from 'axios';
+import { getToken } from './auth';
 
-// API configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+// Get the current port from the window location
+const getCurrentPort = () => {
+  if (typeof window !== 'undefined') {
+    // For development, check if we're running on localhost
+    if (window.location.hostname === 'localhost') {
+      return process.env.REACT_APP_API_PORT || '5000';
+    }
+    // In production, use 443 for HTTPS
+    return '443';
+  }
+  return '5000'; // Default fallback for development
+};
+
+// Create a dedicated Plaid API instance
+const plaidApi = axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL || 
+           (window.location.hostname === 'localhost' ? 
+           `http://localhost:${getCurrentPort()}` : 
+           'https://api.trypersonalfinance.com'),
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  validateStatus: function (status) {
+    return status >= 200 && status < 500;
+  }
+});
+
+// Add request interceptor for authentication and logging
+plaidApi.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // Ensure /api prefix is present
+      if (!config.url.startsWith('/api')) {
+        config.url = `/api${config.url}`;
+      }
+      
+      // Log request for debugging
+      console.log('[Plaid] Request:', {
+        method: config.method?.toUpperCase(),
+        url: `${config.baseURL}${config.url}`,
+        environment: process.env.NODE_ENV,
+        port: getCurrentPort(),
+        data: config.data || {}
+      });
+    } catch (error) {
+      console.error('[Plaid] Error adding auth token:', error);
+    }
+    return config;
+  }
+);
+
+// Add response interceptor for better error handling
+plaidApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response) {
+      console.error('[Plaid] Error Response:', {
+        status: error.response.status,
+        data: error.response.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
+    } else if (error.request) {
+      console.error('[Plaid] Network Error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: error.message
+      });
+    } else {
+      console.error('[Plaid] Request Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
 const PLAID_API_ENDPOINTS = {
-  createLinkToken: `${API_BASE_URL}/plaid/create-link-token`,
-  exchangePublicToken: `${API_BASE_URL}/plaid/exchange-public-token`,
-  getAccounts: `${API_BASE_URL}/plaid/accounts`,
-  getTransactions: `${API_BASE_URL}/plaid/transactions`,
-  getBalance: `${API_BASE_URL}/plaid/balance`,
-  syncTransactions: `${API_BASE_URL}/plaid/transactions/sync`,
-  getInstitution: `${API_BASE_URL}/plaid/institution`,
-  removeAccount: `${API_BASE_URL}/plaid/accounts/remove`,
-  updateAccount: `${API_BASE_URL}/plaid/accounts/update`,
+  createLinkToken: '/plaid/create-link-token',
+  exchangePublicToken: '/plaid/exchange-public-token',
+  getAccounts: '/plaid/accounts',
+  getTransactions: '/plaid/transactions',
+  getBalance: '/plaid/balance',
+  syncTransactions: '/plaid/transactions/sync',
+  getInstitution: '/plaid/institution',
+  removeAccount: '/plaid/accounts/remove',
+  updateAccount: '/plaid/accounts/update',
 };
 
 /**
@@ -65,10 +145,11 @@ const plaidService = {
    */
   createLinkToken: async (userData) => {
     try {
-      const response = await axios.post(PLAID_API_ENDPOINTS.createLinkToken, userData);
+      const response = await plaidApi.post('/plaid/link-token');
       return response.data.link_token;
     } catch (error) {
-      throw handleApiError(error);
+      console.error('[Plaid] Error creating link token:', error);
+      throw error;
     }
   },
   
@@ -79,15 +160,13 @@ const plaidService = {
    * @param {Object} metadata - Metadata about the institution
    * @returns {Promise<Object>} Access token and account information
    */
-  exchangePublicToken: async (publicToken, metadata) => {
+  exchangePublicToken: async (publicToken) => {
     try {
-      const response = await axios.post(PLAID_API_ENDPOINTS.exchangePublicToken, {
-        public_token: publicToken,
-        metadata
-      });
+      const response = await plaidApi.post('/plaid/exchange-token', { public_token: publicToken });
       return response.data;
     } catch (error) {
-      throw handleApiError(error);
+      console.error('[Plaid] Error exchanging public token:', error);
+      throw error;
     }
   },
   
@@ -97,14 +176,13 @@ const plaidService = {
    * @param {string} userId - User ID
    * @returns {Promise<Array>} List of accounts
    */
-  getAccounts: async (userId) => {
+  getAccounts: async () => {
     try {
-      const response = await axios.get(PLAID_API_ENDPOINTS.getAccounts, {
-        params: { userId }
-      });
-      return response.data.accounts;
+      const response = await plaidApi.get('/plaid/accounts');
+      return response.data;
     } catch (error) {
-      throw handleApiError(error);
+      console.error('[Plaid] Error getting accounts:', error);
+      throw error;
     }
   },
   
@@ -120,18 +198,15 @@ const plaidService = {
    * @param {number} options.offset - Offset for pagination
    * @returns {Promise<Object>} Transactions data
    */
-  getTransactions: async (userId, accountIds = [], options = {}) => {
+  getTransactions: async (startDate, endDate) => {
     try {
-      const response = await axios.get(PLAID_API_ENDPOINTS.getTransactions, {
-        params: {
-          userId,
-          accountIds: accountIds.join(','),
-          ...options
-        }
+      const response = await plaidApi.get('/plaid/transactions', {
+        params: { start_date: startDate, end_date: endDate }
       });
       return response.data;
     } catch (error) {
-      throw handleApiError(error);
+      console.error('[Plaid] Error getting transactions:', error);
+      throw error;
     }
   },
   
@@ -144,7 +219,7 @@ const plaidService = {
    */
   syncTransactions: async (userId, cursor = null) => {
     try {
-      const response = await axios.post(PLAID_API_ENDPOINTS.syncTransactions, {
+      const response = await plaidApi.post('/plaid/transactions/sync', {
         userId,
         cursor
       });
@@ -163,7 +238,7 @@ const plaidService = {
    */
   getBalances: async (userId, accountIds = []) => {
     try {
-      const response = await axios.get(PLAID_API_ENDPOINTS.getBalance, {
+      const response = await plaidApi.get('/plaid/balance', {
         params: {
           userId,
           accountIds: accountIds.join(',')
@@ -183,7 +258,7 @@ const plaidService = {
    */
   getInstitution: async (institutionId) => {
     try {
-      const response = await axios.get(PLAID_API_ENDPOINTS.getInstitution, {
+      const response = await plaidApi.get('/plaid/institution', {
         params: { institutionId }
       });
       return response.data.institution;
@@ -201,7 +276,7 @@ const plaidService = {
    */
   removeAccount: async (userId, accountId) => {
     try {
-      const response = await axios.delete(PLAID_API_ENDPOINTS.removeAccount, {
+      const response = await plaidApi.delete('/plaid/accounts/remove', {
         data: { userId, accountId }
       });
       return response.data;
@@ -219,7 +294,7 @@ const plaidService = {
    */
   createUpdateLinkToken: async (userId, accessToken) => {
     try {
-      const response = await axios.post(PLAID_API_ENDPOINTS.updateAccount, {
+      const response = await plaidApi.post('/plaid/accounts/update', {
         userId,
         accessToken
       });

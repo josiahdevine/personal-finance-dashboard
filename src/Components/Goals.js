@@ -21,10 +21,13 @@ const Goals = () => {
     try {
       setLoading(true);
       const response = await api.get('/api/goals');
-      setGoals(response.data || []);
+      const goalsData = Array.isArray(response.data) ? response.data : 
+                       (response.data?.goals || []);
+      setGoals(goalsData);
     } catch (error) {
       console.error('Error fetching goals:', error);
       toast.error('Failed to load financial goals');
+      setGoals([]);
     } finally {
       setLoading(false);
     }

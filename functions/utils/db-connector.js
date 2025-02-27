@@ -17,6 +17,10 @@ function getDbPool() {
     return pool;
   }
 
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+
   // Create a new connection pool if one doesn't exist
   const dbConfig = {
     connectionString: process.env.DATABASE_URL,
@@ -33,7 +37,7 @@ function getDbPool() {
   // Log connection attempt (without sensitive info)
   console.log('Creating Neon DB connection pool:', {
     ssl: !!dbConfig.ssl,
-    hasConnectionString: !!process.env.DATABASE_URL,
+    hasConnectionString: true,
     maxConnections: dbConfig.max,
     idleTimeout: dbConfig.idleTimeoutMillis,
     environment: process.env.NODE_ENV || 'development'
@@ -44,44 +48,92 @@ function getDbPool() {
   // Add error handler to the pool
   pool.on('error', (err, client) => {
     console.error('Unexpected error on idle client', err);
+    // Try to create a new pool on next request
+    pool = null;
   });
 
   return pool;
 }
 
 /**
- * Execute a database query
+ * Execute a database query with retries
  * @param {string} text - SQL query text
  * @param {Array} params - Query parameters
+ * @param {number} maxRetries - Maximum number of retry attempts
  * @returns {Promise<object>} Query result
  */
-async function query(text, params = []) {
-  const pool = getDbPool();
-  const start = Date.now();
-  let client;
+async function query(text, params = [], maxRetries = 3) {
+  let retries = 0;
+  let lastError;
+
+  while (retries < maxRetries) {
+    const pool = getDbPool();
+    const start = Date.now();
+    let client;
+
+    try {
+      client = await pool.connect();
+      const result = await client.query(text, params);
+      const duration = Date.now() - start;
+      
+      console.log('Executed query', {
+        text,
+        rows: result.rowCount,
+        duration: `${duration}ms`,
+        attempt: retries + 1
+      });
+      
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.error(`Database query error (attempt ${retries + 1}):`, error.message, {
+        query: text,
+        params: JSON.stringify(params)
+      });
+
+      // If the error is related to the connection, reset the pool
+      if (error.code === 'ECONNREFUSED' || error.code === '57P01' || error.code === '57P02') {
+        pool = null;
+      }
+
+      retries++;
+      if (retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+      }
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Create a table if it doesn't exist
+ * @param {string} tableName - Name of table to create
+ * @param {object} columns - Object describing columns and their types
+ * @returns {Promise<boolean>} True if table was created or already exists
+ */
+async function createTableIfNotExists(tableName, columns) {
+  const columnDefinitions = Object.entries(columns)
+    .map(([name, type]) => `${name} ${type}`)
+    .join(',\n  ');
+
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS ${tableName} (
+      ${columnDefinitions}
+    );
+  `;
 
   try {
-    client = await pool.connect();
-    const result = await client.query(text, params);
-    const duration = Date.now() - start;
-    
-    console.log('Executed query', {
-      text,
-      rows: result.rowCount,
-      duration: `${duration}ms`
-    });
-    
-    return result;
+    await query(createTableQuery);
+    console.log(`Table ${tableName} created or already exists`);
+    return true;
   } catch (error) {
-    console.error('Database query error:', error.message, {
-      query: text,
-      params: JSON.stringify(params)
-    });
+    console.error(`Error creating table ${tableName}:`, error.message);
     throw error;
-  } finally {
-    if (client) {
-      client.release();
-    }
   }
 }
 
@@ -124,21 +176,8 @@ async function checkDbStatus() {
  */
 async function verifyTableSchema(tableName, requiredColumns) {
   try {
-    // Check if table exists
-    const tableExists = await query(`
-      SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_name = $1
-      );
-    `, [tableName]);
-    
-    // If table doesn't exist, return early
-    if (!tableExists.rows[0].exists) {
-      return {
-        success: false,
-        error: `Table ${tableName} does not exist`
-      };
-    }
+    // First, ensure the table exists
+    await createTableIfNotExists(tableName, requiredColumns);
     
     // Get existing columns
     const columnsResult = await query(`
@@ -193,5 +232,6 @@ module.exports = {
   getDbPool,
   query,
   checkDbStatus,
-  verifyTableSchema
+  verifyTableSchema,
+  createTableIfNotExists
 }; 

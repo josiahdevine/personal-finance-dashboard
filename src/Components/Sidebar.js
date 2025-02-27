@@ -13,6 +13,7 @@ import {
   HiOutlineLogout,
   HiOutlineLink
 } from 'react-icons/hi';
+import { FaHome, FaTachometerAlt, FaWallet, FaExchangeAlt, FaMoneyBillWave, FaCog, FaSignOutAlt, FaBell, FaQuestion, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useSidebar } from '../App';
 import { log, logError } from '../utils/logger';
@@ -86,6 +87,11 @@ function Sidebar() {
       name: 'Subscription',
       path: '/subscription',
       icon: <HiOutlineCreditCard className="w-6 h-6" />
+    },
+    {
+      name: 'Profile',
+      path: '/profile',
+      icon: <FaUserCircle className="w-6 h-6" />
     }
   ];
 

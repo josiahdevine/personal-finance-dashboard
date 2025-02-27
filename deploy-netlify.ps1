@@ -22,156 +22,164 @@ function Write-ColorOutput {
     Write-Host "[$Type] $Message" -ForegroundColor $color
 }
 
-function Log-Info {
-    param([string]$Message)
-    Write-ColorOutput -Message $Message -Type "INFO"
+function Write-InfoLog {
+    param(
+        [string]$Message
+    )
+    Write-Host "[INFO] $Message" -ForegroundColor Cyan
 }
 
-function Log-Success {
-    param([string]$Message)
-    Write-ColorOutput -Message $Message -Type "SUCCESS"
+function Write-SuccessLog {
+    param(
+        [string]$Message
+    )
+    Write-Host "[SUCCESS] $Message" -ForegroundColor Green
 }
 
-function Log-Warning {
-    param([string]$Message)
-    Write-ColorOutput -Message $Message -Type "WARNING"
+function Write-WarningLog {
+    param(
+        [string]$Message
+    )
+    Write-Host "[WARNING] $Message" -ForegroundColor Yellow
 }
 
-function Log-Error {
-    param([string]$Message)
-    Write-ColorOutput -Message $Message -Type "ERROR"
+function Write-ErrorLog {
+    param(
+        [string]$Message
+    )
+    Write-Host "[ERROR] $Message" -ForegroundColor Red
 }
 
 # Check if Netlify CLI is installed
 try {
     $netlifyCli = npm list -g netlify-cli --depth=0
     if ($netlifyCli -match "empty") {
-        Log-Error "Netlify CLI is not installed."
-        Log-Info "Installing Netlify CLI..."
+        Write-ErrorLog "Netlify CLI is not installed."
+        Write-InfoLog "Installing Netlify CLI..."
         npm install -g netlify-cli
         
         if ($LASTEXITCODE -ne 0) {
-            Log-Error "Failed to install Netlify CLI. Please install it manually with 'npm install -g netlify-cli'"
+            Write-ErrorLog "Failed to install Netlify CLI. Please install it manually with 'npm install -g netlify-cli'"
             exit 1
         } else {
-            Log-Success "Netlify CLI installed successfully."
+            Write-SuccessLog "Netlify CLI installed successfully."
         }
     } else {
-        Log-Success "Netlify CLI is already installed."
+        Write-SuccessLog "Netlify CLI is already installed."
     }
 } catch {
-    Log-Error "Error checking Netlify CLI installation: $_"
+    Write-ErrorLog "Error checking Netlify CLI installation: $_"
     exit 1
 }
 
 # Check if user is logged in to Netlify
-Log-Info "Checking Netlify authentication status..."
-$netlifySites = netlify sites:list 2>$null
+Write-InfoLog "Checking Netlify authentication status..."
+$script:netlifySiteList = netlify sites:list 2>$null
 
 if ($LASTEXITCODE -ne 0) {
-    Log-Warning "You are not logged in to Netlify."
-    Log-Info "Please login to Netlify:"
+    Write-WarningLog "You are not logged in to Netlify."
+    Write-InfoLog "Please login to Netlify:"
     netlify login
     
     if ($LASTEXITCODE -ne 0) {
-        Log-Error "Failed to login to Netlify."
+        Write-ErrorLog "Failed to login to Netlify."
         exit 1
     } else {
-        Log-Success "Successfully logged in to Netlify."
+        Write-SuccessLog "Successfully logged in to Netlify."
     }
 } else {
-    Log-Success "Already authenticated with Netlify."
+    Write-SuccessLog "Already authenticated with Netlify."
 }
 
 # Ensure no environment variables are committed to the repo
 if (Test-Path .env) {
-    Log-Warning "Found .env file - please ensure this file is in .gitignore"
-    Log-Info "Checking .gitignore file..."
+    Write-WarningLog "Found .env file - please ensure this file is in .gitignore"
+    Write-InfoLog "Checking .gitignore file..."
     
     if (Test-Path .gitignore) {
         $gitignoreContent = Get-Content .gitignore
         if ($gitignoreContent -notcontains ".env") {
-            Log-Warning ".env is not in .gitignore. Adding it now..."
+            Write-WarningLog ".env is not in .gitignore. Adding it now..."
             Add-Content -Path .gitignore -Value ".env"
-            Log-Success "Added .env to .gitignore"
+            Write-SuccessLog "Added .env to .gitignore"
         } else {
-            Log-Success ".env is properly excluded in .gitignore"
+            Write-SuccessLog ".env is properly excluded in .gitignore"
         }
     } else {
-        Log-Warning "No .gitignore file found. Creating one with .env..."
+        Write-WarningLog "No .gitignore file found. Creating one with .env..."
         Set-Content -Path .gitignore -Value ".env"
-        Log-Success "Created .gitignore with .env entry"
+        Write-SuccessLog "Created .gitignore with .env entry"
     }
 }
 
 # Install dependencies
-Log-Info "Installing dependencies..."
+Write-InfoLog "Installing dependencies..."
 npm install
 
 if ($LASTEXITCODE -ne 0) {
-    Log-Error "Failed to install dependencies."
+    Write-ErrorLog "Failed to install dependencies."
     exit 1
 } else {
-    Log-Success "Dependencies installed successfully."
+    Write-SuccessLog "Dependencies installed successfully."
 }
 
 # Running tests (if applicable)
-Log-Info "Running tests..."
+Write-InfoLog "Running tests..."
 npm test -- --watchAll=false  # Run tests in non-interactive mode
 
 if ($LASTEXITCODE -ne 0) {
-    Log-Warning "Tests failed. Consider fixing tests before deployment."
+    Write-WarningLog "Tests failed. Consider fixing tests before deployment."
     $continue = Read-Host "Continue with deployment anyway? (y/n)"
     if ($continue -ne "y") {
-        Log-Info "Deployment cancelled."
+        Write-InfoLog "Deployment cancelled."
         exit 1
     }
 } else {
-    Log-Success "Tests passed successfully."
+    Write-SuccessLog "Tests passed successfully."
 }
 
 # Build the application
-Log-Info "Building the application..."
+Write-InfoLog "Building the application..."
 npm run build
 
 if ($LASTEXITCODE -ne 0) {
-    Log-Error "Build failed."
+    Write-ErrorLog "Build failed."
     exit 1
 } else {
-    Log-Success "Build completed successfully."
+    Write-SuccessLog "Build completed successfully."
 }
 
 # Check if site has been initialized for Netlify
 if (-not (Test-Path .netlify)) {
-    Log-Info "Initializing Netlify site..."
+    Write-InfoLog "Initializing Netlify site..."
     netlify init
     
     if ($LASTEXITCODE -ne 0) {
-        Log-Error "Failed to initialize Netlify site."
+        Write-ErrorLog "Failed to initialize Netlify site."
         exit 1
     } else {
-        Log-Success "Netlify site initialized successfully."
+        Write-SuccessLog "Netlify site initialized successfully."
     }
 } else {
-    Log-Success "Netlify site already initialized."
+    Write-SuccessLog "Netlify site already initialized."
 }
 
 # Deploy to Netlify
-Log-Info "Deploying to Netlify..."
+Write-InfoLog "Deploying to Netlify..."
 netlify deploy --prod
 
 if ($LASTEXITCODE -ne 0) {
-    Log-Error "Deployment failed."
+    Write-ErrorLog "Deployment failed."
     exit 1
 } else {
-    Log-Success "Deployment completed successfully."
+    Write-SuccessLog "Deployment completed successfully."
 }
 
-Log-Info "Opening the deployed site..."
+Write-InfoLog "Opening the deployed site..."
 netlify open:site
 
-Log-Success "Deployment process completed!"
-Log-Info "Don't forget to check your application after deployment to ensure everything is working correctly."
-Log-Info "You can manage your site and domain settings at https://app.netlify.com"
+Write-SuccessLog "Deployment process completed!"
+Write-InfoLog "Don't forget to check your application after deployment to ensure everything is working correctly."
+Write-InfoLog "You can manage your site and domain settings at https://app.netlify.com"
 
 exit 0 

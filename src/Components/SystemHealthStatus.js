@@ -1,0 +1,179 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { FiCheckCircle, FiAlertTriangle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
+import axios from 'axios';
+
+const SystemHealthStatus = () => {
+  const { currentUser, getIdToken } = useAuth();
+  const [healthData, setHealthData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastChecked, setLastChecked] = useState(null);
+
+  const fetchHealthStatus = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get the current user's ID token
+      const token = await getIdToken();
+      
+      // Make API request to health check endpoint
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL}/health`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      setHealthData(response.data);
+      setLastChecked(new Date());
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching health status:', err);
+      setError('Failed to fetch system health information');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchHealthStatus();
+    }
+  }, [currentUser]);
+
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return 'N/A';
+    
+    const date = new Date(dateTime);
+    return date.toLocaleString();
+  };
+
+  const StatusIndicator = ({ status }) => {
+    if (status === 'healthy' || status === 'operational' || status === true) {
+      return <FiCheckCircle className="text-green-500 text-xl" />;
+    } else if (status === 'degraded') {
+      return <FiAlertTriangle className="text-yellow-500 text-xl" />;
+    } else {
+      return <FiXCircle className="text-red-500 text-xl" />;
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="bg-white shadow rounded-lg p-4 my-4">
+        <p className="text-gray-500">Please log in to view system health status</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white shadow rounded-lg p-4 my-4">
+        <div className="flex items-center justify-center">
+          <FiRefreshCw className="animate-spin text-blue-500 text-xl mr-2" />
+          <p>Loading system health information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white shadow rounded-lg p-4 my-4">
+        <div className="flex items-center">
+          <FiXCircle className="text-red-500 text-xl mr-2" />
+          <p className="text-red-500">{error}</p>
+        </div>
+        <button 
+          onClick={fetchHealthStatus}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center"
+        >
+          <FiRefreshCw className="mr-2" /> Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white shadow rounded-lg p-4 my-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">System Health Status</h2>
+        <div className="flex items-center">
+          <span className="text-xs text-gray-500 mr-2">
+            Last checked: {formatDateTime(lastChecked)}
+          </span>
+          <button 
+            onClick={fetchHealthStatus} 
+            className="p-1 rounded hover:bg-gray-100"
+            title="Refresh health status"
+          >
+            <FiRefreshCw className="text-blue-500" />
+          </button>
+        </div>
+      </div>
+
+      {healthData && (
+        <div className="space-y-4">
+          {/* Overall Status */}
+          <div className="flex items-center">
+            <StatusIndicator status={healthData.status} />
+            <div className="ml-3">
+              <h3 className="font-medium">Overall Status</h3>
+              <p className="text-sm text-gray-500 capitalize">{healthData.status}</p>
+            </div>
+          </div>
+
+          {/* API Status */}
+          <div className="flex items-center">
+            <StatusIndicator status={healthData.api.status} />
+            <div className="ml-3">
+              <h3 className="font-medium">API</h3>
+              <p className="text-sm text-gray-500 capitalize">
+                {healthData.api.status} {healthData.api.region && `(${healthData.api.region})`}
+              </p>
+            </div>
+          </div>
+
+          {/* Database Status */}
+          <div className="flex items-center">
+            <StatusIndicator status={healthData.database.connected} />
+            <div className="ml-3">
+              <h3 className="font-medium">Database</h3>
+              <p className="text-sm text-gray-500">
+                {healthData.database.connected ? 'Connected' : 'Disconnected'}
+                {healthData.database.tables && ` (${healthData.database.tables.length} tables)`}
+              </p>
+            </div>
+          </div>
+
+          {/* Environment Variables */}
+          <div className="flex items-center">
+            <StatusIndicator 
+              status={
+                healthData.environment.has_firebase_config && 
+                healthData.environment.has_plaid_config && 
+                healthData.environment.has_db_config
+              } 
+            />
+            <div className="ml-3">
+              <h3 className="font-medium">Environment Configuration</h3>
+              <p className="text-sm text-gray-500">
+                {healthData.environment.node_env} mode
+              </p>
+            </div>
+          </div>
+
+          {/* Timestamp */}
+          <div className="text-xs text-gray-500 mt-4">
+            Server timestamp: {formatDateTime(healthData.timestamp)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SystemHealthStatus; 

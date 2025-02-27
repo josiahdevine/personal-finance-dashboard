@@ -3,52 +3,38 @@
  */
 
 const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
+const corsHandler = require('./utils/cors-handler');
+const authHandler = require('./utils/auth-handler');
 
-exports.handler = async function(event, context) {
+// Export the handler with authentication middleware
+exports.handler = authHandler.requireAuth(async function(event, context) {
   console.log("Received plaid-link-token request:", {
     httpMethod: event.httpMethod,
     path: event.path,
     origin: event.headers.origin || event.headers.Origin || '*',
+    user: {
+      uid: event.user.uid,
+      isAuthenticated: event.user.isAuthenticated
+    }
   });
 
-  // Get the requesting origin or default to *
+  // Get the requesting origin
   const origin = event.headers.origin || event.headers.Origin || '*';
-  
-  // CORS headers
-  const headers = {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
-    "Content-Type": "application/json"
-  };
-
-  // Handle preflight OPTIONS request
-  if (event.httpMethod === "OPTIONS") {
-    console.log("Handling OPTIONS preflight request for plaid-link-token");
-    return {
-      statusCode: 204,
-      headers,
-      body: ""
-    };
-  }
 
   // Only allow POST requests
   if (event.httpMethod !== "POST") {
     console.log(`Method not allowed: ${event.httpMethod}`);
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: "Method not allowed" })
-    };
+    return corsHandler.createCorsResponse(405, {
+      error: "Method not allowed"
+    }, origin);
   }
 
   try {
     // Parse the incoming request body
     const data = JSON.parse(event.body || '{}');
-    const userId = data.userId || 'unknown-user';
+    
+    // Use the authenticated user ID from the auth middleware
+    const userId = event.user.uid;
 
     console.log(`Generating Plaid link token for user: ${userId}`);
 
@@ -59,14 +45,10 @@ exports.handler = async function(event, context) {
     
     if (!plaidClientId || !plaidSecret) {
       console.error("Missing Plaid credentials");
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: "Configuration error",
-          message: "Missing Plaid API credentials"
-        })
-      };
+      return corsHandler.createCorsResponse(500, {
+        error: "Configuration error",
+        message: "Missing Plaid API credentials"
+      }, origin);
     }
 
     // Configure Plaid client
@@ -90,7 +72,7 @@ exports.handler = async function(event, context) {
       client_name: 'Personal Finance Dashboard',
       products: ['auth', 'transactions'],
       language: 'en',
-      country_codes: ['US', 'CA'],
+      country_codes: ['US'], // US-only application as specified in requirements
       webhook: `https://api.trypersonalfinance.com/api/plaid/webhook`,
     };
 
@@ -108,23 +90,15 @@ exports.handler = async function(event, context) {
     
     console.log("Successfully created link token");
     
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(linkToken)
-    };
+    return corsHandler.createCorsResponse(200, linkToken, origin);
     
   } catch (error) {
     console.error("Error creating Plaid link token:", error);
     
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: "Failed to create link token",
-        message: error.message,
-        details: error.response?.data || {}
-      })
-    };
+    return corsHandler.createCorsResponse(500, {
+      error: "Failed to create link token",
+      message: error.message,
+      details: error.response?.data || {}
+    }, origin);
   }
-}; 
+}, { corsHandler }); 

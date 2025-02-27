@@ -555,6 +555,40 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [visionInsurance, setVisionInsurance] = useState('0'); 
     const [retirement401k, setRetirement401k] = useState('0');
 
+    const [editingEntryId, setEditingEntryId] = useState(null);
+
+    const handleEditEntry = (entry) => {
+        // Populate the form with the selected entry data
+        setCompany(entry.company || '');
+        setPosition(entry.position || '');
+        setSalaryAmount(entry.salary_amount?.toString() || '');
+        setPayType(entry.pay_type || 'annual');
+        setPayFrequency(entry.pay_frequency || 'BIWEEKLY');
+        setHoursPerWeek(entry.hours_per_week || 40);
+        setDateOfChange(entry.date_of_change || '');
+        setNotes(entry.notes || '');
+        setBonusAmount(entry.bonus_amount?.toString() || '');
+        setCommissionAmount(entry.commission_amount?.toString() || '');
+        setHealthInsurance(entry.health_insurance?.toString() || '');
+        setDentalInsurance(entry.dental_insurance?.toString() || '');
+        setVisionInsurance(entry.vision_insurance?.toString() || '');
+        setRetirement401k(entry.retirement_401k?.toString() || '');
+        setSelectedState(entry.state || '');
+        setSelectedCity(entry.city || '');
+        
+        // Set editing mode
+        setEditingEntryId(entry.id);
+        setShowForm(true);
+        
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        resetForm();
+        setEditingEntryId(null);
+    };
+
     // Move calculatePaycheck function definition to before the useEffect hooks
     const calculatePaycheck = useCallback(() => {
         try {
@@ -826,7 +860,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 : parseFloat(bonusAmount) || 0;
             
             // Prepare data for the API
-            const newEntry = {
+            const salaryEntry = {
                 company,
                 position,
                 user_profile_id: activeUserId,
@@ -847,57 +881,68 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 city: selectedCity
             };
 
-            console.log('Sending data to server:', newEntry);
-
-            // Use our api service which handles auth tokens and provides mock data if needed
-            const response = await api.post('/api/salary', newEntry);
+            // If we're editing, add the ID and use PUT, otherwise use POST
+            let response;
             
-            console.log('Server response data:', response.data);
-
-            if (response.status === 200 || response.status === 201) {
-                toast.success('Salary entry created successfully!');
-                resetForm();
-                fetchSalaryEntries(); // Refresh the list
-            } else {
-                console.error('Server error response:', response.data);
+            if (editingEntryId) {
+                console.log('Updating existing entry:', editingEntryId);
+                salaryEntry.id = editingEntryId;
+                response = await api.put(`/api/salary/${editingEntryId}`, salaryEntry);
                 
-                // More detailed error message
-                let errorMessage = 'Failed to create salary entry: ';
-                if (response.data?.message) {
-                    errorMessage += response.data.message;
-                } else if (response.data?.error) {
-                    errorMessage += response.data.error;
-                } else {
-                    errorMessage += response.statusText || 'Unknown error';
+                if (response.status === 200) {
+                    toast.success('Salary entry updated successfully!');
+                    
+                    // Update the entry in the local state
+                    const updatedEntries = salaryEntries.map(entry => 
+                        entry.id === editingEntryId ? { ...salaryEntry, id: editingEntryId } : entry
+                    );
+                    setSalaryEntries(updatedEntries);
+                    
+                    // Update localStorage
+                    localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
+                    
+                    // Call the parent callback if provided
+                    if (onSalaryUpdated) onSalaryUpdated(salaryEntry);
+                    
+                    resetForm();
+                    setEditingEntryId(null);
                 }
-                toast.error(errorMessage);
+            } else {
+                console.log('Creating new salary entry:', salaryEntry);
+                response = await api.post('/api/salary', salaryEntry);
                 
-                // Fall back to local storage if API fails
-                const entryWithId = {
-                    ...newEntry,
-                    id: `local_${Date.now()}`,
-                    created_at: new Date().toISOString()
-                };
-                
-                const existingEntries = JSON.parse(localStorage.getItem(`salary_entries_${activeUserId}`) || '[]');
-                const updatedEntries = [entryWithId, ...existingEntries];
-                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
-                
-                setSalaryEntries(updatedEntries);
-                toast.warning('Saved to local storage (API unavailable)');
-                resetForm();
+                if (response.status === 200 || response.status === 201) {
+                    toast.success('Salary entry created successfully!');
+                    
+                    // Get the ID from the response
+                    const newEntryWithId = response.data.data || { ...salaryEntry, id: `local_${Date.now()}` };
+                    
+                    // Update the entries list
+                    const updatedEntries = [newEntryWithId, ...salaryEntries];
+                    setSalaryEntries(updatedEntries);
+                    
+                    // Update localStorage
+                    localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
+                    
+                    // Call the parent callback if provided
+                    if (onSalaryAdded) onSalaryAdded(newEntryWithId);
+                    
+                    resetForm();
+                }
             }
-        } catch (error) {
-            console.error('Error creating salary entry:', error);
-            toast.error('Error creating salary entry: ' + (error.message || 'Unknown error'));
             
-            // Fall back to local storage for network errors too
+            fetchSalaryEntries(); // Refresh the list
+        } catch (error) {
+            console.error('Error saving salary entry:', error);
+            toast.error('Error saving salary entry: ' + (error.message || 'Unknown error'));
+            
+            // Fall back to local storage for network errors
             try {
                 const finalBonusAmount = bonusIsPercentage 
                     ? (parseFloat(salaryAmount) * parseFloat(bonusAmount) / 100) 
                     : parseFloat(bonusAmount) || 0;
                 
-                const newEntry = {
+                const salaryEntry = {
                     company,
                     position,
                     user_profile_id: activeUserId,
@@ -918,19 +963,31 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                     city: selectedCity
                 };
                 
-                const entryWithId = {
-                    ...newEntry,
-                    id: `local_${Date.now()}`,
-                    created_at: new Date().toISOString()
-                };
+                // Handle both create and update in localStorage
+                let updatedEntries;
                 
-                const existingEntries = JSON.parse(localStorage.getItem(`salary_entries_${activeUserId}`) || '[]');
-                const updatedEntries = [entryWithId, ...existingEntries];
+                if (editingEntryId) {
+                    // Update existing entry
+                    updatedEntries = salaryEntries.map(entry => 
+                        entry.id === editingEntryId ? { ...salaryEntry, id: editingEntryId } : entry
+                    );
+                    toast.warning('Updated in local storage (network error)');
+                } else {
+                    // Create new entry
+                    const entryWithId = {
+                        ...salaryEntry,
+                        id: `local_${Date.now()}`,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    updatedEntries = [entryWithId, ...salaryEntries];
+                    toast.warning('Saved to local storage (network error)');
+                }
+                
                 localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
-                
                 setSalaryEntries(updatedEntries);
-                toast.warning('Saved to local storage (network error)');
                 resetForm();
+                setEditingEntryId(null);
             } catch (storageError) {
                 console.error('Failed to save to local storage:', storageError);
             }
@@ -961,97 +1018,104 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     };
 
     const prepareChartData = (entries) => {
-        // Sort entries by date of change
+        // Sort entries by date
         const sortedEntries = [...entries].sort((a, b) => {
             return new Date(a.date_of_change) - new Date(b.date_of_change);
         });
         
+        const labels = sortedEntries.map(entry => {
+            const date = new Date(entry.date_of_change);
+            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        });
+        
+        // Calculate total compensation (salary + bonus + commission)
+        const totalCompensationData = sortedEntries.map(entry => {
+            const salary = entry.salary_amount || 0;
+            const bonus = entry.bonus_amount || 0;
+            const commission = entry.commission_amount || 0;
+            return salary + bonus + commission;
+        });
+        
+        // Create a simpler data structure with just total compensation
         return {
-            labels: sortedEntries.map(entry => 
-                new Date(entry.date_of_change).toLocaleDateString('default', { month: 'short', year: 'numeric' })
-            ),
+            labels,
             datasets: [
                 {
-                    label: 'Base Salary',
-                    data: sortedEntries.map(entry => entry.salary_amount),
+                    label: 'Total Compensation',
+                    data: totalCompensationData,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                    tension: 0.1
-                },
-                {
-                    label: 'Bonus',
-                    data: sortedEntries.map(entry => entry.bonus_amount || 0),
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                    tension: 0.1
-                },
-                {
-                    label: 'Commission',
-                    data: sortedEntries.map(entry => entry.commission_amount || 0),
-                    borderColor: 'rgb(255, 205, 86)',
-                    backgroundColor: 'rgba(255, 205, 86, 0.5)',
-                    tension: 0.1
-                },
-                {
-                    label: 'Total Compensation',
-                    data: sortedEntries.map(entry => 
-                        entry.salary_amount + 
-                        (entry.bonus_amount || 0) + 
-                        (entry.commission_amount || 0)
-                    ),
-                    borderColor: 'rgb(153, 102, 255)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.5)',
-                    tension: 0.1
+                    tension: 0.1,
+                    fill: false
                 }
             ]
         };
     };
 
-    const chartOptions = {
+    const getChartOptions = (entries) => ({
         responsive: true,
+        maintainAspectRatio: true,
         interaction: {
             mode: 'index',
             intersect: false,
         },
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            title: {
-                display: true,
-                text: 'Compensation History',
-                font: {
-                    size: 16
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        const entry = salaryEntries[context.dataIndex];
-                        if (context.dataset.label === 'Total Compensation') {
-                            return [
-                                `Total: ${formatCurrency(context.raw)}`,
-                                `Base: ${formatCurrency(entry.salary_amount)}`,
-                                `Bonus: ${formatCurrency(entry.bonus_amount)}`,
-                                `Commission: ${formatCurrency(entry.commission_amount)}`
-                            ];
-                        }
-                        return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
-                    }
-                }
-            }
-        },
         scales: {
             y: {
-                beginAtZero: true,
+                beginAtZero: false,
                 ticks: {
+                    // Format y-axis labels as currency
                     callback: function(value) {
                         return formatCurrency(value);
                     }
                 }
             }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        
+                        // Get the entry for this data point
+                        const sortedEntries = [...entries].sort((a, b) => {
+                            return new Date(a.date_of_change) - new Date(b.date_of_change);
+                        });
+                        const entry = sortedEntries[context.dataIndex];
+                        
+                        if (entry) {
+                            // Build a more detailed tooltip
+                            const lines = [];
+                            lines.push(`Base Salary: ${formatCurrency(entry.salary_amount || 0)}`);
+                            
+                            if (entry.bonus_amount > 0) {
+                                lines.push(`Bonus: ${formatCurrency(entry.bonus_amount)}`);
+                            }
+                            
+                            if (entry.commission_amount > 0) {
+                                lines.push(`Commission: ${formatCurrency(entry.commission_amount)}`);
+                            }
+                            
+                            lines.push(`Total: ${formatCurrency(context.parsed.y)}`);
+                            
+                            return lines;
+                        }
+                        
+                        return label + formatCurrency(context.parsed.y);
+                    }
+                }
+            },
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Compensation History'
+            },
         }
-    };
+    });
 
     const calculateAnnualSalary = () => {
         if (payType === 'hourly') {
@@ -1783,7 +1847,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 <h2 className="text-2xl font-bold mb-4">Compensation History</h2>
                 
                 {salaryEntries.length > 0 ? (
-                    <Line data={prepareChartData(salaryEntries)} options={chartOptions} />
+                    <Line data={prepareChartData(salaryEntries)} options={getChartOptions(salaryEntries)} />
                 ) : (
                     <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -1804,7 +1868,13 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             {/* Add Salary Form Button */}
             <div className="text-right mb-6">
                 <button
-                    onClick={() => setShowForm(!showForm)}
+                    onClick={() => {
+                        setShowForm(!showForm);
+                        if (editingEntryId && !showForm) {
+                            setEditingEntryId(null);
+                            resetForm();
+                        }
+                    }}
                     className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                 >
                     {showForm ? 'Cancel' : 'Add Salary Entry'}
@@ -1814,6 +1884,26 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             {/* Add Salary Form */}
             {showForm && (
                 <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                    {/* Form Title */}
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-semibold text-gray-700">
+                            {editingEntryId ? 'Edit Salary Entry' : 'Add New Salary Entry'}
+                        </h3>
+                        
+                        {editingEntryId && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    resetForm();
+                                    setEditingEntryId(null);
+                                }}
+                                className="text-sm text-gray-500 hover:text-gray-700"
+                            >
+                                Cancel Edit
+                            </button>
+                        )}
+                    </div>
+                    
                     {/* Required Fields */}
                     <div className="mb-6">
                         <h3 className="text-lg font-semibold text-gray-700 mb-4">Required Information</h3>
@@ -2170,11 +2260,17 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                             type="submit" 
                             disabled={loading}
                         >
-                            {loading ? 'Loading...' : 'Add Entry'}
+                            {loading ? 'Loading...' : (editingEntryId ? 'Update Entry' : 'Add Entry')}
                         </button>
                         <button
                             type="button"
-                            onClick={() => setShowForm(false)}
+                            onClick={() => {
+                                setShowForm(false);
+                                if (editingEntryId) {
+                                    setEditingEntryId(null);
+                                    resetForm();
+                                }
+                            }}
                             className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                         >
                             Cancel
@@ -2186,7 +2282,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             {/* Compensation History Chart */}
             <div className="bg-white shadow-md rounded-lg p-4 mb-6">
                 {salaryEntries.length > 0 ? (
-                    <Line data={prepareChartData(salaryEntries)} options={chartOptions} />
+                    <Line data={prepareChartData(salaryEntries)} options={getChartOptions(salaryEntries)} />
                 ) : (
                     <div className="text-center py-8 text-gray-500">
                         No salary data available to display
@@ -2207,6 +2303,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Net Income</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -2223,11 +2320,21 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                                         {new Date(entry.date_of_change).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-900">{entry.notes}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <button 
+                                            onClick={() => handleEditEntry(entry)}
+                                            className="text-blue-500 hover:text-blue-700 mr-3"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                    </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colSpan="9" className="px-6 py-4 text-center text-sm text-gray-500">
                                     No salary entries found. Add your first entry above.
                                 </td>
                             </tr>

@@ -5,10 +5,10 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "firebase-admin": "^11.8.0",
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^11.11.1",
     "pg": "^8.11.0",
-    "plaid": "^14.0.0",
-    "dotenv": "^16.3.1"
+    "plaid": "^14.0.0"
   },
   "engines": {
     "node": ">=14.0.0"

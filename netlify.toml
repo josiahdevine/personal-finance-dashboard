@@ -13,6 +13,11 @@
   REACT_APP_DEPLOY_PLATFORM = "netlify"
   REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
   REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
+  REACT_APP_FIREBASE_API_KEY = "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U"
+  REACT_APP_FIREBASE_STORAGE_BUCKET = "personal-finance-dashboa-f76f6.firebasestorage.app"
+  REACT_APP_FIREBASE_MESSAGING_SENDER_ID = "772716663750"
+  REACT_APP_FIREBASE_APP_ID = "1:772716663750:web:f0bf14ba121524684118c7"
+  REACT_APP_FIREBASE_MEASUREMENT_ID = "G-6RVP8YZH3S"
   NPM_FLAGS = "--no-audit --silent"
 
 # Netlify Functions plugin to ensure dependencies are installed correctly
@@ -27,7 +32,7 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self' https://*.trypersonalfinance.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://ajax.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.trypersonalfinance.com https://api.trypersonalfinance.com https://*.firebaseio.com https://*.googleapis.com; object-src 'none'"
+    Content-Security-Policy = "default-src 'self' https://*.trypersonalfinance.com https://*.firebase.app https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com https://ajax.googleapis.com https://*.firebaseio.com https://*.firebase.app https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.trypersonalfinance.com https://api.trypersonalfinance.com https://*.firebaseio.com https://*.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseapp.com; object-src 'none'"
     # Remove CORS headers from global section, they'll be handled by redirects
     X-Environment = "production"
     X-Deployed-From = "netlify"

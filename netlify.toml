@@ -202,3 +202,75 @@
     Access-Control-Allow-Credentials = "true"
 
 # Add a specific redirect for health check 
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Credentials = "true"
+
+# Add a specific redirect for API subdomain health check
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/health"
+  to = "https://trypersonalfinance.com/.netlify/functions/health-check"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Credentials = "true"
+
+# Add a specific redirect for salary POST endpoint
+[[redirects]]
+  from = "/api/salary"
+  to = "/.netlify/functions/salary-post"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, PUT, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Credentials = "true"
+
+# Add a specific redirect for API subdomain salary POST endpoint
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/api/salary"
+  to = "https://trypersonalfinance.com/.netlify/functions/salary-post"
+  status = 200
+  force = true
+  [redirects.headers]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, PUT, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+    Access-Control-Allow-Credentials = "true"
+
+# Salary entries API - redirects for POST
+[[redirects]]
+  from = "/api/salary"
+  to = "/.netlify/functions/salary-create"
+  status = 200
+
+# API subdomain version
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/salary"
+  to = "https://trypersonalfinance.com/.netlify/functions/salary-create"
+  status = 200
+  force = true
+
+# Salary entries API - redirects for PUT (edit)
+[[redirects]]
+  from = "/api/salary/*"
+  to = "/.netlify/functions/salary-edit"
+  status = 200
+
+# API subdomain version
+[[redirects]]
+  from = "https://api.trypersonalfinance.com/salary/*"
+  to = "https://trypersonalfinance.com/.netlify/functions/salary-edit"
+  status = 200
+  force = true 

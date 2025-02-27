@@ -5,8 +5,8 @@ import { usePlaidLink } from 'react-plaid-link';
 import { toast } from 'react-toastify';
 import apiService from '../services/liveApi';
 import { log, logError } from '../utils/logger';
+import { HiOutlineRefresh } from 'react-icons/hi';
 import { 
-  HiOutlineRefresh, 
   HiOutlineCreditCard, 
   HiOutlinePlusCircle,
   HiOutlineExclamationCircle,

@@ -55,8 +55,8 @@
   "scripts": {
     "start": "cross-env NODE_ENV=development PORT=3000 BROWSER=none craco start",
     "start:netlify": "cross-env NODE_ENV=development PORT=3000 BROWSER=none craco start & netlify dev --port 8888",
-    "build": "cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true craco build",
-    "build:prod": "cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false craco build",
+    "build": "npx cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true npx craco build",
+    "build:prod": "npx cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false npx craco build",
     "test": "node server/tests/run-tests.js",
     "test:schema": "node server/tests/run-tests.js --suite schema",
     "test:api": "node server/tests/run-tests.js --suite api",

@@ -1,5 +1,9 @@
 [build]
-  command = "npm install -g cross-env && npm install -g patch-package && npm ci && CI=false GENERATE_SOURCEMAP=false npm run build"
+  command = """
+    npm install -g @craco/craco cross-env && \
+    npm ci --ignore-scripts && \
+    CI=false GENERATE_SOURCEMAP=false npm run build
+  """
   publish = "build"
   functions = "functions"
 

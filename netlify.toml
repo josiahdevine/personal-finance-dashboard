@@ -1,5 +1,5 @@
 [build]
-  command = "npm install -g cross-env craco && npm ci && npm run build"
+  command = "export PATH=\"$PATH:$(npm bin -g)\" && npm ci && npm run build"
   publish = "build"
   functions = "functions"
 

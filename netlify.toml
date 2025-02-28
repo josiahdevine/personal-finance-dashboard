@@ -1,6 +1,6 @@
 [build]
   command = "node netlify-build.js"
-  publish = "build"
+  publish = "dist"
   functions = "functions"
 
 [functions]
@@ -51,20 +51,11 @@
 
 # API subdomain handling - must come first
 [[redirects]]
-  from = "/*"
+  from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
-  conditions = {Host = ["api.trypersonalfinance.com"]}
-  headers = {
-    Access-Control-Allow-Origin = "https://trypersonalfinance.com",
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
-    Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin",
-    Content-Type = "application/json"
-  }
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"}
 
 # OPTIONS preflight handling for API
 [[redirects]]

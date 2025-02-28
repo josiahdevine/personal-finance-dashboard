@@ -53,10 +53,6 @@ const steps = [
     command: 'touch patches/.gitkeep'
   },
   {
-    name: 'Install build dependencies',
-    command: 'npm install babel-loader@8.3.0 @babel/core@7.22.20 @babel/preset-env@7.22.20 @babel/preset-react@7.22.15 eslint-webpack-plugin@4.0.1 webpack@5.90.3'
-  },
-  {
     name: 'Install global build dependencies',
     command: 'npm install -g cross-env @craco/craco'
   },

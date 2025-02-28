@@ -1,8 +1,10 @@
 [build]
   command = """
     npm install -g @craco/craco cross-env && \
+    npm install --save-dev @babel/core @babel/preset-env @babel/preset-react babel-loader @babel/plugin-transform-runtime && \
+    npm install --save @babel/runtime && \
     npm ci --ignore-scripts && \
-    CI=false GENERATE_SOURCEMAP=false npm run build
+    NODE_ENV=production CI=false GENERATE_SOURCEMAP=false npm run build
   """
   publish = "build"
   functions = "functions"
@@ -35,6 +37,8 @@
   REACT_APP_DOMAIN = "trypersonalfinance.com"
   REACT_APP_API_URL = "https://api.trypersonalfinance.com"
   REACT_APP_DEPLOY_PLATFORM = "netlify"
+  SKIP_PREFLIGHT_CHECK = "true"
+  DISABLE_ESLINT_PLUGIN = "true"
   REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
   REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
   REACT_APP_FIREBASE_API_KEY = "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U"

@@ -29,37 +29,46 @@ if (!fs.existsSync(patchesDir)) {
 console.log('Starting Netlify build process...');
 
 // Function to execute commands and handle errors
-function runCommand(command, errorMessage) {
-    try {
-        execSync(command, { stdio: 'inherit' });
-    } catch (error) {
-        console.error(`Error: ${errorMessage}`);
-        console.error(error);
-        process.exit(1);
-    }
+function runCommand(command, step) {
+  try {
+    console.log(`[${step}]`);
+    execSync(command, { stdio: 'inherit' });
+    console.log(`✅ ${step} completed successfully.`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error during ${step}:`);
+    console.error(error.message);
+    return false;
+  }
 }
 
-console.log('[Install dependencies]');
-runCommand('npm ci', 'Failed to install dependencies');
+// Main build steps
+const steps = [
+  {
+    name: 'Install dependencies',
+    command: 'npm ci'
+  },
+  {
+    name: 'Create empty patch file if needed',
+    command: 'touch patches/.gitkeep'
+  },
+  {
+    name: 'Install Netlify Functions dependencies',
+    command: 'cd functions && npm install && cd ..'
+  },
+  {
+    name: 'Build project',
+    command: 'cross-env CI=false GENERATE_SOURCEMAP=false craco build'
+  }
+];
 
-// Create empty patch file if it doesn't exist
-console.log('[Create empty patch file if needed]');
-const patchDir = './patches';
-if (!fs.existsSync(patchDir)) {
-    fs.mkdirSync(patchDir);
+// Execute build steps
+let success = true;
+for (const step of steps) {
+  success = runCommand(step.command, step.name);
+  if (!success) {
+    process.exit(1);
+  }
 }
-
-// Install Netlify Functions dependencies
-console.log('[Install Netlify Functions dependencies]');
-if (fs.existsSync('./functions')) {
-    console.log('Installing Netlify Functions dependencies...');
-    runCommand('cd functions && npm install', 'Failed to install function dependencies');
-}
-
-// Build the project
-console.log('[Build project]');
-process.env.CI = 'false';
-process.env.GENERATE_SOURCEMAP = 'false';
-runCommand('npm run build', 'Failed to build project');
 
 console.log('🎉 Build completed successfully!'); 

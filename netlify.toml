@@ -55,27 +55,20 @@
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"}
+  headers = { Access-Control-Allow-Origin = "*", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS" }
 
 # OPTIONS preflight handling for API
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/:splat"
   status = 200
-  conditions = {Host = ["api.trypersonalfinance.com"], Method = ["OPTIONS"]}
+  conditions = { Host = ["api.trypersonalfinance.com"], Method = ["OPTIONS"] }
   force = true
-  headers = {
-    Access-Control-Allow-Origin = "https://trypersonalfinance.com",
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
-    Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin"
-  }
+  headers = { Access-Control-Allow-Origin = "https://trypersonalfinance.com", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin" }
 
 # Main domain SPA routing - comes last
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Host = ["trypersonalfinance.com"]} 
+  conditions = { Host = ["trypersonalfinance.com"] } 

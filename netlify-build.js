@@ -54,7 +54,7 @@ const steps = [
   },
   {
     name: 'Install build dependencies',
-    command: 'npm install --save-dev babel-loader@8.3.0 eslint-webpack-plugin@4.0.1 @babel/core@7.23.9'
+    command: 'npm install babel-loader@8.3.0 @babel/core@7.23.9 @babel/preset-env@7.23.9 @babel/preset-react@7.23.9 eslint-webpack-plugin@4.0.1 webpack@5.90.3'
   },
   {
     name: 'Install global build dependencies',

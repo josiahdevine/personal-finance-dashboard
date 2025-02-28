@@ -53,6 +53,10 @@ const steps = [
     command: 'touch patches/.gitkeep'
   },
   {
+    name: 'Install global build dependencies',
+    command: 'npm install -g cross-env @craco/craco'
+  },
+  {
     name: 'Install Netlify Functions dependencies',
     command: 'cd functions && npm install && cd ..'
   },

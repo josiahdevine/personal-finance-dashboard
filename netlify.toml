@@ -3,7 +3,7 @@
     npm install -g cross-env && \
     npm install --save-dev @craco/craco @babel/core @babel/preset-env @babel/preset-react babel-loader @babel/plugin-transform-runtime eslint-webpack-plugin && \
     npm install --save @babel/runtime && \
-    NODE_ENV=production CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true npm run build
+    NODE_ENV=production CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true ./node_modules/.bin/craco build
   """
   publish = "build"
   functions = "functions"

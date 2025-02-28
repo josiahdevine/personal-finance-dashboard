@@ -26,65 +26,40 @@ if (!fs.existsSync(patchesDir)) {
   fs.mkdirSync(patchesDir, { recursive: true });
 }
 
-// Define build steps
-const steps = [
-  {
-    name: 'Install dependencies',
-    command: 'npm ci --include=dev',
-    critical: true
-  },
-  {
-    name: 'Create empty patch file if needed',
-    command: () => {
-      const patchFile = path.join(patchesDir, 'date-fns+2.29.3.patch');
-      if (!fs.existsSync(patchFile)) {
-        console.log('Creating empty patch file...');
-        fs.writeFileSync(patchFile, '# Empty patch file for Netlify build\n');
-      }
-    },
-    critical: false
-  },
-  {
-    name: 'Install Netlify Functions dependencies',
-    command: () => {
-      const functionsDir = path.join(__dirname, 'functions');
-      if (fs.existsSync(functionsDir)) {
-        console.log('Installing Netlify Functions dependencies...');
-        execSync('cd functions && npm ci', { stdio: 'inherit' });
-      }
-    },
-    critical: true
-  },
-  {
-    name: 'Build project',
-    command: 'npm run build',
-    critical: true
-  }
-];
-
-// Execute each step
 console.log('Starting Netlify build process...');
-let success = true;
 
-steps.forEach(step => {
-  try {
-    console.log(`\n[${step.name}]`);
-    if (typeof step.command === 'function') {
-      step.command();
-    } else {
-      execSync(step.command, { stdio: 'inherit' });
+// Function to execute commands and handle errors
+function runCommand(command, errorMessage) {
+    try {
+        execSync(command, { stdio: 'inherit' });
+    } catch (error) {
+        console.error(`Error: ${errorMessage}`);
+        console.error(error);
+        process.exit(1);
     }
-    console.log(`✅ ${step.name} completed successfully.`);
-  } catch (error) {
-    console.error(`❌ ${step.name} failed: ${error.message}`);
-    if (step.critical) {
-      success = false;
-      process.exit(1);
-    }
-  }
-});
+}
 
-if (success) {
-  console.log('\n🎉 Build completed successfully!');
-  process.exit(0);
-} 
+console.log('[Install dependencies]');
+runCommand('npm ci', 'Failed to install dependencies');
+
+// Create empty patch file if it doesn't exist
+console.log('[Create empty patch file if needed]');
+const patchDir = './patches';
+if (!fs.existsSync(patchDir)) {
+    fs.mkdirSync(patchDir);
+}
+
+// Install Netlify Functions dependencies
+console.log('[Install Netlify Functions dependencies]');
+if (fs.existsSync('./functions')) {
+    console.log('Installing Netlify Functions dependencies...');
+    runCommand('cd functions && npm install', 'Failed to install function dependencies');
+}
+
+// Build the project
+console.log('[Build project]');
+process.env.CI = 'false';
+process.env.GENERATE_SOURCEMAP = 'false';
+runCommand('npm run build', 'Failed to build project');
+
+console.log('🎉 Build completed successfully!'); 

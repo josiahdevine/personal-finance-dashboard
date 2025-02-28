@@ -1,5 +1,5 @@
 [build]
-  command = "export PATH=\"$PATH:$(npm bin -g)\" && npm ci && npm run build"
+  command = "node netlify-build.js"
   publish = "build"
   functions = "functions"
 

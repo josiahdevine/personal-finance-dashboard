@@ -11,12 +11,21 @@
  * @returns {object} - Object containing CORS headers
  */
 function getCorsHeaders(origin = '*', methods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], credentials = true) {
-  // If origin is not specified, default to the production domain
-  const allowedOrigin = origin === '*' ? 'https://trypersonalfinance.com' : origin;
+  // List of allowed origins in production
+  const allowedOrigins = [
+    'https://trypersonalfinance.com',
+    'https://www.trypersonalfinance.com',
+    'http://localhost:3000'
+  ];
+
+  // In production, only allow specific origins
+  const allowedOrigin = process.env.NODE_ENV === 'production'
+    ? allowedOrigins.includes(origin) ? origin : 'https://trypersonalfinance.com'
+    : '*';
   
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID",
     "Access-Control-Allow-Methods": methods.join(', '),
     "Access-Control-Allow-Credentials": credentials ? "true" : "false",
     "Access-Control-Max-Age": "86400", // 24 hours

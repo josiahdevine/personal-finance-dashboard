@@ -54,7 +54,15 @@
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
 
-# Handle all requests to api.trypersonalfinance.com
+# Block serving frontend on API subdomain
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api-404"
+  status = 404
+  force = true
+  conditions = {Host = ["api.trypersonalfinance.com"], Path = ["/", "/index.html", "/static/*", "/assets/*", "/dashboard/*", "/settings/*"]}
+
+# Handle API requests on api subdomain
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/:splat"
@@ -63,7 +71,7 @@
   conditions = {Host = ["api.trypersonalfinance.com"]}
   headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400"}
 
-# Handle OPTIONS preflight requests for api.trypersonalfinance.com
+# Handle OPTIONS preflight requests for api subdomain
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/:splat"
@@ -72,7 +80,7 @@
   conditions = {Host = ["api.trypersonalfinance.com"], Methods = ["OPTIONS"]}
   headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400"}
 
-# Main domain SPA routing
+# Main domain SPA routing (only for main domain)
 [[redirects]]
   from = "/*"
   to = "/index.html"

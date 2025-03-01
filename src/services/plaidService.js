@@ -127,7 +127,10 @@ const plaidService = {
    */
   createLinkToken: async (userData) => {
     try {
-      const response = await plaidApi.post('/plaid/link-token');
+      const response = await plaidApi.post(PLAID_API_ENDPOINTS.createLinkToken, userData);
+      if (!response.data || !response.data.link_token) {
+        throw new Error('Invalid response: Missing link token');
+      }
       return response.data.link_token;
     } catch (error) {
       console.error('[Plaid] Error creating link token:', error);

@@ -48,6 +48,7 @@ export function PlaidProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [contextReady, setContextReady] = useState(false);
+  const [plaidConfig, setPlaidConfig] = useState(null);
   
   // Fetch Plaid accounts
   const fetchPlaidAccounts = useCallback(async () => {
@@ -232,6 +233,43 @@ export function PlaidProvider({ children }) {
     }
   }, [createLinkToken]);
   
+  // Create shared Plaid Link configuration
+  const createSharedPlaidConfig = useCallback((token) => {
+    if (!token) return null;
+    
+    return {
+      token,
+      onSuccess: async (publicToken, metadata) => {
+        try {
+          log('PlaidContext', 'Plaid Link success', { metadata });
+          await exchangePublicToken(publicToken);
+          toast.success('Account connected successfully!');
+        } catch (err) {
+          logError('PlaidContext', 'Error in Plaid Link success handler:', err);
+          toast.error('Failed to connect account');
+        }
+      },
+      onExit: (err, metadata) => {
+        if (err) {
+          logError('PlaidContext', 'Plaid Link exit with error:', err);
+          toast.error(`Error connecting to bank: ${err.message || 'Unknown error'}`);
+        }
+        log('PlaidContext', 'Plaid Link exit', { metadata });
+      },
+      onEvent: (eventName, metadata) => {
+        log('PlaidContext', 'Plaid Link event:', eventName, metadata);
+      }
+    };
+  }, [exchangePublicToken]);
+
+  // Update Plaid config when link token changes
+  useEffect(() => {
+    if (linkToken) {
+      const config = createSharedPlaidConfig(linkToken);
+      setPlaidConfig(config);
+    }
+  }, [linkToken, createSharedPlaidConfig]);
+  
   // Initialize context
   useEffect(() => {
     if (currentUser) {
@@ -257,6 +295,7 @@ export function PlaidProvider({ children }) {
     loading,
     error,
     contextReady,
+    plaidConfig,
     createLinkToken,
     exchangePublicToken,
     fetchPlaidAccounts,
@@ -271,6 +310,7 @@ export function PlaidProvider({ children }) {
     loading,
     error,
     contextReady,
+    plaidConfig,
     createLinkToken,
     exchangePublicToken,
     fetchPlaidAccounts,

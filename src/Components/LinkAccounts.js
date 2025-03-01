@@ -15,9 +15,13 @@ import {
 
 const LinkAccounts = () => {
   const { currentUser } = useAuth();
-  const { createLinkToken, isPlaidConnected, loading: plaidLoading } = usePlaid();
+  const { 
+    createLinkToken, 
+    plaidConfig,
+    isPlaidConnected, 
+    loading: plaidLoading 
+  } = usePlaid();
   
-  const [linkToken, setLinkToken] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,46 +36,12 @@ const LinkAccounts = () => {
   // Initialize component and fetch data
   useEffect(() => {
     fetchAccounts();
-    initializePlaid();
-  }, [initializePlaid, fetchAccounts]);
-
-  // Initialize Plaid connection
-  const initializePlaid = async () => {
-    try {
-      if (!linkToken) {
-        const token = await createLinkToken();
-        if (token) {
-          setLinkToken(token);
-          console.log("Link token created successfully:", token.substring(0, 10) + "...");
-        } else {
-          console.error("Failed to create link token - received empty token");
-          toast.error("Couldn't initialize bank connection. Please try again later.");
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing Plaid:', error);
-      toast.error(`Failed to initialize Plaid connection: ${error.message || 'Unknown error'}`);
+    if (currentUser) {
+      createLinkToken();
     }
-  };
+  }, [currentUser, createLinkToken]);
 
-  // Configuration for Plaid Link
-  const config = {
-    token: linkToken,
-    onSuccess: (public_token, metadata) => {
-      handlePlaidSuccess(public_token, metadata);
-    },
-    onExit: (err, metadata) => {
-      if (err) {
-        console.error('Plaid Link exit error:', err);
-        toast.error(`Error connecting to bank: ${err.message || 'Unknown error'}`);
-      }
-    },
-    onEvent: (eventName, metadata) => {
-      console.log('Plaid Link event:', eventName, metadata);
-    }
-  };
-
-  const { open, ready } = usePlaidLink(config);
+  const { open, ready } = usePlaidLink(plaidConfig || {});
 
   // Handle successful Plaid connection
   const handlePlaidSuccess = async (publicToken, metadata) => {

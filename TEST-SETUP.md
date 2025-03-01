@@ -1,160 +1,379 @@
-# Personal Finance Dashboard - Test Setup
+# Personal Finance Dashboard - Test Setup Guide
 
-This document provides instructions for setting up and running the Personal Finance Dashboard application on your local development environment.
+This document provides comprehensive instructions for setting up and running tests for the Personal Finance Dashboard application.
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
-- Node.js (v14.0.0 or later)
-- npm (v6.0.0 or later) or Yarn (v1.22.0 or later)
+- Node.js (v16.0.0 or later)
+- npm (v8.0.0 or later) or Yarn (v1.22.0 or later)
 - Git
 
-## Getting Started
-
-Follow these steps to set up the project locally:
+## Environment Setup
 
 1. **Clone the repository**:
-   ```
+   ```bash
    git clone https://github.com/yourusername/personal-finance-dashboard.git
    cd personal-finance-dashboard
    ```
 
 2. **Install dependencies**:
-   ```
+   ```bash
    npm install
    # or
    yarn install
    ```
 
-3. **Set up environment variables**:
-   Create a `.env` file in the root directory with the following variables:
+3. **Set up test environment variables**:
+   Create a `.env.test` file in the root directory:
+   ```env
+   # Database Configuration (Neon Tech)
+   DATABASE_URL=your_test_db_url
+   PGUSER=your_test_db_user
+   PGPASSWORD=your_test_db_password
+   PGDATABASE=your_test_db_name
+   PGHOST=your_test_db_host
+   PGPORT=5432
+   PGSSLMODE=require
+
+   # Plaid API Configuration (using sandbox)
+   PLAID_CLIENT_ID=your_test_client_id
+   PLAID_SECRET=your_test_secret
+   PLAID_ENV=sandbox
+   PLAID_WEBHOOK_SECRET=your_test_webhook_secret
+
+   # Security Configuration
+   ENCRYPTION_MASTER_KEY=test_encryption_key_must_be_32_chars_!!
+   JWT_SECRET=test_jwt_secret_key_for_testing_only!!
+
+   # Test Configuration
+   NODE_ENV=test
+   FAIL_FAST=false
+   LOG_LEVEL=debug
    ```
-   REACT_APP_API_URL=http://localhost:5000
-   REACT_APP_PLAID_ENV=sandbox
-   REACT_APP_PLAID_CLIENT_ID=your_plaid_client_id
-   REACT_APP_PLAID_SECRET=your_plaid_secret
-   REACT_APP_PLAID_PUBLIC_KEY=your_plaid_public_key
-   REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-   REACT_APP_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-   REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
-   REACT_APP_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
-   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
-   REACT_APP_FIREBASE_APP_ID=your_firebase_app_id
-   ```
-
-   Note: For development, you can use the Plaid sandbox environment. Sign up for a [Plaid developer account](https://dashboard.plaid.com/signup) to get your API keys.
-
-4. **Run the development server**:
-   ```
-   npm start
-   # or
-   yarn start
-   ```
-
-5. **Access the application**:
-   Open your browser and navigate to `http://localhost:3000`
-
-## Development Mode Features
-
-When running in development mode, the application provides several features to aid in testing:
-
-### Mock Data
-
-The dashboard includes sample data for testing purposes when running in development mode:
-
-- Sample accounts and balances
-- Mock transactions with various categories
-- Test budget information
-- Simulated financial trends
-
-### Testing Plaid Integration
-
-To test the Plaid integration in development:
-
-1. In the dashboard, navigate to the "Link Accounts" section
-2. Click on "Connect an Account"
-3. Use the following test credentials:
-   - Username: `user_good`
-   - Password: `pass_good`
-4. Select any institution for testing purposes
-
-### Simulating Different User States
-
-The application includes several simulated user states for testing:
-
-1. **New User**:
-   - Clear your localStorage by running `localStorage.clear()` in the browser console
-   - Refresh the page to see the onboarding flow
-
-2. **User with Accounts**:
-   - Default development state
-   - Shows sample connected accounts and data
-
-3. **Error States**:
-   - Add `?simulateError=true` to any URL to test error handling
-   - Example: `http://localhost:3000/dashboard?simulateError=true`
 
 ## Running Tests
 
-The project includes several types of tests:
+### 1. Unit Tests
 
-1. **Unit tests**:
-   ```
-   npm test
-   # or
-   yarn test
-   ```
+Run unit tests with mocked dependencies:
+```bash
+npm run test:unit
+# or
+yarn test:unit
+```
 
-2. **End-to-end tests**:
-   ```
-   npm run test:e2e
-   # or
-   yarn test:e2e
-   ```
+### 2. Integration Tests
 
-3. **Component tests with Storybook**:
-   ```
-   npm run storybook
-   # or
-   yarn storybook
-   ```
-   Then open your browser to `http://localhost:6006`
+Run integration tests with mocked database:
+```bash
+npm run test:integration
+# or
+yarn test:integration
+```
 
-## Troubleshooting
+### 3. API Tests
 
-### Common Issues
+Run API tests with Plaid sandbox:
+```bash
+npm run test:api
+# or
+yarn test:api
+```
 
-1. **API Connection Issues**:
-   - Verify your `.env` file contains the correct API URLs and credentials
-   - Check that your Plaid API keys are valid and have the necessary permissions
+## Test Configuration
 
-2. **Build Failures**:
-   - Ensure you have the correct Node.js version installed
-   - Try deleting `node_modules` and reinstalling dependencies:
-     ```
-     rm -rf node_modules
-     npm install
-     # or
-     yarn install
-     ```
+### Database Mocking
 
-3. **React Router Issues**:
-   - If routes aren't working correctly, check that your browser supports modern JavaScript features
-   - Verify that the router configuration in `App.js` matches your expected routes
+The test suite uses a mocked database connection for integration tests. This is configured in `server/tests/mocks/db.mock.js`:
 
-### Getting Help
+```javascript
+const dbMock = {
+  query: jest.fn(),
+  end: jest.fn()
+};
 
-If you encounter any issues not covered here, please:
+jest.mock('../../db', () => dbMock);
+```
 
-1. Check the existing issues in the GitHub repository
-2. Open a new issue with detailed information about your problem
-3. Contact the development team at dev@financeapp.example.com
+### JWT Authentication
 
-## Contributing
+Tests that require authentication use a test JWT token. This is configured in the test setup:
 
-We welcome contributions to the Personal Finance Dashboard! Please see the `CONTRIBUTING.md` file for guidelines on how to contribute.
+```javascript
+const testToken = jwt.sign(
+  { userId: 'test-user-id', email: 'test@example.com' },
+  process.env.JWT_SECRET,
+  { expiresIn: '1h' }
+);
+```
 
-## License
+## Troubleshooting Common Issues
 
-This project is licensed under the MIT License - see the `LICENSE` file for details. 
+### 1. Chai Assertion Library
+
+If you encounter issues with Chai assertions, ensure you're using version 4.3.4:
+```bash
+npm install chai@4.3.4 --save-dev
+```
+
+### 2. Database Connection Issues
+
+If tests fail due to database connection issues:
+1. Verify your test database credentials
+2. Check SSL mode configuration
+3. Ensure the test database is accessible
+
+### 3. JWT Authentication Errors
+
+If you see 401 Unauthorized errors:
+1. Check JWT_SECRET in .env.test
+2. Verify token is being included in request headers
+3. Check token expiration time
+
+## Writing New Tests
+
+### 1. API Tests
+
+Follow this template for new API tests:
+```javascript
+describe('API Endpoint', () => {
+  let testToken;
+  
+  before(async () => {
+    testToken = generateTestToken();
+  });
+
+  it('should handle successful request', async () => {
+    const response = await request
+      .post('/api/endpoint')
+      .set('Authorization', `Bearer ${testToken}`)
+      .send(testData);
+    
+    expect(response.status).to.equal(200);
+  });
+
+  it('should handle error cases', async () => {
+    // Test error scenarios
+  });
+});
+```
+
+### 2. Database Tests
+
+Use the mocked database for database tests:
+```javascript
+describe('Database Operations', () => {
+  beforeEach(() => {
+    dbMock.query.mockReset();
+  });
+
+  it('should handle database operations', async () => {
+    dbMock.query.mockResolvedValue({ rows: [], rowCount: 0 });
+    // Test database operations
+  });
+});
+```
+
+## Continuous Integration
+
+Tests are automatically run on:
+- Pull request creation
+- Push to main branch
+- Daily scheduled runs
+
+### CI Pipeline
+
+1. Install dependencies
+2. Run linter
+3. Run unit tests
+4. Run integration tests
+5. Run API tests
+6. Generate coverage report
+
+## Test Coverage
+
+To generate a test coverage report:
+```bash
+npm run test:coverage
+# or
+yarn test:coverage
+```
+
+Coverage requirements:
+- Statements: 80%
+- Branches: 75%
+- Functions: 80%
+- Lines: 80%
+
+# Test Setup Documentation
+
+## Current Test Coverage
+
+### Navigation Components
+- **AuthenticatedHeader**: ~80%
+- **PublicNavbar**: ~80%
+- **PrivateRoute**: ~90%
+
+### Transaction Components
+- **TransactionsList**: 0% (In Progress)
+- **TransactionAnalytics**: 0% (In Progress)
+
+### Goals Components
+- **FinancialGoals**: 0% (Planned)
+- **ProgressBar**: Pending
+
+## Test Infrastructure
+
+### Testing Libraries
+- Jest
+- React Testing Library
+- @testing-library/user-event
+- @testing-library/jest-dom
+
+### Test File Structure
+```
+src/
+├── Components/
+│   ├── __tests__/          # Component tests
+│   ├── auth/
+│   │   └── __tests__/      # Auth component tests
+│   ├── navigation/
+│   │   └── __tests__/      # Navigation component tests
+│   ├── transactions/
+│   │   └── __tests__/      # Transaction component tests
+│   └── goals/
+│       └── __tests__/      # Goals component tests
+```
+
+### Test Configuration
+```javascript
+// jest.config.js
+module.exports = {
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+  },
+  collectCoverageFrom: [
+    'src/**/*.{js,jsx,ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/index.tsx',
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+};
+```
+
+## Testing Guidelines
+
+### Component Testing
+1. Test rendering
+2. Test user interactions
+3. Test error states
+4. Test loading states
+5. Test integration with context
+
+### Example Test Structure
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+describe('ComponentName', () => {
+  beforeEach(() => {
+    // Setup
+  });
+
+  afterEach(() => {
+    // Cleanup
+  });
+
+  it('renders correctly', () => {
+    // Test implementation
+  });
+
+  it('handles user interactions', async () => {
+    // Test implementation
+  });
+
+  it('displays error states', () => {
+    // Test implementation
+  });
+});
+```
+
+### Mocking
+1. Context Providers
+```typescript
+jest.mock('../../../contexts/AuthContext');
+```
+
+2. API Calls
+```typescript
+jest.mock('../../../services/api');
+```
+
+3. Third-party Libraries
+```typescript
+jest.mock('react-router-dom');
+```
+
+## Running Tests
+
+### Commands
+- Run all tests: `npm test`
+- Run with coverage: `npm test -- --coverage`
+- Update snapshots: `npm test -- -u`
+- Run specific test file: `npm test -- ComponentName.test.tsx`
+
+### Continuous Integration
+- Tests run on every pull request
+- Coverage reports generated automatically
+- Failed tests block merging
+
+## Next Steps
+
+### Short Term
+1. Complete transaction component tests
+2. Add tests for goals components
+3. Implement E2E tests for critical paths
+4. Add performance testing
+
+### Medium Term
+1. Increase coverage to 80%+ across all components
+2. Add visual regression testing
+3. Implement API mocking strategy
+4. Add accessibility testing
+
+### Long Term
+1. Automated performance testing
+2. Load testing for API endpoints
+3. Cross-browser testing setup
+4. Mobile testing infrastructure
+
+## Best Practices
+
+1. **Test Organization**
+   - Group related tests
+   - Use clear descriptions
+   - Follow AAA pattern (Arrange, Act, Assert)
+   - Keep tests focused
+
+2. **Code Quality**
+   - Use TypeScript for type safety
+   - Follow DRY principles
+   - Use proper assertions
+   - Handle async operations correctly
+
+3. **Maintenance**
+   - Regular updates of test dependencies
+   - Review and update snapshots
+   - Monitor test performance
+   - Document complex test setups 

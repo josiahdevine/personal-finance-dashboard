@@ -42,16 +42,13 @@ export const checkNeedsMigration = () => {
   const deploymentPlatform = localStorage.getItem('deployment_platform');
   const currentDomain = window.location.hostname;
   
-  // Check for Vercel domain in history
-  const isFromVercel = lastDomain && lastDomain.includes('vercel.app');
-  
   // Check if we're on a different platform now
   const platformChanged = deploymentPlatform !== 'netlify';
   
   // Check if domain changed
   const domainChanged = lastDomain && lastDomain !== currentDomain;
   
-  return isFromVercel || platformChanged || domainChanged;
+  return platformChanged || domainChanged;
 };
 
 /**
@@ -59,8 +56,9 @@ export const checkNeedsMigration = () => {
  */
 export const showMigrationNotice = () => {
   const lastDomain = localStorage.getItem('last_domain');
+  const currentDomain = window.location.hostname;
   
-  if (lastDomain && lastDomain.includes('vercel.app')) {
+  if (lastDomain && lastDomain !== currentDomain) {
     toast.info(
       "We've upgraded our platform! If you experience any issues, please try logging out and back in.",
       {

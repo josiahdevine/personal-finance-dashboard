@@ -1,19 +1,25 @@
 // server/db.js
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-dotenv.config();
+
+// Load environment-specific .env file
+if (process.env.NODE_ENV === 'test') {
+    dotenv.config({ path: '.env.test' });
+} else {
+    dotenv.config();
+}
 
 // Load database configuration (direct from environment or config file)
 const dbConfig = {
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? 
         { rejectUnauthorized: false } : 
-        false,
-    max: 10, // Reduced max connections for better stability
-    idleTimeoutMillis: 60000, // Increased idle timeout
+        { rejectUnauthorized: false }, // Always use SSL for Neon DB
+    max: process.env.NODE_ENV === 'test' ? 5 : 10, // Fewer connections for test environment
+    idleTimeoutMillis: 60000,
     connectionTimeoutMillis: 10000,
     query_timeout: 30000,
-    keepAlive: true // Enable TCP keepalive
+    keepAlive: true
 };
 
 // Log DB connection attempt (no sensitive info)

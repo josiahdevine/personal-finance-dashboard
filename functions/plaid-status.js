@@ -6,32 +6,45 @@ const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
 const corsHandler = require('./utils/cors-handler');
 const authHandler = require('./utils/auth-handler');
 
-// Export the handler with authentication middleware
-exports.handler = authHandler.requireAuth(async function(event, context) {
+// IMPORTANT: Create a standalone handler that properly handles CORS
+exports.handler = async function(event, context) {
   console.log("Received plaid-status request:", {
     httpMethod: event.httpMethod,
     path: event.path,
-    origin: event.headers.origin || event.headers.Origin || '*',
-    user: {
-      uid: event.user.uid,
-      isAuthenticated: event.user.isAuthenticated
-    }
+    origin: event.headers.origin || event.headers.Origin || '*'
   });
 
   // Get the requesting origin
   const origin = event.headers.origin || event.headers.Origin || '*';
 
-  // Only allow GET requests
-  if (event.httpMethod !== "GET") {
-    console.log(`Method not allowed: ${event.httpMethod}`);
-    return corsHandler.createCorsResponse(405, {
-      error: "Method not allowed"
-    }, origin);
+  // Always handle OPTIONS requests first, before any auth checks
+  if (event.httpMethod === "OPTIONS") {
+    console.log("Handling OPTIONS preflight for plaid-status");
+    return corsHandler.handleCorsPreflightRequest(event);
   }
 
+  // For non-OPTIONS requests, proceed with standard flow and authentication
   try {
+    // Only allow GET requests
+    if (event.httpMethod !== "GET") {
+      return corsHandler.createCorsResponse(405, {
+        error: "Method not allowed"
+      }, origin);
+    }
+
+    // Get user from request (with modified auth handling)
+    const user = await authHandler.getUserFromRequest(event);
+    
+    // Since we're handling auth ourselves, check if user is authenticated
+    if (!user.isAuthenticated) {
+      return corsHandler.createCorsResponse(401, {
+        error: "Unauthorized",
+        message: "Authentication required for this endpoint"
+      }, origin);
+    }
+
     // Use the authenticated user ID from the auth middleware
-    const userId = event.user.uid;
+    const userId = user.uid;
 
     console.log(`Checking Plaid status for user: ${userId}`);
 
@@ -70,7 +83,7 @@ exports.handler = authHandler.requireAuth(async function(event, context) {
       environment: plaidEnv,
       message: "Plaid API connection is functioning correctly",
       userId: userId,
-      isAuthenticated: event.user.isAuthenticated,
+      isAuthenticated: user.isAuthenticated,
       timestamp: new Date().toISOString()
     }, origin);
     
@@ -83,4 +96,4 @@ exports.handler = authHandler.requireAuth(async function(event, context) {
       details: error.response?.data || {}
     }, origin);
   }
-}, { corsHandler }); 
+}; 

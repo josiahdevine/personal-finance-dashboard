@@ -8,7 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
 import PrivateRoute from './components/PrivateRoute';
-import Navbar from './components/Navbar';
+import PublicNavbar from './components/navigation/PublicNavbar';
 import Footer from './components/Footer';
 
 function App() {
@@ -17,7 +17,7 @@ function App() {
       <HelmetProvider>
         <AuthProvider>
           <div className="flex flex-col min-h-screen">
-            <Navbar />
+            <PublicNavbar />
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<LandingPage />} />

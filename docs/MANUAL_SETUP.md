@@ -7,6 +7,7 @@
    - Click "New Project"
    - Name it "personal-finance-gemini" or similar
    - Note the Project ID
+   -copper-cider-452023-n6
 
 2. Enable Gemini API
    - In the Cloud Console, go to "APIs & Services" > "Library"
@@ -16,6 +17,7 @@
 3. Create API Credentials
    - Go to "APIs & Services" > "Credentials"
    - Click "Create Credentials" > "API Key"
+   -AIzaSyCdMReYKk_kcogFTc5g56EzFMxKDNrKcW0
    - Copy the generated API key
    - Click "Edit" on the API key
    - Set restrictions:
@@ -28,7 +30,7 @@
 1. Environment Variables
    Add the following environment variables in Netlify (Settings > Build & Deploy > Environment):
    ```
-   GEMINI_API_KEY=your_api_key_from_google_cloud
+   GEMINI_API_KEY=AIzaSyCdMReYKk_kcogFTc5g56EzFMxKDNrKcW0
    MAX_TOKENS=1000
    TEMPERATURE=0.7
    ```

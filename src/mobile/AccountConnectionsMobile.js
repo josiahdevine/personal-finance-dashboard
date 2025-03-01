@@ -25,14 +25,13 @@ const AccountConnectionsMobile = () => {
   const { currentUser } = useAuth();
   const { 
     createLinkToken, 
+    plaidConfig,
     exchangePublicToken,
     fetchPlaidAccounts,
-    isPlaidConnected, 
     accounts: plaidAccounts,
     loading: plaidLoading 
   } = usePlaid();
-  
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [linkToken, setLinkToken] = useState(null);
   const [showAddManual, setShowAddManual] = useState(false);
@@ -56,11 +55,8 @@ const AccountConnectionsMobile = () => {
       }
       
       log('AccountConnectionsMobile', 'Initializing Plaid connection');
-      const token = await createLinkToken();
-      if (token) {
-        setLinkToken(token);
-        log('AccountConnectionsMobile', 'Link token retrieved successfully');
-      }
+      await createLinkToken();
+      log('AccountConnectionsMobile', 'Link token retrieved successfully');
     } catch (err) {
       logError('AccountConnectionsMobile', 'Error initializing Plaid:', err);
       setError('Failed to initialize Plaid connection. Please try again later.');
@@ -75,24 +71,7 @@ const AccountConnectionsMobile = () => {
     initializePlaid();
   }, [initializePlaid]);
 
-  // Configuration for Plaid Link
-  const config = {
-    token: linkToken,
-    onSuccess: (publicToken, metadata) => {
-      handlePlaidSuccess(publicToken, metadata);
-    },
-    onExit: (err, metadata) => {
-      if (err) {
-        logError('AccountConnectionsMobile', 'Plaid Link exit error:', err);
-        toast.error(`Error connecting to bank: ${err.message || 'Unknown error'}`);
-      }
-    },
-    onEvent: (eventName, metadata) => {
-      log('AccountConnectionsMobile', 'Plaid Link event:', eventName, metadata);
-    }
-  };
-
-  const { open, ready } = usePlaidLink(config);
+  const { open, ready } = usePlaidLink(plaidConfig || {});
 
   // Handle successful Plaid connection
   const handlePlaidSuccess = async (publicToken, metadata) => {

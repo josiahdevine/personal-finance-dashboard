@@ -229,8 +229,8 @@ const getCurrentPort = () => {
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 
            (window.location.hostname === 'localhost' ? 
-           `http://localhost:${getCurrentPort()}` : 
-           window.location.origin),
+           `http://localhost:${process.env.REACT_APP_API_PORT || '8888'}/.netlify/functions` : 
+           'https://api.trypersonalfinance.com'),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -243,8 +243,8 @@ const api = axios.create({
 // Log API initialization for debugging
 console.log('[API] Client initialized with:', {
   baseURL: api.defaults.baseURL,
-  port: getCurrentPort(),
-  environment: process.env.NODE_ENV
+  environment: process.env.NODE_ENV,
+  hostname: window.location.hostname
 });
 
 // Add a simple health check function to test API connectivity

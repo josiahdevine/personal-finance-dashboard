@@ -13,7 +13,7 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
-import AuthMenu from '../Components/AuthMenu';
+import AuthMenu from '../Components/AuthMenu.tsx';
 
 console.log('LandingPage.js: Initializing LandingPage component');
 

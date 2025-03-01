@@ -10,6 +10,7 @@ const plaidApi = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
+    'X-Environment': process.env.NODE_ENV || 'development'
   },
   validateStatus: function (status) {
     return status >= 200 && status < 500;
@@ -26,17 +27,15 @@ plaidApi.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
       
-      // Remove /api prefix since we're using the API subdomain
-      if (config.url.startsWith('/api/')) {
-        config.url = config.url.substring(4);
-      }
+      // Add request ID for tracking
+      config.headers['X-Request-ID'] = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Log request for debugging
       console.log('[Plaid] Request:', {
         method: config.method?.toUpperCase(),
         url: `${config.baseURL}${config.url}`,
         environment: process.env.NODE_ENV,
-        data: config.data || {}
+        requestId: config.headers['X-Request-ID']
       });
     } catch (error) {
       console.error('[Plaid] Error adding auth token:', error);
@@ -45,26 +44,22 @@ plaidApi.interceptors.request.use(
   }
 );
 
-// Add response interceptor for better error handling
+// Add response interceptor for error handling
 plaidApi.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response) {
-      console.error('[Plaid] Error Response:', {
-        status: error.response.status,
-        data: error.response.data,
-        url: error.config?.url,
-        method: error.config?.method
-      });
-    } else if (error.request) {
-      console.error('[Plaid] Network Error:', {
+  response => response,
+  error => {
+    console.error('[Plaid] API Error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      config: {
         url: error.config?.url,
         method: error.config?.method,
-        message: error.message
-      });
-    } else {
-      console.error('[Plaid] Request Error:', error.message);
-    }
+        headers: {
+          ...error.config?.headers,
+          Authorization: error.config?.headers?.Authorization ? '[REDACTED]' : undefined
+        }
+      }
+    });
     return Promise.reject(error);
   }
 );

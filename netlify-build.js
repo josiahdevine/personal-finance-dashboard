@@ -45,16 +45,12 @@ function runCommand(command, step) {
 // Main build steps
 const steps = [
   {
-    name: 'Install dependencies',
-    command: 'npm ci'
+    name: 'Clean install dependencies',
+    command: 'rm -rf node_modules && npm ci'
   },
   {
     name: 'Create empty patch file if needed',
     command: 'touch patches/.gitkeep'
-  },
-  {
-    name: 'Install global build dependencies',
-    command: 'npm install -g cross-env @craco/craco'
   },
   {
     name: 'Install Netlify Functions dependencies',
@@ -62,7 +58,7 @@ const steps = [
   },
   {
     name: 'Build project',
-    command: 'cross-env CI=false GENERATE_SOURCEMAP=false craco build'
+    command: 'npx cross-env CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true npx craco build'
   }
 ];
 

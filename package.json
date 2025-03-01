@@ -76,7 +76,10 @@
     "record-changes": "node update-directory.js record",
     "deploy": "powershell -ExecutionPolicy Bypass -File ./deploy-netlify.ps1",
     "standardize-components": "node standardize-components.js",
-    "debug": "start \"\" \"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-port=9222 --user-data-dir=%TEMP%\\chrome-debug-profile && npm start"
+    "debug": "start \"\" \"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe\" --remote-debugging-port=9222 --user-data-dir=%TEMP%\\chrome-debug-profile && npm start",
+    "lighthouse": "lhci autorun",
+    "lighthouse:mobile": "lhci autorun --collect.settings.preset=mobile",
+    "lighthouse:desktop": "lhci autorun --collect.settings.preset=desktop"
   },
   "eslintConfig": {
     "extends": [

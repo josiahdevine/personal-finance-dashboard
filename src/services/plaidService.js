@@ -5,7 +5,7 @@ import { getToken } from './auth';
 const plaidApi = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 
            (window.location.hostname === 'localhost' ? 
-           `http://localhost:8888/.netlify/functions` : 
+           'http://localhost:8888/.netlify/functions' : 
            'https://api.trypersonalfinance.com'),
   timeout: 30000,
   headers: {
@@ -13,7 +13,8 @@ const plaidApi = axios.create({
   },
   validateStatus: function (status) {
     return status >= 200 && status < 500;
-  }
+  },
+  withCredentials: false // Disable credentials for CORS
 });
 
 // Add request interceptor for authentication and logging
@@ -27,7 +28,7 @@ plaidApi.interceptors.request.use(
       
       // Remove /api prefix since we're using the API subdomain
       if (config.url.startsWith('/api/')) {
-        config.url = config.url.replace('/api/', '/');
+        config.url = config.url.substring(4);
       }
       
       // Log request for debugging

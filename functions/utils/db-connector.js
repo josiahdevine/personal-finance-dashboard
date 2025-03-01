@@ -6,52 +6,25 @@
 const { Pool } = require('pg');
 
 // Pool instance to be reused across function invocations
-let pool;
+let pool = null;
 
-/**
- * Get a database connection pool
- * @returns {Pool} PostgreSQL connection pool
- */
+// Get or create a database connection pool
 function getDbPool() {
-  if (pool) {
-    return pool;
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    });
+
+    // Add error handler to prevent connection issues from crashing the app
+    pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
+      process.exit(-1);
+    });
   }
-
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is not set');
-  }
-
-  // Create a new connection pool if one doesn't exist
-  const dbConfig = {
-    connectionString: process.env.DATABASE_URL,
-    ssl: { 
-      rejectUnauthorized: false // Required for Neon Tech DB
-    },
-    max: 10, // Maximum number of clients in the pool
-    idleTimeoutMillis: 60000, // How long a client is allowed to remain idle before being closed
-    connectionTimeoutMillis: 10000, // How long to wait for a connection
-    query_timeout: 30000, // Query timeout in ms
-    keepAlive: true // Enable TCP keepalive
-  };
-
-  // Log connection attempt (without sensitive info)
-  console.log('Creating Neon DB connection pool:', {
-    ssl: !!dbConfig.ssl,
-    hasConnectionString: true,
-    maxConnections: dbConfig.max,
-    idleTimeout: dbConfig.idleTimeoutMillis,
-    environment: process.env.NODE_ENV || 'development'
-  });
-
-  pool = new Pool(dbConfig);
-  
-  // Add error handler to the pool
-  pool.on('error', (err, client) => {
-    console.error('Unexpected error on idle client', err);
-    // Try to create a new pool on next request
-    pool = null;
-  });
-
   return pool;
 }
 
@@ -65,11 +38,11 @@ function getDbPool() {
 async function query(text, params = [], maxRetries = 3) {
   let retries = 0;
   let lastError;
+  let client;
+  let pool = getDbPool();
 
   while (retries < maxRetries) {
-    const pool = getDbPool();
     const start = Date.now();
-    let client;
 
     try {
       client = await pool.connect();
@@ -80,25 +53,40 @@ async function query(text, params = [], maxRetries = 3) {
         text,
         rows: result.rowCount,
         duration: `${duration}ms`,
-        attempt: retries + 1
+        attempt: retries + 1,
+        success: true
       });
       
       return result;
     } catch (error) {
       lastError = error;
-      console.error(`Database query error (attempt ${retries + 1}):`, error.message, {
+      console.error('Database query error:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint,
+        position: error.position,
         query: text,
-        params: JSON.stringify(params)
+        params: JSON.stringify(params),
+        attempt: retries + 1,
+        stack: error.stack
       });
 
       // If the error is related to the connection, reset the pool
-      if (error.code === 'ECONNREFUSED' || error.code === '57P01' || error.code === '57P02') {
-        pool = null;
+      if (error.code === 'ECONNREFUSED' || 
+          error.code === '57P01' || // admin shutdown
+          error.code === '57P02' || // crash shutdown
+          error.code === '08006' || // connection failure
+          error.code === '08001' || // unable to establish connection
+          error.code === '08004') { // rejected connection
+        console.log('Connection error detected, resetting pool');
+        pool = getDbPool(); // Reset pool by getting a new instance
       }
 
       retries++;
       if (retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+        console.log(`Retrying query (attempt ${retries + 1} of ${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * retries)); // Exponential backoff
       }
     } finally {
       if (client) {
@@ -107,7 +95,7 @@ async function query(text, params = [], maxRetries = 3) {
     }
   }
 
-  throw lastError;
+  throw new Error(`Query failed after ${maxRetries} attempts. Last error: ${lastError.message}`);
 }
 
 /**
@@ -228,10 +216,20 @@ async function verifyTableSchema(tableName, requiredColumns) {
   }
 }
 
+// Close the connection pool
+function closePool() {
+  if (pool) {
+    pool.end();
+    pool = null;
+  }
+}
+
+// Export database functions
 module.exports = {
   getDbPool,
   query,
   checkDbStatus,
   verifyTableSchema,
-  createTableIfNotExists
+  createTableIfNotExists,
+  closePool
 }; 

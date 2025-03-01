@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
 import { FinanceDataProvider } from './contexts/FinanceDataContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { GeminiProvider } from './contexts/GeminiContext';
 import Login from './Components/auth/Login';
 import Register from './Components/auth/Register';
 import LandingPage from './pages/LandingPage';
@@ -33,6 +34,8 @@ import AskAI from './Components/AskAI';
 import SubscriptionPlans from './Components/SubscriptionPlans';
 import UIComponentDemo from './Components/examples/UIComponentDemo';
 import Profile from './pages/Profile';
+import Subscription from './pages/Subscription';
+import ForgotPassword from './pages/ForgotPassword';
 
 // Import mobile versions of components
 import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
@@ -40,7 +43,6 @@ import SubscriptionPlansMobile from './mobile/SubscriptionPlansMobile';
 
 // Import Stripe context provider
 import { Elements } from '@stripe/react-stripe-js';
-import { PlaidLinkProvider } from './contexts/PlaidLinkContext';
 
 log('App', 'Initializing App component');
 
@@ -68,11 +70,15 @@ initDeploymentDebug();
 const stripePromise = initializeStripe();
 
 // Create sidebar context for managing sidebar state
-export const SidebarContext = createContext();
+const SidebarContext = createContext();
 
-export function useSidebar() {
-  return useContext(SidebarContext);
-}
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error('useSidebar must be used within a SidebarProvider');
+  }
+  return context;
+};
 
 // Desktop layout component
 const DesktopLayout = ({ children }) => {
@@ -342,8 +348,8 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <PlaidProvider>
-              <PlaidLinkProvider>
-                <FinanceDataProvider>
+              <FinanceDataProvider>
+                <GeminiProvider>
                   <StripeWrapper>
                     {/* Anonymous auth handler */}
                     <AnonymousAuthHandler />
@@ -353,13 +359,12 @@ function App() {
                       <Route path="/landing" element={<LandingPage />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
-                      
-                      {/* Default route to landing page when not logged in - Fixed with RootRouteHandler */}
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/" element={<RootRouteHandler />} />
                       
-                      {/* Dashboard route separated from root */}
+                      {/* Protected routes */}
                       <Route 
-                        path="/dashboard" 
+                        path="/dashboard/*" 
                         element={
                           <PrivateRoute>
                             <AuthenticatedLayout>
@@ -440,7 +445,7 @@ function App() {
                         element={
                           <PrivateRoute>
                             <AuthenticatedLayout>
-                              <SubscriptionPlans />
+                              <Subscription />
                             </AuthenticatedLayout>
                           </PrivateRoute>
                         } 
@@ -468,12 +473,12 @@ function App() {
                         } 
                       />
                       
-                      {/* Redirect all other routes to dashboard */}
+                      {/* Redirect all other routes to root for proper handling */}
                       <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
                   </StripeWrapper>
-                </FinanceDataProvider>
-              </PlaidLinkProvider>
+                </GeminiProvider>
+              </FinanceDataProvider>
             </PlaidProvider>
           </AuthProvider>
         </ThemeProvider>

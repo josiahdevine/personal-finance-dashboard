@@ -30,6 +30,7 @@
   REACT_APP_ENV = "production"
   REACT_APP_DOMAIN = "trypersonalfinance.com"
   REACT_APP_API_URL = "https://api.trypersonalfinance.com"
+  REACT_APP_API_BASE_URL = "https://api.trypersonalfinance.com"
   REACT_APP_DEPLOY_PLATFORM = "netlify"
   SKIP_PREFLIGHT_CHECK = "true"
   DISABLE_ESLINT_PLUGIN = "true"
@@ -55,11 +56,12 @@
 
 # API subdomain handling - must come first
 [[redirects]]
-  from = "/api/*"
+  from = "/*"
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
-  headers = { Access-Control-Allow-Origin = "*", Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS" }
+  conditions = { Host = ["api.trypersonalfinance.com"] }
+  headers = { Access-Control-Allow-Origin = "https://trypersonalfinance.com", Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin" }
 
 # OPTIONS preflight handling for API
 [[redirects]]

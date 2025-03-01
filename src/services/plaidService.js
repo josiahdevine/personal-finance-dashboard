@@ -1,24 +1,11 @@
 import axios from 'axios';
 import { getToken } from './auth';
 
-// Get the current port from the window location
-const getCurrentPort = () => {
-  if (typeof window !== 'undefined') {
-    // For development, check if we're running on localhost
-    if (window.location.hostname === 'localhost') {
-      return process.env.REACT_APP_API_PORT || '5000';
-    }
-    // In production, use 443 for HTTPS
-    return '443';
-  }
-  return '5000'; // Default fallback for development
-};
-
 // Create a dedicated Plaid API instance
 const plaidApi = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 
            (window.location.hostname === 'localhost' ? 
-           `http://localhost:${getCurrentPort()}` : 
+           `http://localhost:8888/.netlify/functions` : 
            'https://api.trypersonalfinance.com'),
   timeout: 30000,
   headers: {
@@ -38,9 +25,9 @@ plaidApi.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
       
-      // Ensure /api prefix is present
-      if (!config.url.startsWith('/api')) {
-        config.url = `/api${config.url}`;
+      // Remove /api prefix since we're using the API subdomain
+      if (config.url.startsWith('/api/')) {
+        config.url = config.url.replace('/api/', '/');
       }
       
       // Log request for debugging
@@ -48,7 +35,6 @@ plaidApi.interceptors.request.use(
         method: config.method?.toUpperCase(),
         url: `${config.baseURL}${config.url}`,
         environment: process.env.NODE_ENV,
-        port: getCurrentPort(),
         data: config.data || {}
       });
     } catch (error) {
@@ -83,15 +69,15 @@ plaidApi.interceptors.response.use(
 );
 
 const PLAID_API_ENDPOINTS = {
-  createLinkToken: '/plaid/create-link-token',
-  exchangePublicToken: '/plaid/exchange-public-token',
-  getAccounts: '/plaid/accounts',
-  getTransactions: '/plaid/transactions',
-  getBalance: '/plaid/balance',
-  syncTransactions: '/plaid/transactions/sync',
-  getInstitution: '/plaid/institution',
-  removeAccount: '/plaid/accounts/remove',
-  updateAccount: '/plaid/accounts/update',
+  createLinkToken: '/plaid-link-token',
+  exchangePublicToken: '/plaid-exchange-token',
+  getAccounts: '/plaid-accounts',
+  getTransactions: '/plaid-transactions',
+  getBalance: '/plaid-balance-history',
+  syncTransactions: '/plaid-transactions-sync',
+  getInstitution: '/plaid-status',
+  removeAccount: '/plaid-accounts/remove',
+  updateAccount: '/plaid-accounts/update',
 };
 
 /**

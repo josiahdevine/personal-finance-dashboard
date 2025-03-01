@@ -8,6 +8,7 @@
 
 const corsHandler = require('./utils/cors-handler');
 const dbConnector = require('./utils/db-connector');
+const schemaManager = require('./utils/schema-manager');
 
 exports.handler = async function(event, context) {
   console.log("Received health-check request:", {
@@ -34,36 +35,33 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    // Check database connectivity
-    let dbStatus = { status: "unknown" };
-    try {
-      dbStatus = await dbConnector.checkDbStatus();
-    } catch (dbError) {
-      console.error("Database check failed:", dbError);
-      dbStatus = {
-        status: "error",
-        error: dbError.message
-      };
+    // Check database connection
+    const dbStatus = await dbConnector.checkDbStatus();
+    
+    // Verify all schemas
+    const schemaStatus = await schemaManager.verifyAllSchemas();
+    
+    // Get table counts
+    const tableStats = {};
+    for (const tableName of Object.keys(schemaManager.tableSchemas)) {
+      try {
+        const result = await dbConnector.query(`SELECT COUNT(*) FROM ${tableName}`);
+        tableStats[tableName] = parseInt(result.rows[0].count);
+      } catch (error) {
+        tableStats[tableName] = `Error: ${error.message}`;
+      }
     }
-
-    // Check environment variables
-    const envStatus = {
-      node_env: process.env.NODE_ENV || "not set",
-      has_firebase_config: !!process.env.REACT_APP_FIREBASE_PROJECT_ID,
-      has_plaid_config: !!(process.env.PLAID_CLIENT_ID || process.env.REACT_APP_PLAID_CLIENT_ID),
-      has_db_config: !!process.env.DATABASE_URL
-    };
-
+    
     // Prepare response
     const response = {
       status: "healthy",
       timestamp: new Date().toISOString(),
-      api: {
-        status: "operational",
-        region: process.env.AWS_REGION || "unknown"
+      database: {
+        connection: dbStatus,
+        schemas: schemaStatus,
+        tables: tableStats
       },
-      database: dbStatus,
-      environment: envStatus
+      environment: process.env.NODE_ENV || 'development'
     };
 
     // If database is not connected, mark overall status as degraded

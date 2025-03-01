@@ -9,7 +9,7 @@ import Login from './Components/auth/Login';
 import Register from './Components/auth/Register';
 import LandingPage from './pages/LandingPage';
 import Sidebar from './Components/Sidebar';
-import HeaderWithAuth from './Components/HeaderWithAuth';
+import AuthenticatedHeader from './Components/navigation/AuthenticatedHeader';
 import ErrorBoundary from './Components/ErrorBoundary';
 import ResponsiveWrapper from './Components/ResponsiveWrapper';
 import { log, logError, logRender } from './utils/logger';
@@ -27,15 +27,15 @@ import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
 import Dashboard from './pages/Dashboard';
 import SalaryJournal from './Components/SalaryJournal';
 import BillsAnalysis from './Components/BillsAnalysis';
-import Goals from './Components/Goals';
+import Goals from './Components/Goals.tsx';
 import LinkAccounts from './Components/LinkAccounts';
-import Transactions from './Components/Transactions';
+import Transactions from './Components/Transactions.tsx';
 import AskAI from './Components/AskAI';
 import SubscriptionPlans from './Components/SubscriptionPlans';
 import UIComponentDemo from './Components/examples/UIComponentDemo';
 import Profile from './pages/Profile';
-import Subscription from './pages/Subscription';
-import ForgotPassword from './pages/ForgotPassword';
+import Subscription from './pages/Subscription.tsx';
+import ForgotPassword from './pages/ForgotPassword.tsx';
 
 // Import mobile versions of components
 import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
@@ -87,7 +87,7 @@ const DesktopLayout = ({ children }) => {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-16'}`}>
-        <HeaderWithAuth />
+        <AuthenticatedHeader />
         <main className="p-6">{children}</main>
       </div>
     </div>

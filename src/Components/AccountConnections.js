@@ -22,6 +22,8 @@ import BankAccountForm from './BankAccountForm';
 import RealEstateForm from './RealEstateForm';
 import EditAccountModal from './EditAccountModal';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
+import { usePlaid } from '../contexts/PlaidContext';
 
 // Register ChartJS components
 ChartJS.register(
@@ -245,16 +247,24 @@ const NetWorthChart = ({ data, onHover }) => {
 };
 
 const AccountConnections = () => {
-    const { token } = useContext(AuthContext);
-    const [linkToken, setLinkToken] = useState(null);
-    const [accounts, setAccounts] = useState([]);
-    const [balances, setBalances] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { currentUser } = useAuth();
+    const { 
+        createLinkToken, 
+        plaidConfig,
+        exchangePublicToken,
+        accounts,
+        loading: plaidLoading,
+        error: plaidError
+    } = usePlaid();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [debugInfo, setDebugInfo] = useState({});
+    const [balances, setBalances] = useState([]);
     const [showManualAccountModal, setShowManualAccountModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedAccountType, setSelectedAccountType] = useState(null);
-    const [selectedTimeRange, setSelectedTimeRange] = useState('1Y');
+    const [selectedTimeRange, setSelectedTimeRange] = useState('1M');
+    const [balanceHistory, setBalanceHistory] = useState([]);
+    const balanceHistoryRef = useRef([]);
     const [selectedChartView, setSelectedChartView] = useState('NET_WORTH');
     const [manualAccounts, setManualAccounts] = useState({
         assets: [],
@@ -265,7 +275,6 @@ const AccountConnections = () => {
     const [plaidAccountSettings, setPlaidAccountSettings] = useState({});
     
     // Use refs for data that doesn't need to trigger re-renders
-    const balanceHistoryRef = useRef(null);
     const hoveredNetWorthRef = useRef(null);
 
     // Memoize expensive calculations
@@ -309,7 +318,7 @@ const AccountConnections = () => {
 
     // Effect to fetch balance history with proper cleanup
     useEffect(() => {
-        if (!token) return;
+        if (!currentUser) return;
         
         let isMounted = true;
         const controller = new AbortController();
@@ -330,7 +339,7 @@ const AccountConnections = () => {
             isMounted = false;
             controller.abort();
         };
-    }, [token, selectedTimeRange, fetchBalanceHistory]);
+    }, [currentUser, selectedTimeRange, fetchBalanceHistory]);
 
     // Custom hook for search term debouncing
     function useDebounce(value, delay) {
@@ -349,480 +358,222 @@ const AccountConnections = () => {
         return debouncedValue;
     }
 
-    // Initialize Plaid Link
-    const config = {
-        token: linkToken,
-        onSuccess: (public_token, metadata) => {
-            console.log('Plaid Link success:', { public_token, metadata });
-            exchangePublicToken(public_token, metadata);
-        },
-        onExit: (err, metadata) => {
-            console.log('Plaid Link exit:', { err, metadata });
-            if (err) {
-                toast.error(`Error connecting to bank: ${err.message || 'Unknown error'}`);
-            }
-        },
-        onEvent: (eventName, metadata) => {
-            console.log('Plaid Link event:', eventName, metadata);
+    // Initialize Plaid when component mounts
+    useEffect(() => {
+        if (currentUser) {
+            createLinkToken();
         }
-    };
+    }, [currentUser, createLinkToken]);
 
-    const { open, ready } = usePlaidLink(config);
+    const { open, ready } = usePlaidLink(plaidConfig || {});
 
-    // Debug log for auth token and component state
+    // Debug log for component state
     useEffect(() => {
         const info = {
-            isAuthenticated: !!token,
-            tokenPreview: token ? `${token.substring(0, 10)}...` : 'none',
-            linkToken: linkToken ? 'present' : 'none',
+            isAuthenticated: !!currentUser,
             ready: !!ready,
             loading,
-            accountsCount: accounts.length
+            accountsCount: accounts.length,
+            hasPlaidConfig: !!plaidConfig
         };
         console.log('Debug info:', info);
         setDebugInfo(info);
         
-        if (!token) {
+        if (!currentUser) {
             console.error('No authentication token found');
             toast.error('Please log in to connect accounts');
         }
-    }, [token, linkToken, ready, loading, accounts]);
-
-    // Effect to initialize component
-    useEffect(() => {
-        const initializeComponent = async () => {
-            console.log('Component mounted, checking link token...');
-            console.log('Current state:', {
-                token: !!token,
-                linkToken: !!linkToken,
-                ready: !!ready,
-                loading,
-                accountsCount: accounts.length
-            });
-            
-            if (!token) {
-                console.error('No auth token available');
-                setLoading(false);
-                return;
-            }
-
-            try {
-                if (!linkToken) {
-                    console.log('No link token found, creating one...');
-                    await createLinkToken();
-                }
-                await fetchAccounts();
-            } catch (error) {
-                console.error('Error initializing component:', error);
-                toast.error('Error initializing Plaid connection');
-            }
-        };
-
-        initializeComponent();
-    }, [token, linkToken]); // Run when token or linkToken changes
+    }, [currentUser, ready, loading, accounts, plaidConfig]);
 
     // Fetch accounts and balances
     const fetchAccounts = async () => {
-        if (!token) {
+        if (!currentUser) {
             console.error('No token available for fetching accounts');
             setLoading(false);
             return;
         }
 
         try {
-            console.log('Fetching accounts...');
+            setLoading(true);
             const response = await fetch('/api/plaid/accounts', {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${currentUser}`
                 }
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Accounts fetched:', data);
-                setAccounts(data.items || []);
-                setBalances(data.balances || []);
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Failed to fetch accounts:', errorData);
-                toast.error('Failed to fetch accounts');
+            if (!response.ok) {
+                throw new Error('Failed to fetch accounts');
             }
+
+            const data = await response.json();
+            setAccounts(data);
+            await fetchBalanceHistory();
         } catch (error) {
             console.error('Error fetching accounts:', error);
-            toast.error('Error fetching accounts');
+            toast.error('Failed to fetch accounts');
         } finally {
             setLoading(false);
         }
     };
 
-    // Create Plaid Link token
-    const createLinkToken = async () => {
-        if (!token) {
-            console.error('No token available for creating link token');
+    // Exchange public token for access token
+    const handleExchangeToken = async (publicToken, metadata) => {
+        if (!currentUser) {
             toast.error('Please log in to connect accounts');
             return;
         }
 
         try {
-            console.log('Creating link token...');
-            
-            // Check for sandbox/development mode
-            const isDevOrSandbox = window.location.hostname === 'localhost' || 
-                                  window.location.hostname === '127.0.0.1' || 
-                                  window.location.search.includes('sandbox=true');
-            
-            if (isDevOrSandbox) {
-                console.log('Using Plaid sandbox mode');
-                // Hardcoded sandbox link token - in a real app, this would come from your backend
-                // This is a placeholder token format that mimics Plaid's token format
-                const sandboxLinkToken = 'link-sandbox-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-                setLinkToken(sandboxLinkToken);
-                toast.info('Using Plaid sandbox environment');
-                return sandboxLinkToken;
-            }
-            
-            const response = await fetch('/api/plaid/create-link-token', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Failed to create link token:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    responseText: errorText
-                });
-                
-                // Try to parse error response
-                try {
-                    const errorData = JSON.parse(errorText);
-                    toast.error(`Failed to create link token: ${errorData.error || errorData.message || response.statusText}`);
-                } catch (e) {
-                    toast.error(`Failed to create link token: ${response.statusText}`);
-                }
-                
-                // Fall back to sandbox mode if API fails
-                if (isDevOrSandbox) {
-                    console.log('Falling back to sandbox mode after API failure');
-                    const sandboxLinkToken = 'link-sandbox-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-                    setLinkToken(sandboxLinkToken);
-                    toast.info('Using Plaid sandbox mode due to API failure');
-                    return sandboxLinkToken;
-                }
-                return null;
-            }
-
-            const responseData = await response.json();
-            console.log('Link token created:', responseData);
-            
-            if (responseData.link_token) {
-                setLinkToken(responseData.link_token);
-                return responseData.link_token;
-            } else {
-                console.error('No link_token in response:', responseData);
-                toast.error('Invalid response from server');
-                return null;
-            }
-        } catch (error) {
-            console.error('Error creating link token:', error);
-            toast.error(`Error creating link token: ${error.message}`);
-            
-            // Fallback to sandbox mode in case of any error
-            const isDevOrSandbox = window.location.hostname === 'localhost' || 
-                                  window.location.hostname === '127.0.0.1' || 
-                                  window.location.search.includes('sandbox=true');
-                                  
-            if (isDevOrSandbox) {
-                console.log('Falling back to sandbox mode after error');
-                const sandboxLinkToken = 'link-sandbox-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
-                setLinkToken(sandboxLinkToken);
-                toast.info('Using Plaid sandbox mode');
-                return sandboxLinkToken;
-            }
-            return null;
-        }
-    };
-
-    // Exchange public token
-    const exchangePublicToken = async (publicToken, metadata) => {
-        try {
-            console.log('Exchanging public token:', publicToken);
-            console.log('Metadata:', metadata);
-            
-            // Check for sandbox/development mode
-            const isDevOrSandbox = window.location.hostname === 'localhost' || 
-                                  window.location.hostname === '127.0.0.1' || 
-                                  window.location.search.includes('sandbox=true');
-            
-            if (isDevOrSandbox) {
-                console.log('Using sandbox mode for token exchange');
-                
-                // Extract information from metadata
-                const institutionName = metadata?.institution?.name || 'Sandbox Bank';
-                const institutionId = metadata?.institution?.institution_id || 'ins_sandbox';
-                const accountsData = metadata?.accounts || [];
-                
-                // If no accounts in metadata, create mock accounts
-                const mockAccounts = accountsData.length > 0 ? 
-                    accountsData.map(account => ({
-                        account_id: account.id || `mock-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                        account_name: account.name || `${institutionName} ${account.subtype || 'Account'}`,
-                        account_type: account.subtype || 'checking',
-                        current_balance: account.balances?.current || Math.floor(Math.random() * 10000) + 1000,
-                        available_balance: account.balances?.available,
-                        institution_name: institutionName,
-                        institution_id: institutionId,
-                        mask: account.mask || '1234'
-                    })) : 
-                    // Create default mock accounts if none provided
-                    [
-                        {
-                            account_id: `mock-checking-${Date.now()}`,
-                            account_name: `${institutionName} Checking`,
-                            account_type: 'checking',
-                            current_balance: 5432.10,
-                            available_balance: 5400.00,
-                            institution_name: institutionName,
-                            institution_id: institutionId,
-                            mask: '1234'
-                        },
-                        {
-                            account_id: `mock-savings-${Date.now()}`,
-                            account_name: `${institutionName} Savings`,
-                            account_type: 'savings',
-                            current_balance: 12345.67,
-                            available_balance: 12345.67,
-                            institution_name: institutionName,
-                            institution_id: institutionId,
-                            mask: '5678'
-                        }
-                    ];
-                
-                // Add to state - ensure we're not duplicating accounts
-                const existingIds = accounts.map(a => a.account_id);
-                const newAccounts = mockAccounts.filter(a => !existingIds.includes(a.account_id));
-                
-                setAccounts(prev => [...prev, ...newAccounts]);
-                setBalances(prev => [...prev, ...newAccounts]);
-                
-                // Also update balance history for charts
-                const today = new Date();
-                const mockHistory = [];
-                
-                // Generate 12 months of mock history
-                for (let i = 11; i >= 0; i--) {
-                    const date = new Date(today);
-                    date.setMonth(date.getMonth() - i);
-                    
-                    // Start with the current balance and work backwards with random fluctuations
-                    const totalBalance = newAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
-                    const randomFactor = 0.9 + (Math.random() * 0.2); // Random factor between 0.9 and 1.1
-                    const historicalBalance = Math.round(totalBalance * Math.pow(randomFactor, i) * 100) / 100;
-                    
-                    mockHistory.push({
-                        date: date.toISOString().split('T')[0],
-                        netWorth: historicalBalance,
-                        assets: historicalBalance > 0 ? historicalBalance : 0,
-                        liabilities: historicalBalance < 0 ? Math.abs(historicalBalance) : 0
-                    });
-                }
-                
-                // Only update history if it's not already set
-                if (!balanceHistoryRef.current || balanceHistoryRef.current.length === 0) {
-                    balanceHistoryRef.current = mockHistory;
-                } else {
-                    // Merge with existing history
-                    const lastDate = new Date(balanceHistoryRef.current[balanceHistoryRef.current.length - 1].date);
-                    const newHistory = balanceHistoryRef.current.slice();
-                    
-                    // Update the latest entry with the new balance
-                    if (newHistory.length > 0) {
-                        const latestEntry = newHistory[newHistory.length - 1];
-                        latestEntry.netWorth += newAccounts.reduce((sum, acc) => sum + acc.current_balance, 0);
-                        latestEntry.assets += newAccounts.reduce((sum, acc) => sum + (acc.current_balance > 0 ? acc.current_balance : 0), 0);
-                        latestEntry.liabilities += newAccounts.reduce((sum, acc) => sum + (acc.current_balance < 0 ? Math.abs(acc.current_balance) : 0), 0);
-                    }
-                    
-                    balanceHistoryRef.current = newHistory;
-                }
-                
-                toast.success(`Successfully connected to ${institutionName}`);
-                return;
-            }
-            
-            // Real API call for production
+            setLoading(true);
             const response = await fetch('/api/plaid/exchange-token', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${currentUser}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    public_token: publicToken,
-                    institution: metadata?.institution?.name,
-                    institution_id: metadata?.institution?.institution_id,
-                    accounts: metadata?.accounts
-                })
+                body: JSON.stringify({ public_token: publicToken })
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Exchange token failed:', errorData);
-                toast.error(`Failed to exchange token: ${errorData.error || errorData.message || response.statusText}`);
-                
-                // Fall back to sandbox mode if in development
-                if (isDevOrSandbox) {
-                    handleSandboxFallback(metadata);
-                }
-                return;
+                throw new Error('Failed to exchange token');
             }
 
-            const data = await response.json();
-            console.log('Exchange token successful:', data);
-            toast.success('Account connected successfully');
-            
-            // Refresh accounts after connecting
-            fetchAccounts();
+            toast.success('Account connected successfully!');
+            await fetchAccounts();
         } catch (error) {
             console.error('Error exchanging token:', error);
-            toast.error(`Error exchanging token: ${error.message}`);
-            
-            // Fallback for local development
-            const isDevOrSandbox = window.location.hostname === 'localhost' || 
-                                 window.location.hostname === '127.0.0.1' || 
-                                 window.location.search.includes('sandbox=true');
-                                 
-            if (isDevOrSandbox && metadata) {
-                handleSandboxFallback(metadata);
-            }
-        }
-    };
-
-    // Helper function for sandbox fallback
-    const handleSandboxFallback = (metadata) => {
-        const institutionName = metadata?.institution?.name || 'Sandbox Bank';
-        console.log('Using sandbox fallback for', institutionName);
-        
-        // Create mock accounts
-        const mockAccounts = [
-            {
-                account_id: `mock-checking-${Date.now()}`,
-                account_name: `${institutionName} Checking`,
-                account_type: 'checking',
-                current_balance: 5432.10,
-                institution_name: institutionName
-            },
-            {
-                account_id: `mock-savings-${Date.now()}`,
-                account_name: `${institutionName} Savings`,
-                account_type: 'savings',
-                current_balance: 12345.67,
-                institution_name: institutionName
-            }
-        ];
-        
-        setAccounts(prev => [...prev, ...mockAccounts]);
-        setBalances(prev => [...prev, ...mockAccounts]);
-        toast.success(`Successfully connected to ${institutionName} (Sandbox)`);
-    };
-
-    // Sync account balances
-    const syncBalances = async () => {
-        if (!token) {
-            toast.warning('Please log in to sync balances');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            // Check if we're in local development
-            const isLocalDevelopment = window.location.hostname === 'localhost';
-            
-            if (isLocalDevelopment) {
-                console.log('Using mock sync for local development');
-                
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Update balances with random changes
-                const updatedBalances = balances.map(account => {
-                    // Random balance change between -5% and +5%
-                    const changePercent = (Math.random() * 0.1) - 0.05;
-                    const newBalance = account.current_balance * (1 + changePercent);
-                    
-                    return {
-                        ...account,
-                        current_balance: Math.round(newBalance * 100) / 100, // Round to 2 decimal places
-                        last_updated: new Date().toISOString()
-                    };
-                });
-                
-                setBalances(updatedBalances);
-                toast.success('Balances updated successfully');
-                return;
-            }
-            
-            const response = await fetch('/api/plaid/sync-balances', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Balance sync failed:', response.status, errorText);
-                toast.error(`Failed to sync balances: ${response.statusText}`);
-                return;
-            }
-
-            const data = await response.json();
-            console.log('Balance sync successful:', data);
-            
-            if (data.accounts) {
-                setBalances(data.accounts);
-                toast.success('Balances updated successfully');
-            } else {
-                toast.info('No changes in account balances');
-            }
-            
-            // Refresh accounts to get latest data
-            fetchAccounts();
-        } catch (error) {
-            console.error('Error syncing balances:', error);
-            toast.error(`Error syncing balances: ${error.message}`);
-            
-            // Fallback for local development
-            if (window.location.hostname === 'localhost') {
-                // Simulate updating balances
-                const updatedBalances = balances.map(account => ({
-                    ...account,
-                    current_balance: Math.round(account.current_balance * 1.01), // 1% increase
-                    last_updated: new Date().toISOString()
-                }));
-                
-                setBalances(updatedBalances);
-                toast.success('Balances updated successfully (Mock)');
-            }
+            toast.error('Failed to connect account');
         } finally {
             setLoading(false);
         }
     };
 
-    // Log when the link token changes
-    useEffect(() => {
-        console.log('Link token updated:', linkToken);
-    }, [linkToken]);
+    // Sync account balances
+    const syncBalances = async () => {
+        if (!currentUser) {
+            toast.warning('Please log in to sync balances');
+            return;
+        }
 
-    // Log when ready status changes
-    useEffect(() => {
-        console.log('Plaid Link ready status:', ready);
-    }, [ready]);
+        try {
+            setLoading(true);
+            const response = await fetch('/api/plaid/sync-balances', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentUser}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to sync balances');
+            }
+
+            await fetchAccounts();
+            toast.success('Balances synced successfully');
+        } catch (error) {
+            console.error('Error syncing balances:', error);
+            toast.error('Failed to sync balances');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle manual account submission
+    const handleManualAccountSubmit = async (accountData) => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/accounts/manual', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentUser}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(accountData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add manual account');
+            }
+
+            await fetchAccounts();
+            setShowManualAccountModal(false);
+            toast.success('Manual account added successfully');
+        } catch (error) {
+            console.error('Error adding manual account:', error);
+            toast.error('Failed to add manual account');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle account update
+    const handleAccountUpdate = async (accountId, updates) => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/accounts/${accountId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${currentUser}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updates)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update account');
+            }
+
+            await fetchAccounts();
+            toast.success('Account updated successfully');
+        } catch (error) {
+            console.error('Error updating account:', error);
+            toast.error('Failed to update account');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle account deletion
+    const handleAccountDelete = async (accountId) => {
+        if (!window.confirm('Are you sure you want to delete this account?')) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/accounts/${accountId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${currentUser}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete account');
+            }
+
+            await fetchAccounts();
+            toast.success('Account deleted successfully');
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            toast.error('Failed to delete account');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLinkButtonClick = () => {
+        if (!currentUser) {
+            toast.warning('Please log in to connect accounts');
+            return;
+        }
+        if (ready) {
+            open();
+        } else {
+            toast.warning('Plaid Link is not ready yet');
+        }
+    };
 
     // Function to sort accounts by velocity
     const sortAccountsByVelocity = (accounts) => {
@@ -1018,7 +769,7 @@ const AccountConnections = () => {
             const response = await fetch('/api/manual-accounts', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${currentUser}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(accountData)
@@ -1077,7 +828,7 @@ const AccountConnections = () => {
             const response = await fetch(`/api/manual-accounts/${updatedAccount.id}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${currentUser}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(updatedAccount)
@@ -1111,7 +862,7 @@ const AccountConnections = () => {
             const response = await fetch(`/api/manual-accounts/${accountId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${currentUser}`
                 }
             });
 
@@ -1334,32 +1085,6 @@ const AccountConnections = () => {
         );
     };
 
-    const handleLinkButtonClick = () => {
-        if (!token) {
-            toast.warning('Please log in to connect accounts');
-            return;
-        }
-        
-        // Show user feedback immediately
-        toast.info('Preparing Plaid connection...');
-        
-        createLinkToken().then((newLinkToken) => {
-            if (newLinkToken) {
-                console.log('Link token created, opening Plaid');
-                // Short delay to ensure UI is updated
-                setTimeout(() => {
-                    if (ready) {
-                        open();
-                    } else {
-                        toast.warning('Plaid Link is not ready yet, please try again in a moment');
-                    }
-                }, 500);
-            } else {
-                toast.error('Failed to initialize Plaid connection');
-            }
-        });
-    };
-
     const processLinkedAccounts = (linkedAccounts) => {
         if (!Array.isArray(linkedAccounts) || !Array.isArray(accounts)) {
             return [];
@@ -1387,7 +1112,7 @@ const AccountConnections = () => {
                     </button>
                     <button
                         onClick={handleLinkButtonClick}
-                        disabled={!token || loading}
+                        disabled={!currentUser || loading}
                         className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                     >
                         Connect Via Plaid
@@ -1601,7 +1326,7 @@ const AccountConnections = () => {
                                                     </div>
                                                 ))}
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </>
                             ) : (

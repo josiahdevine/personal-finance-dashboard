@@ -17,7 +17,7 @@ const pricingTiers: PricingTier[] = [
   {
     name: 'Basic',
     id: 'basic',
-    priceId: 'price_1QxBXSLXbA9CvuQqBSHLgcdo', // Replace with your actual Stripe price ID
+    priceId: process.env.REACT_APP_STRIPE_BASIC_PRICE_ID || '',
     price: 9.99,
     description: 'Perfect for getting started with personal finance tracking',
     features: [
@@ -31,8 +31,8 @@ const pricingTiers: PricingTier[] = [
   {
     name: 'Pro',
     id: 'pro',
-    priceId: 'price_1QxBY7LXbA9CvuQqNlRL5Kvd', // Replace with your actual Stripe price ID
-    price: 14.00,
+    priceId: process.env.REACT_APP_STRIPE_PRO_PRICE_ID || '',
+    price: 14.99,
     description: 'Everything you need for advanced financial management',
     features: [
       'Advanced expense tracking',
@@ -48,7 +48,7 @@ const pricingTiers: PricingTier[] = [
   {
     name: 'Enterprise',
     id: 'enterprise',
-    priceId: 'price_1QxBYfLXbA9CvuQqoLOhyEh5', // Replace with your actual Stripe price ID
+    priceId: process.env.REACT_APP_STRIPE_ENTERPRISE_PRICE_ID || '',
     price: 49.99,
     description: 'Custom solutions for businesses and teams',
     features: [

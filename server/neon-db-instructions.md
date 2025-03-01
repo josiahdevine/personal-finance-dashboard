@@ -23,20 +23,24 @@ The format should be:
 DATABASE_URL=postgres://neondb_owner:YOUR_NEW_PASSWORD@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require
 ```
 
-## 3. Test the Connection
+## 3. Update Your Environment Variables
 
-Run this command to test the connection:
-```
-node server/test-db.js
-```
+On your local machine:
+1. Open your `.env` file
+2. Update the `DATABASE_URL` value with your new connection string
+3. Restart your application to test the new connection
 
-## 4. Update in Vercel
+## 4. Update Deployment Environment Variables
 
-If you're using Vercel, make sure to update the environment variable there as well:
-1. Go to Vercel dashboard
-2. Select your project
-3. Go to Settings > Environment Variables
-4. Update the DATABASE_URL value with the new connection string
+Make sure to update the environment variable in your deployment platform:
+1. Go to your deployment platform dashboard (Netlify)
+2. Navigate to the environment variables section
+3. Update the `DATABASE_URL` variable with the new connection string
+4. Deploy your application to apply the changes
+
+## 5. Testing the Connection
+
+Once the database connection is updated, deploy your application to ensure everything works end-to-end.
 
 ## 5. Common Neon DB Issues
 
@@ -47,4 +51,4 @@ If you're using Vercel, make sure to update the environment variable there as we
 
 ## Next Steps
 
-Once the database connection is working, deploy your updated application to Vercel to ensure everything works end-to-end. 
+Once the database connection is working, deploy your updated application to Netlify to ensure everything works end-to-end. 

@@ -1,74 +1,92 @@
 // test-db.js
-require('dotenv').config();
-const { Pool } = require('pg');
+require('dotenv').config({ path: '.env.test' });
+const { Client } = require('pg');
+const colors = require('colors/safe');
 
-console.log('Database URL from env:', process.env.DATABASE_URL ? 'Present (not shown for security)' : 'Missing');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-
-// Try three different connection configurations
-async function testConnections() {
-  const configs = [
-    {
-      name: 'From .env file',
-      config: {
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
-      }
-    },
-    {
-      name: 'Original connection string',
-      config: {
-        connectionString: 'postgres://neondb_owner:WPg5dfnvjCkM@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require',
-        ssl: { rejectUnauthorized: false }
-      }
-    },
-    {
-      name: 'Alternative connection format',
-      config: {
-        connectionString: 'postgresql://neondb_owner:WPg5dfnvjCkM@ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech/neondb?sslmode=require',
-        ssl: { rejectUnauthorized: false }
-      }
-    },
-    {
-      name: 'Default Neon credentials',
-      config: {
-        host: 'ep-tidy-pine-a1cqk8l9.us-east-2.aws.neon.tech',
-        database: 'neondb',
-        user: 'default',
-        password: 'WPg5dfnvjCkM',
-        port: 5432,
-        ssl: { rejectUnauthorized: false }
-      }
-    }
-  ];
-
-  for (const { name, config } of configs) {
-    console.log(`\nTesting connection: ${name}`);
-    const pool = new Pool(config);
+async function testConnection(config, label) {
+    console.log(colors.cyan(`\nTesting connection: ${label}`));
+    
+    const client = new Client(config);
     
     try {
-      const result = await pool.query('SELECT NOW()');
-      console.log('SUCCESS! Current time:', result.rows[0].now);
-      console.log('Connection details:', {
-        host: config.host || 'From connection string',
-        user: config.user || 'From connection string',
-        database: config.database || 'From connection string'
-      });
+        await client.connect();
+        const result = await client.query('SELECT NOW()');
+        console.log(colors.green('SUCCESS!'), 'Current time:', result.rows[0].now);
+        console.log('Connection details:', {
+            host: client.connectionParameters.host,
+            user: client.connectionParameters.user,
+            database: client.connectionParameters.database
+        });
+        await client.end();
     } catch (error) {
-      console.error('CONNECTION ERROR:', error.message);
-      console.error('Error details:', {
-        code: error.code,
-        severity: error.severity,
-        detail: error.detail,
-        hint: error.hint
-      });
-    } finally {
-      await pool.end();
+        console.log(colors.red('CONNECTION ERROR:'), error.message);
+        console.log('Error details:', {
+            code: error.code,
+            severity: error.severity,
+            detail: error.detail,
+            hint: error.hint
+        });
+        try {
+            await client.end();
+        } catch (e) {
+            // Ignore cleanup errors
+        }
     }
-  }
 }
 
-testConnections()
-  .then(() => console.log('All tests completed'))
-  .catch(err => console.error('Test script error:', err))
-  .finally(() => process.exit()); 
+async function main() {
+    // Log environment variables (safely)
+    console.log('Database URL from env:', process.env.DATABASE_URL ? 'Present (not shown for security)' : 'Missing');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+
+    // Test connection using environment variables
+    await testConnection({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: true
+        }
+    }, 'From .env file');
+
+    // Test with original connection string
+    await testConnection({
+        user: 'neondb_owner',
+        password: process.env.PGPASSWORD,
+        host: process.env.PGHOST,
+        port: process.env.PGPORT,
+        database: process.env.PGDATABASE,
+        ssl: {
+            rejectUnauthorized: true
+        }
+    }, 'Original connection string');
+
+    // Test with alternative connection format
+    await testConnection({
+        user: process.env.PGUSER,
+        password: process.env.PGPASSWORD,
+        host: process.env.PGHOST,
+        port: process.env.PGPORT,
+        database: process.env.PGDATABASE,
+        ssl: {
+            rejectUnauthorized: true
+        }
+    }, 'Alternative connection format');
+
+    // Test with default Neon credentials
+    await testConnection({
+        user: 'default',
+        password: process.env.PGPASSWORD,
+        host: process.env.PGHOST,
+        port: process.env.PGPORT,
+        database: process.env.PGDATABASE,
+        ssl: {
+            rejectUnauthorized: true
+        }
+    }, 'Default Neon credentials');
+
+    console.log('\nAll tests completed');
+}
+
+main().catch(error => {
+    console.error(colors.red('\nUnexpected error:'), error);
+    process.exit(1);
+}); 

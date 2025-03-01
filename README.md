@@ -1,177 +1,146 @@
 # Personal Finance Dashboard
 
-A comprehensive web application for managing personal finances, tracking net worth, and analyzing spending patterns. Built with React, Node.js, and PostgreSQL.
+A modern, secure, and user-friendly dashboard for managing personal finances, built with React, Node.js, and Plaid API integration.
 
-## Current Version: 0.1
+## 🌟 Features
 
-The application is currently in active development. Recent improvements include:
-- Enhanced authentication stability with Firebase
-- Improved Plaid integration reliability
-- Better error handling and user feedback
-- Optimized performance and state management
+- Secure bank account integration via Plaid
+- Real-time transaction tracking
+- Account balance monitoring
+- Expense categorization
+- Interactive financial charts and graphs
+- Responsive design for mobile and desktop
 
-For detailed changes, see [DEVELOPMENT-CHANGELOG.md](DEVELOPMENT-CHANGELOG.md).
+## 🏗️ Architecture
 
-## Features
+The application follows a modern microservices architecture:
 
-- **Net Worth Tracking**
-  - Connect bank accounts via Plaid API
-  - Manual account entry support
-  - Historical net worth visualization
-  - Asset and liability management
+- **Frontend**: React with TypeScript
+- **Backend**: Node.js with Express
+- **Database**: Neon Tech PostgreSQL
+- **Authentication**: JWT-based auth
+- **API Integration**: Plaid API for financial data
 
-- **Income Management**
-  - Salary tracking with tax calculations
-  - Support for multiple income sources
-  - Automatic paycheck calculations
-  - RSU/Stock compensation tracking
-
-- **Expense Analysis**
-  - Transaction categorization
-  - Spending trends visualization
-  - Bill tracking and analysis
-  - CSV import support
-
-- **Financial Goals**
-  - Goal setting and tracking
-  - Progress visualization
-  - Category-based organization
-
-## Important Notes
-
-### US-Only Functionality
-The Personal Finance Dashboard is currently designed for US users only:
-- Financial calculations are based on US tax regulations
-- Plaid integration is configured for US financial institutions
-- Currency is fixed to USD with no multi-currency support
-- Date formats follow US conventions (MM/DD/YYYY)
-
-Support for additional countries may be added in future versions.
-
-### Demo Environment
-A fully-featured interactive demo environment is currently in development to showcase the application's capabilities without requiring account creation. This will include:
-- Sample data with realistic financial patterns
-- All major features accessible with pre-populated data
-- No need to connect real financial accounts
-- Guided tour of key functionality
-
-Check back soon for the demo launch!
-
-## Known Issues & Roadmap
-
-### Current Issues
-We are actively working on resolving the following known issues:
-
-1. **Ask AI Authentication Issue**  
-   Users may experience automatic logout when using the Ask AI feature. This is a known issue we're actively fixing.
-
-2. **API Integration Inconsistencies**  
-   Some API endpoints may return inconsistent responses. We recommend refreshing or trying again if you encounter errors.
-
-3. **Mobile Experience Limitations**  
-   While the application is responsive, some features are still being optimized for mobile devices. See our [Mobile Roadmap](MOBILE-ROADMAP.md) for details.
-
-### Development Documentation
-For developers interested in the project's roadmap and technical details:
-
-- [Development Changelog](DEVELOPMENT-CHANGELOG.md) - Comprehensive history of changes and implementations
-- [Database Schema](DATABASE-SCHEMA.md) - Detailed information about the database structure
-- [Mobile Roadmap](MOBILE-ROADMAP.md) - Plans and priorities for mobile optimization
-
-### Future Features
-Upcoming features in development:
-- Coinbase API integration for cryptocurrency tracking
-- Improved data visualization with custom chart components
-- Enhanced financial planning tools with AI-assisted recommendations
-- Progressive Web App (PWA) support for offline functionality
-
-## Tech Stack
-
-- **Frontend**: React, Tailwind CSS, Chart.js
-- **Backend**: Node.js, Express
-- **Database**: PostgreSQL (Neon Tech)
-- **APIs**: Plaid Integration
-- **Authentication**: Firebase Auth
-- **Deployment**: Netlify
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 16.x or higher
-- PostgreSQL 13.x or higher
-- Firebase account
-- Plaid developer account
+
+- Node.js (v16.0.0 or later)
+- npm (v8.0.0 or later) or Yarn (v1.22.0 or later)
+- PostgreSQL (Neon Tech DB)
 
 ### Installation
-1. Clone the repository
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/personal-finance-dashboard.git
+   cd personal-finance-dashboard
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Set up environment variables:
+   Copy `.env.example` to create the appropriate environment file:
+   ```bash
+   # For development
+   cp .env.example .env.development
+   # For production
+   cp .env.example .env.production
+   # For testing
+   cp .env.example .env.test
+   ```
+
+   Each environment file should contain:
+   ```env
+   # Database Configuration (Neon Tech)
+   DATABASE_URL=your_neon_db_url
+   PGUSER=your_db_user
+   PGPASSWORD=your_db_password
+   PGDATABASE=your_db_name
+   PGHOST=your_db_host
+   PGPORT=5432
+   PGSSLMODE=require
+
+   # Plaid API Configuration
+   PLAID_CLIENT_ID=your_plaid_client_id
+   PLAID_SECRET=your_plaid_secret
+   PLAID_ENV=sandbox # or development/production based on environment
+   
+   # Security Configuration
+   JWT_SECRET=your_jwt_secret
+   ENCRYPTION_MASTER_KEY=your_32_char_encryption_key
+   ```
+
+   **Important Notes:**
+   - Never commit `.env` files containing sensitive information
+   - Use environment-specific files (.env.development, .env.production, .env.test)
+   - Keep `.env.example` updated with required variables but no sensitive values
+   - See [Environment Setup Guide](./CODE-QUALITY.md#environment-configuration) for more details
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+## 🧪 Testing
+
+Run the test suite:
+
 ```bash
-git clone https://github.com/yourusername/personal-finance-dashboard.git
-cd personal-finance-dashboard
+npm test
+# or
+yarn test
 ```
 
-2. Install dependencies
+For integration tests with mocked database:
 ```bash
-npm install
+npm run test:integration
+# or
+yarn test:integration
 ```
 
-3. Set up environment variables
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+## 🔧 Troubleshooting
 
-4. Start the development server
-```bash
-npm run dev
-```
+### Common Issues
 
-## Environment Setup
+1. **Database Connection Issues**
+   - Verify Neon Tech DB credentials
+   - Check SSL mode configuration
+   - Ensure proper network access
 
-### Prerequisites
-- Node.js (v14 or higher)
-- PostgreSQL
-- Plaid Developer Account
-- Firebase Account
+2. **Plaid Integration Issues**
+   - Verify Plaid API credentials
+   - Check environment setting (sandbox/development)
+   - Review webhook configuration
 
-### Database Setup
-1. Create a PostgreSQL database on [Neon Tech](https://neon.tech/)
-2. Set your database connection string in `.env`:
-```
-DATABASE_URL=postgres://username:password@hostname.neon.tech/neondb?sslmode=require
-```
-3. Database tables will be automatically created and migrated when the application first connects
+3. **Test Suite Issues**
+   - Ensure correct Chai version (use v4.3.4)
+   - Check JWT token configuration
+   - Verify database mocking setup
 
-### Firebase Auth Setup
-1. Create a new Firebase project
-2. Enable Firebase Authentication with email/password
-3. Set up Firebase Admin SDK credentials
-4. Update environment variables with Firebase configuration
+## 📚 Documentation
 
-## API Security
+- [Plaid Integration Guide](./documentation/plaid-implementation.md)
+- [Test Setup Guide](./TEST-SETUP.md)
+- [Database Schema](./documentation/database-schema.md)
+- [API Documentation](./documentation/api-docs.md)
 
-All API endpoints are protected with Firebase authentication. To access protected endpoints:
-1. Authenticate with Firebase to receive a token
-2. Include the token in requests using the Authorization header:
-```
-Authorization: Bearer <firebase-id-token>
-```
+## 🔐 Security
 
-## Contributing
+- JWT-based authentication
+- Encrypted database credentials
+- Secure token management
+- Rate limiting
+- XSS protection
+- CORS configuration
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## 📝 License
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Plaid API for financial account integration
-- Chart.js for data visualization
-- Tailwind CSS for styling
-- Firebase for authentication
-- Netlify for serverless functions and hosting
+MIT License - see LICENSE file for details

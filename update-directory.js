@@ -11,8 +11,10 @@ const config = {
     'node_modules', 
     '.git', 
     'build', 
-    '.vercel', 
-    '.netlify'
+    'dist',
+    'coverage',
+    '.netlify',
+    'functions/node_modules'
   ],
   ignoreFiles: [
     '.DS_Store',
@@ -120,8 +122,8 @@ function watchForChanges() {
       /node_modules/,
       /build/,
       /.git/,
-      /.vercel/,
-      /.netlify/
+      /.netlify/,
+      /functions\/node_modules/
     ],
     persistent: true
   });

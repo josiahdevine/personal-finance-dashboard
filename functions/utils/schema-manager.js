@@ -271,28 +271,41 @@ async function initializeDatabase() {
   const results = {};
   
   try {
+    console.log('Starting database initialization...');
+    
     // First ensure schema_versions table exists
+    console.log('Initializing schema_versions table...');
     await initSchemaVersionsTable();
+    console.log('Schema_versions table initialized successfully');
     
     // Create all tables if they don't exist
     for (const tableName of Object.keys(tableSchemas)) {
       if (tableName !== 'schema_versions') {
+        console.log(`Creating/verifying table: ${tableName}`);
         results[tableName] = await createTableIfNotExists(tableName);
         
         // Verify or update schema if table exists
+        console.log(`Verifying schema for table: ${tableName}`);
         await dbConnector.verifyTableSchema(tableName, tableSchemas[tableName]);
+        console.log(`Schema verified for table: ${tableName}`);
       }
     }
     
+    console.log('Database initialization completed successfully');
     return {
       success: true,
       details: results
     };
   } catch (error) {
-    console.error('Error initializing database:', error.message);
+    console.error('Error initializing database:', {
+      message: error.message,
+      stack: error.stack,
+      details: results
+    });
     return {
       success: false,
       error: error.message,
+      stack: error.stack,
       details: results
     };
   }

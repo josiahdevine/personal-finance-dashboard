@@ -4,6 +4,8 @@
  */
 
 const admin = require('firebase-admin');
+// Import the CORS handler utility
+const corsHandler = require('./cors-handler');
 
 // Initialize Firebase Admin SDK if not already initialized
 let firebaseApp;
@@ -135,24 +137,20 @@ async function getUserFromRequest(event) {
  */
 function requireAuth(handler, options = {}) {
   return async (event, context) => {
-    const { corsHandler } = options;
     const origin = event.headers.origin || event.headers.Origin || '*';
     
-    // Get CORS headers (if corsHandler is provided)
-    const corsHeaders = corsHandler ? 
-      corsHandler.getCorsHeaders(origin) : 
-      {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Content-Type": "application/json"
-      };
-    
-    // Handle OPTIONS request for CORS preflight
+    // CRITICAL FIX: Handle OPTIONS request for CORS preflight directly
+    // Always bypass all middleware and authentication for OPTIONS
     if (event.httpMethod === "OPTIONS") {
+      console.log('Auth middleware bypassed for OPTIONS request', {
+        path: event.path,
+        origin
+      });
+      
+      // Return immediate 204 No Content response with CORS headers
       return {
         statusCode: 204,
-        headers: corsHeaders,
+        headers: corsHandler.getCorsHeaders(origin),
         body: ""
       };
     }
@@ -164,17 +162,14 @@ function requireAuth(handler, options = {}) {
     if (options.requireAuth !== false && !user.isAuthenticated) {
       console.log('Authentication failed for protected route', {
         path: event.path,
-        method: event.httpMethod
+        method: event.httpMethod,
+        origin
       });
       
-      return {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "Unauthorized",
-          message: "Authentication required for this endpoint"
-        })
-      };
+      return corsHandler.createCorsResponse(401, {
+        error: "Unauthorized",
+        message: "Authentication required for this endpoint"
+      }, origin);
     }
     
     // Authentication successful, add user to event context
@@ -183,8 +178,26 @@ function requireAuth(handler, options = {}) {
       user
     };
     
-    // Continue to the handler
-    return handler(modifiedEvent, context);
+    // Continue to the handler - let the original handler use our response
+    try {
+      const response = await handler(modifiedEvent, context);
+      
+      // If the handler didn't set headers, add CORS headers
+      if (!response.headers || !response.headers['Access-Control-Allow-Origin']) {
+        response.headers = {
+          ...response.headers,
+          ...corsHandler.getCorsHeaders(origin)
+        };
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error in protected route handler:', error);
+      return corsHandler.createCorsResponse(500, {
+        error: "Internal Server Error",
+        message: "An error occurred processing your request"
+      }, origin);
+    }
   };
 }
 

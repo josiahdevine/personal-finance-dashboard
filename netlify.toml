@@ -54,39 +54,43 @@
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
 
-# API subdomain handling - must come first
+# Redirect API subdomain to dashboard
 [[redirects]]
-  from = "/*"
+  from = "/"
+  to = "/dashboard"
+  status = 301
+  force = true
+  conditions = { Host = ["api.trypersonalfinance"] }
+
+# API subdomain function handling
+[[redirects]]
+  from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
   conditions = { Host = ["api.trypersonalfinance.com"] }
-  headers = {
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Credentials = "true"
-    Access-Control-Max-Age = "86400"
-    Vary = "Origin"
-  }
+  headers.Access-Control-Allow-Origin = "*"
+  headers.Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID"
+  headers.Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+  headers.Access-Control-Allow-Credentials = "true"
+  headers.Access-Control-Max-Age = "86400"
+  headers.Vary = "Origin"
 
 # OPTIONS preflight handling for API
 [[redirects]]
-  from = "/*"
+  from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
   conditions = { Host = ["api.trypersonalfinance.com"], Method = ["OPTIONS"] }
   force = true
-  headers = {
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Credentials = "true"
-    Access-Control-Max-Age = "86400"
-    Vary = "Origin"
-  }
+  headers.Access-Control-Allow-Origin = "*"
+  headers.Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID"
+  headers.Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+  headers.Access-Control-Allow-Credentials = "true"
+  headers.Access-Control-Max-Age = "86400"
+  headers.Vary = "Origin"
 
-# Main domain SPA routing - comes last
+# Main domain SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"

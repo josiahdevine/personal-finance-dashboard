@@ -1,6 +1,6 @@
 import { loadStripe } from '@stripe/stripe-js';
 import axios from 'axios';
-import { auth } from '../config/firebase';
+import { auth } from '../services/firebase';
 
 // Initialize Stripe
 export const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY!);

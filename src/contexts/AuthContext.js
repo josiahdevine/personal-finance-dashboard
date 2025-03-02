@@ -7,7 +7,7 @@ import {
   signInAnonymously as firebaseSignInAnonymously
 } from 'firebase/auth';
 // Import Firebase initialization
-import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth } from '../services/firebase';
+import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth, loginUser, registerUser } from '../services/firebase';
 import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -109,6 +109,7 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(false);
           }
           setLoading(false);
+          log('AuthContext', 'Auth state changed', { userId: user?.uid });
         },
         (error) => {
           logError('AuthContext', 'Auth state change error', error);
@@ -128,9 +129,9 @@ export const AuthProvider = ({ children }) => {
   }, [firebaseInitialized]);
 
   // Register a new user
-  const register = async (username, email, password) => {
+  const register = async (email, password) => {
     return timeOperation('AuthContext', 'User registration', async () => {
-      log('AuthContext', 'Register function called', { username, email });
+      log('AuthContext', 'Register function called', { email });
       
       try {
         // Reset any previous auth errors
@@ -150,10 +151,9 @@ export const AuthProvider = ({ children }) => {
         }
         
         // Validate inputs
-        if (!username || !email || !password) {
+        if (!email || !password) {
           const error = new Error('Missing required registration fields');
           logError('AuthContext', 'Registration validation failed', error, {
-            hasUsername: !!username,
             hasEmail: !!email,
             hasPassword: !!password
           });
@@ -186,7 +186,7 @@ export const AuthProvider = ({ children }) => {
         log('AuthContext', 'Registering user in backend');
         try {
           await apiService.register({
-            username,
+            username: userCredential.user.displayName,
             email,
             password,
             firebaseUid: userCredential.user.uid

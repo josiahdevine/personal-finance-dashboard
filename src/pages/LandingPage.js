@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   Title,
   Tooltip,
   Legend,
-  ArcElement
 } from 'chart.js';
 import AuthMenu from '../Components/AuthMenu.tsx';
 
 console.log('LandingPage.js: Initializing LandingPage component');
-
-// Log component imports
-console.log('LandingPage.js: AuthMenu import check:', {
-  AuthMenu: typeof AuthMenu === 'function' ? 'Function Component' : typeof AuthMenu,
-  AuthMenuExists: !!AuthMenu
-});
 
 // Register ChartJS components
 console.log('LandingPage.js: Registering ChartJS components');
@@ -31,11 +23,9 @@ try {
     LinearScale,
     PointElement,
     LineElement,
-    BarElement,
     Title,
     Tooltip,
-    Legend,
-    ArcElement
+    Legend
   );
   console.log('LandingPage.js: ChartJS components registered successfully');
 } catch (error) {
@@ -57,53 +47,6 @@ const LandingPage = () => {
   useEffect(() => {
     console.log('LandingPage.js: AuthMenu state changed:', { isOpen: isAuthMenuOpen });
   }, [isAuthMenuOpen]);
-
-  // Sample data for charts
-  const netWorthData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Net Worth',
-        data: [30000, 35000, 32000, 37000, 42000, 45000],
-        borderColor: 'rgb(37, 99, 235)',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        fill: true,
-        tension: 0.4
-      }
-    ]
-  };
-
-  const investmentData = {
-    labels: ['Stocks', 'Bonds', 'Real Estate', 'Cash', 'Crypto'],
-    datasets: [
-      {
-        data: [40, 20, 15, 15, 10],
-        backgroundColor: [
-          'rgb(37, 99, 235)',
-          'rgb(59, 130, 246)',
-          'rgb(147, 197, 253)',
-          'rgb(191, 219, 254)',
-          'rgb(219, 234, 254)'
-        ]
-      }
-    ]
-  };
-
-  const monthlySpendingData = {
-    labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    datasets: [
-      {
-        label: 'Income',
-        data: [6000, 6000, 6000, 6500, 6500, 6500],
-        backgroundColor: 'rgb(37, 99, 235)',
-      },
-      {
-        label: 'Expenses',
-        data: [4200, 4500, 4100, 4300, 4600, 4400],
-        backgroundColor: 'rgb(147, 197, 253)',
-      }
-    ]
-  };
 
   const features = [
     {
@@ -128,47 +71,6 @@ const LandingPage = () => {
     }
   ];
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          color: 'rgb(156, 163, 175)',
-          font: {
-            family: "'Inter', sans-serif",
-            size: 12
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
-        },
-        ticks: {
-          color: 'rgb(156, 163, 175)',
-          font: {
-            family: "'Inter', sans-serif"
-          }
-        }
-      },
-      x: {
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)'
-        },
-        ticks: {
-          color: 'rgb(156, 163, 175)',
-          font: {
-            family: "'Inter', sans-serif"
-          }
-        }
-      }
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -190,7 +92,13 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      <AuthMenu isOpen={isAuthMenuOpen} onClose={() => setIsAuthMenuOpen(false)} />
+      {/* AuthMenu - Now positioned relative to viewport */}
+      <div className={`fixed inset-0 z-50 flex items-center justify-center ${isAuthMenuOpen ? '' : 'hidden'}`}>
+        <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsAuthMenuOpen(false)}></div>
+        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full m-4">
+          <AuthMenu isOpen={isAuthMenuOpen} onClose={() => setIsAuthMenuOpen(false)} />
+        </div>
+      </div>
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
@@ -220,7 +128,9 @@ const LandingPage = () => {
               transition={{ duration: 0.8 }}
               className="bg-white rounded-2xl shadow-xl p-6"
             >
-              <Line data={netWorthData} options={chartOptions} />
+              <div className="text-center text-gray-600">
+                <p className="text-lg font-semibold">Connect your accounts to see your financial data here</p>
+              </div>
             </motion.div>
           </div>
         </div>
@@ -245,32 +155,6 @@ const LandingPage = () => {
                 <p className="text-gray-600">{feature.description}</p>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Charts Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white rounded-2xl shadow-lg p-8"
-            >
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">Investment Allocation</h3>
-              <Doughnut data={investmentData} options={{ ...chartOptions, cutout: '60%' }} />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white rounded-2xl shadow-lg p-8"
-            >
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">Income vs Expenses</h3>
-              <Bar data={monthlySpendingData} options={chartOptions} />
-            </motion.div>
           </div>
         </div>
       </section>

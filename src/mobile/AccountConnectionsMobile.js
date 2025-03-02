@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePlaid } from '../contexts/PlaidContext';
 import { useAuth } from '../contexts/AuthContext';
-import { usePlaidLink } from 'react-plaid-link';
+import { usePlaidLink } from '../contexts/PlaidLinkContext';
 import { toast } from 'react-toastify';
 import apiService from '../services/liveApi';
 import { log, logError } from '../utils/logger';

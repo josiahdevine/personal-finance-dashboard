@@ -2,6 +2,7 @@ import React, { useEffect, createContext, useState, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
+import { PlaidLinkProvider } from './contexts/PlaidLinkContext';
 import { FinanceDataProvider } from './contexts/FinanceDataContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GeminiProvider } from './contexts/GeminiContext';
@@ -22,7 +23,7 @@ import runFirebaseTest from './utils/firebaseTest';
 import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
-import { PlaidProvider as NewPlaidProvider } from 'react-plaid-link';
+import { Elements } from '@stripe/react-stripe-js';
 
 // Import page components
 import Dashboard from './pages/Dashboard';
@@ -43,7 +44,7 @@ import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
 import SubscriptionPlansMobile from './mobile/SubscriptionPlansMobile';
 
 // Import Stripe context provider
-import { Elements } from '@stripe/react-stripe-js';
+import { Elements as StripeElements } from '@stripe/react-stripe-js';
 
 log('App', 'Initializing App component');
 
@@ -68,7 +69,7 @@ if (process.env.NODE_ENV === 'production') {
 initDeploymentDebug();
 
 // Initialize Stripe conditionally
-const stripePromise = initializeStripe();
+const stripePromise = isStripeAvailable() ? initializeStripe() : null;
 
 // Create sidebar context for managing sidebar state
 const SidebarContext = createContext();
@@ -208,9 +209,9 @@ const AuthenticatedLayout = ({ children }) => {
         <ResponsiveWrapper desktopLayout={DesktopLayout}>
           <ErrorBoundary componentName={`MobileRoute-${location.pathname}`}>
             {needsStripeWrapper ? (
-              <Elements stripe={stripePromise}>
+              <StripeElements stripe={stripePromise}>
                 <MobileComponent />
-              </Elements>
+              </StripeElements>
             ) : (
               <MobileComponent />
             )}
@@ -337,9 +338,9 @@ function App() {
     }
     
     return (
-      <Elements stripe={stripePromise}>
+      <StripeElements stripe={stripePromise}>
         {children}
-      </Elements>
+      </StripeElements>
     );
   };
 
@@ -349,7 +350,7 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <PlaidProvider>
-              <NewPlaidProvider>
+              <PlaidLinkProvider>
                 <FinanceDataProvider>
                   <GeminiProvider>
                     <StripeWrapper>
@@ -481,7 +482,7 @@ function App() {
                     </StripeWrapper>
                   </GeminiProvider>
                 </FinanceDataProvider>
-              </NewPlaidProvider>
+              </PlaidLinkProvider>
             </PlaidProvider>
           </AuthProvider>
         </ThemeProvider>

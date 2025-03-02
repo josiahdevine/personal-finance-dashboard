@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import api from '../services/api';
 import { usePlaid } from '../contexts/PlaidContext';
 import { useAuth } from '../contexts/AuthContext';
-import { usePlaidLink } from 'react-plaid-link';
+import { usePlaidLink } from '../contexts/PlaidLinkContext';
 import { 
   HiOutlineRefresh, 
   HiOutlineCreditCard, 

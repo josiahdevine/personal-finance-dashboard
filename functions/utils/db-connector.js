@@ -337,8 +337,8 @@ function closePool() {
   }
 }
 
-// Export database functions
-export {
+// Create a default export object with all the functions
+const dbConnector = {
   getDbPool,
   query,
   checkDbStatus,
@@ -347,4 +347,6 @@ export {
   getDbMetrics,
   setQueryOptimization,
   closePool
-}; 
+};
+
+export default dbConnector; 

@@ -271,4 +271,13 @@ export {
   createBackup,
   restoreBackup,
   listBackups
-}; 
+};
+
+// Create a default export object with all the functions
+const dbBackup = {
+  createBackup,
+  restoreBackup,
+  listBackups
+};
+
+export default dbBackup; 

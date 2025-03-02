@@ -1,5 +1,5 @@
 [build]
-  command = "npm run lint && node netlify-build.js"
+  command = "npm run build:prod"
   publish = "build"
   functions = "functions"
 
@@ -42,6 +42,8 @@
   REACT_APP_FIREBASE_MESSAGING_SENDER_ID = "772716663750"
   REACT_APP_FIREBASE_APP_ID = "1:772716663750:web:f0bf14ba121524684118c7"
   REACT_APP_FIREBASE_MEASUREMENT_ID = "G-6RVP8YZH3S"
+  REACT_APP_STRIPE_PUBLISHABLE_KEY = "pk_test_51QwajpLXbA9CvuQqDcsqbe51BmTwisBvFbiZ7ALFIbUbGyB1eBK1iOfzFAZ1BeDa2VEGcj3mIo1XUzUtZmcZ1Dou00RHC5pM9A"
+  DATABASE_URL = "postgres://neondb_owner:npg_iPQEB3OzW6at@ep-floral-block-a8gbgi8v-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
   NPM_FLAGS = "--no-audit --silent"
   GEMINI_API_KEY = "AIzaSyCdMReYKk_kcogFTc5g56EzFMxKDNrKcW0"
   MAX_TOKENS = "1000"
@@ -59,7 +61,7 @@
 [plugins.inputs]
   output_path = "lighthouse-report"
   fail_deploy_on_score = false
-  performance_budget = {speed_index = 5, total_blocking_time = 500}
+  performance_budget = { speed_index = 5, total_blocking_time = 500 }
 
 [[redirects]]
   from = "/api/*"
@@ -84,13 +86,6 @@
   status = 200
   force = true
   conditions = {Host = ["api.trypersonalfinance.com"]}
-  headers = {
-    "Access-Control-Allow-Origin" = "*",
-    "Access-Control-Allow-Methods" = "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers" = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID",
-    "Access-Control-Allow-Credentials" = "true",
-    "Access-Control-Max-Age" = "86400"
-  }
 
 [[redirects]]
   from = "/*"
@@ -98,16 +93,18 @@
   status = 204
   force = true
   conditions = {Host = ["api.trypersonalfinance.com"], Methods = ["OPTIONS"]}
-  headers = {
-    "Access-Control-Allow-Origin" = "*",
-    "Access-Control-Allow-Methods" = "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers" = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID",
-    "Access-Control-Allow-Credentials" = "true",
-    "Access-Control-Max-Age" = "86400"
-  }
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Host = ["trypersonalfinance.com"]} 
+  conditions = {Host = ["trypersonalfinance.com"]}
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400" 

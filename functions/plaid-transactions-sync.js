@@ -3,14 +3,17 @@
  * Implements automatic retry and rate limiting
  */
 
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const corsHandler = require('./utils/cors-handler');
-const authHandler = require('./utils/auth-handler');
-const { createLogger } = require('./utils/logger');
-const { validatePlaidConfig, getClientWithToken } = require('./utils/plaid-client');
-const dbConnector = require('./utils/db-connector');
-const rateLimit = require('./utils/rate-limit');
-const retry = require('./utils/retry');
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import corsHandler from './utils/cors-handler.js';
+import authHandler from './utils/auth-handler.js';
+import { createLogger } from './utils/logger.js';
+import { validatePlaidConfig, getClientWithToken } from './utils/plaid-client.js';
+import dbConnector from './utils/db-connector.js';
+import rateLimit from './utils/rate-limit.js';
+import retry from './utils/retry.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Initialize logger
 const logger = createLogger('plaid-transactions-sync');
@@ -203,7 +206,7 @@ async function syncTransactionsForItem(plaidClient, pool, userId, item, requestI
 }
 
 // Export the handler with authentication middleware
-exports.handler = authHandler.requireAuth(async function(event, context) {
+export const handler = authHandler.requireAuth(async function(event, context) {
   const requestId = event.headers['x-request-id'] || Date.now().toString();
   const origin = event.headers.origin || event.headers.Origin || '*';
 

@@ -6,7 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { motion } from 'framer-motion';
 
 // Initialize Stripe
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY || '');
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '');
 
 const Subscription: React.FC = () => {
   const { currentUser } = useAuth();

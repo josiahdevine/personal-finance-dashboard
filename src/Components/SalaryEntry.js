@@ -22,7 +22,7 @@ const SalaryEntry = () => {
 
     const fetchSalaryHistory = async () => {
         try {
-            const response = await fetch('/api/salary/salary-entries', {
+            const response = await fetch('/salary-entries', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -52,7 +52,7 @@ const SalaryEntry = () => {
 
             console.log('Submitting salary entry:', formattedData);
 
-            const response = await fetch('/api/salary/salary-entries', {
+            const response = await fetch('/salary-entries', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

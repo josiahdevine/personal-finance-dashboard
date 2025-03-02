@@ -2,6 +2,7 @@
  * Serverless function for creating Plaid link tokens
  */
 
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { 
   getPlaidClient, 
   getPlaidConfig, 

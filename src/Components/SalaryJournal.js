@@ -800,7 +800,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 console.log('Fetching salary data for user:', activeUserId);
                 
                 // Use our api service which handles authentication and has fallback mock data
-                const response = await api.get(`/api/salary/entries?userProfileId=${activeUserId}`);
+                const response = await api.get(`/salary-entries?userProfileId=${activeUserId}`);
                 
                 const data = response.data;
                 console.log('Loaded salary entries from API:', data);

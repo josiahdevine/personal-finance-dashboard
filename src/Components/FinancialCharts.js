@@ -19,6 +19,17 @@ import apiService from '../services/liveApi';
 import { currencyFormatter } from '../utils/formatters';
 import { log, logError } from '../utils/logger';
 import LoadingSpinner from './ui/LoadingSpinner';
+import { 
+  LineChart, 
+  ResponsiveContainer, 
+  CartesianGrid, 
+  XAxis, 
+  YAxis, 
+  PieChart, 
+  Pie, 
+  Cell 
+} from 'recharts';
+import api from '../services/api';
 
 // Register ChartJS components
 ChartJS.register(
@@ -59,6 +70,12 @@ const chartColors = {
   redGradient: ['rgba(239, 68, 68, 0.8)', 'rgba(239, 68, 68, 0.2)']
 };
 
+// Color palette for charts
+const COLORS = [
+  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
+  '#82CA9D', '#A4DE6C', '#D0ED57', '#FFC658', '#FF6B6B'
+];
+
 /**
  * Enhanced Financial Charts Component
  * Provides interactive and responsive financial visualizations
@@ -73,6 +90,7 @@ const FinancialCharts = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [touchPosition, setTouchPosition] = useState(null);
   const chartRef = useRef(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
 
   // Handle window resize for responsive charts
   useEffect(() => {
@@ -717,97 +735,265 @@ const FinancialCharts = () => {
     }
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Financial Insights</h2>
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
         
-        {/* Time Range Selector - Desktop */}
-        {!isMobile && (
-          <div className="flex space-x-1">
-            {timeRanges.map(range => (
-              <button
-                key={range.value}
-                onClick={() => setTimeRange(range.value)}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  timeRange === range.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
-          </div>
-        )}
+        console.log('Fetching transactions analytics data...');
+        const response = await apiService.getTransactionsAnalytics();
         
-        {/* Time Range Selector - Mobile (Dropdown) */}
-        {isMobile && (
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="text-sm border border-gray-300 rounded p-1 bg-white"
-          >
-            {timeRanges.map(range => (
-              <option key={range.value} value={range.value}>
-                {range.label}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+        console.log('Analytics data received:', response);
+        setAnalyticsData(response);
+      } catch (err) {
+        console.error('Error fetching analytics data:', err);
+        
+        // Check if this is a CORS error
+        if (err.isCorsError) {
+          setError({
+            message: 'Network error: Unable to connect to the analytics service. This may be due to CORS restrictions.',
+            details: 'Please check your network connection and ensure the API server is running.'
+          });
+        } else {
+          setError({
+            message: err.response?.data?.error || 'Failed to load financial data',
+            details: err.response?.data?.message || err.message || 'An unexpected error occurred'
+          });
+        }
+        
+        // Generate fallback data for development/demo purposes
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Generating fallback data for development');
+          setAnalyticsData(generateFallbackData());
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalyticsData();
+  }, []);
+
+  // Generate fallback data for development/demo purposes
+  const generateFallbackData = () => {
+    const categories = [
+      'Food & Dining', 'Shopping', 'Housing', 'Transportation', 
+      'Entertainment', 'Health & Fitness', 'Travel', 'Education'
+    ];
+    
+    const categoryBreakdown = categories.map((category, index) => ({
+      category,
+      amount: Math.floor(Math.random() * 1000) + 100,
+      count: Math.floor(Math.random() * 20) + 1
+    }));
+    
+    const monthlyTrends = [];
+    const currentDate = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(currentDate);
+      month.setMonth(currentDate.getMonth() - i);
       
-      {/* Chart Type Selection */}
-      <div className="mb-6">
-        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
-          {chartTypes.map(chart => (
-            <button
-              key={chart.value}
-              onClick={() => setActiveChart(chart.value)}
-              className={`flex items-center px-4 py-2 rounded-full transition-colors ${
-                activeChart === chart.value
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <span className="mr-2">{chart.icon}</span>
-              <span className="whitespace-nowrap">{chart.label}</span>
-            </button>
-          ))}
+      monthlyTrends.push({
+        month: month.toISOString().substring(0, 7), // YYYY-MM format
+        spending: Math.floor(Math.random() * 3000) + 1000,
+        income: Math.floor(Math.random() * 5000) + 3000
+      });
+    }
+    
+    return {
+      summary: {
+        totalSpending: categoryBreakdown.reduce((sum, item) => sum + item.amount, 0),
+        totalIncome: monthlyTrends.reduce((sum, item) => sum + item.income, 0),
+        savingsRate: 15,
+        transactionCount: 87,
+        averageTransaction: 120
+      },
+      categoryBreakdown,
+      monthlyTrends,
+      topMerchants: [
+        { name: 'Amazon', amount: 450, count: 8 },
+        { name: 'Walmart', amount: 325, count: 5 },
+        { name: 'Target', amount: 275, count: 4 },
+        { name: 'Starbucks', amount: 180, count: 12 },
+        { name: 'Uber', amount: 120, count: 6 }
+      ]
+    };
+  };
+
+  // Format currency values
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Format month labels
+  const formatMonth = (monthStr) => {
+    if (!monthStr) return '';
+    
+    try {
+      const date = new Date(monthStr + '-01');
+      return date.toLocaleString('default', { month: 'short' });
+    } catch (e) {
+      console.error('Error formatting month:', e);
+      return monthStr;
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-medium text-gray-500">Total Spending</h3>
+          <p className="text-2xl font-bold text-gray-900">{formatCurrency(analyticsData?.summary.totalSpending)}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-medium text-gray-500">Total Income</h3>
+          <p className="text-2xl font-bold text-gray-900">{formatCurrency(analyticsData?.summary.totalIncome)}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-medium text-gray-500">Savings Rate</h3>
+          <p className="text-2xl font-bold text-gray-900">{analyticsData?.summary.savingsRate}%</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-medium text-gray-500">Avg. Transaction</h3>
+          <p className="text-2xl font-bold text-gray-900">{formatCurrency(analyticsData?.summary.averageTransaction)}</p>
         </div>
       </div>
-      
-      {/* Chart Display Area */}
-      <div 
-        className="relative"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-      >
-        {/* Swipe instructions for mobile */}
-        {isMobile && (
-          <div className="absolute top-2 right-2 z-10 bg-gray-800 bg-opacity-70 text-white text-xs px-2 py-1 rounded-full">
-            Swipe to change charts
+
+      {/* Monthly Trends Chart */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h2 className="text-lg font-semibold mb-4">Monthly Income & Spending</h2>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={analyticsData?.monthlyTrends}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="month" 
+                tickFormatter={formatMonth}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                tickFormatter={(value) => `$${value/1000}k`}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip 
+                formatter={(value) => formatCurrency(value)}
+                labelFormatter={(label) => {
+                  try {
+                    const date = new Date(label + '-01');
+                    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                  } catch (e) {
+                    return label;
+                  }
+                }}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="income" 
+                stroke="#0088FE" 
+                strokeWidth={2}
+                activeDot={{ r: 8 }} 
+                name="Income"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="spending" 
+                stroke="#FF8042" 
+                strokeWidth={2}
+                name="Spending"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Category Breakdown and Top Merchants */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Category Breakdown */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-lg font-semibold mb-4">Spending by Category</h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={analyticsData?.categoryBreakdown}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="amount"
+                  nameKey="category"
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {analyticsData?.categoryBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend layout="vertical" verticalAlign="middle" align="right" />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        )}
-        
-        {renderChart()}
+        </div>
+
+        {/* Top Merchants */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-lg font-semibold mb-4">Top Merchants</h2>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={analyticsData?.topMerchants}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={(value) => `$${value}`} />
+                <YAxis type="category" dataKey="name" width={100} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Bar dataKey="amount" fill="#8884d8" name="Amount Spent">
+                  {analyticsData?.topMerchants.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
-      
-      {/* Chart Description */}
-      <div className="mt-4 text-sm text-gray-600">
-        {activeChart === 'netWorth' && (
-          <p>This chart shows your net worth trend over time, including assets and liabilities.</p>
-        )}
-        {activeChart === 'cashFlow' && (
-          <p>This chart displays your monthly income, expenses, and resulting savings.</p>
-        )}
-        {activeChart === 'spending' && (
-          <p>This chart breaks down your spending by category to show where your money goes.</p>
-        )}
-        {activeChart === 'goals' && (
-          <p>This chart shows your progress towards financial goals.</p>
-        )}
-      </div>
+
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Warning: Using fallback data
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>{error.message}</p>
+                <p className="mt-1">{error.details}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

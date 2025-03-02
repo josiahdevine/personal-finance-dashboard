@@ -22,6 +22,7 @@ import runFirebaseTest from './utils/firebaseTest';
 import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
+import { PlaidProvider as NewPlaidProvider } from 'react-plaid-link';
 
 // Import page components
 import Dashboard from './pages/Dashboard';
@@ -348,137 +349,139 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <PlaidProvider>
-              <FinanceDataProvider>
-                <GeminiProvider>
-                  <StripeWrapper>
-                    {/* Anonymous auth handler */}
-                    <AnonymousAuthHandler />
-                    <ToastContainer position="top-right" autoClose={5000} />
-                    <Routes>
-                      {/* Public routes */}
-                      <Route path="/landing" element={<LandingPage />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                      <Route path="/forgot-password" element={<ForgotPassword />} />
-                      <Route path="/" element={<RootRouteHandler />} />
-                      
-                      {/* Protected routes */}
-                      <Route 
-                        path="/dashboard/*" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <Dashboard />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/salary-journal" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <SalaryJournal />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/bills-analysis" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <BillsAnalysis />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/goals" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <Goals />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/link-accounts" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <LinkAccounts />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/transactions" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <Transactions />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/ask-ai" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <AskAI />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/subscription" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <Subscription />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/profile" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <Profile />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      <Route 
-                        path="/ui-components" 
-                        element={
-                          <PrivateRoute>
-                            <AuthenticatedLayout>
-                              <UIComponentDemo />
-                            </AuthenticatedLayout>
-                          </PrivateRoute>
-                        } 
-                      />
-                      
-                      {/* Redirect all other routes to root for proper handling */}
-                      <Route path="*" element={<Navigate to="/" />} />
-                    </Routes>
-                  </StripeWrapper>
-                </GeminiProvider>
-              </FinanceDataProvider>
+              <NewPlaidProvider>
+                <FinanceDataProvider>
+                  <GeminiProvider>
+                    <StripeWrapper>
+                      {/* Anonymous auth handler */}
+                      <AnonymousAuthHandler />
+                      <ToastContainer position="top-right" autoClose={5000} />
+                      <Routes>
+                        {/* Public routes */}
+                        <Route path="/landing" element={<LandingPage />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/" element={<RootRouteHandler />} />
+                        
+                        {/* Protected routes */}
+                        <Route 
+                          path="/dashboard/*" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <Dashboard />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/salary-journal" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <SalaryJournal />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/bills-analysis" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <BillsAnalysis />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/goals" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <Goals />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/link-accounts" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <LinkAccounts />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/transactions" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <Transactions />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/ask-ai" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <AskAI />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/subscription" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <Subscription />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/profile" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <Profile />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        <Route 
+                          path="/ui-components" 
+                          element={
+                            <PrivateRoute>
+                              <AuthenticatedLayout>
+                                <UIComponentDemo />
+                              </AuthenticatedLayout>
+                            </PrivateRoute>
+                          } 
+                        />
+                        
+                        {/* Redirect all other routes to root for proper handling */}
+                        <Route path="*" element={<Navigate to="/" />} />
+                      </Routes>
+                    </StripeWrapper>
+                  </GeminiProvider>
+                </FinanceDataProvider>
+              </NewPlaidProvider>
             </PlaidProvider>
           </AuthProvider>
         </ThemeProvider>

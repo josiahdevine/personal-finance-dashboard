@@ -225,18 +225,14 @@ const getCurrentPort = () => {
   return '5000'; // Default fallback
 };
 
-// Create an axios instance with default config
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://api.trypersonalfinance.com';
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 
-           (window.location.hostname === 'localhost' ? 
-           `http://localhost:${process.env.REACT_APP_API_PORT || '8888'}/.netlify/functions` : 
-           'https://api.trypersonalfinance.com'),
-  timeout: 30000,
+  baseURL: API_BASE_URL,
+  withCredentials: true, // Required for CORS with credentials
   headers: {
     'Content-Type': 'application/json',
-  },
-  validateStatus: function (status) {
-    return status >= 200 && status < 500;
+    'Accept': 'application/json'
   }
 });
 
@@ -347,62 +343,39 @@ const handleMockResponse = async (config) => {
   throw error;
 };
 
-// Add request interceptor for authentication and logging
+// Add request interceptor to handle auth
 api.interceptors.request.use(
-  async (config) => {
-    try {
-      const token = await getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      
-      // Ensure /api prefix is present
-      if (!config.url.startsWith('/api')) {
-        config.url = `/api${config.url}`;
-      }
-      
-      // Log request for debugging
-      console.log('[API] Request:', {
-        method: config.method?.toUpperCase(),
-        url: `${config.baseURL}${config.url}`,
-        port: getCurrentPort(),
-        data: config.data || {}
-      });
-    } catch (error) {
-      console.error('[API] Error adding auth token:', error);
+  (config) => {
+    // Get auth token if available
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
+  },
+  (error) => {
+    console.error('[API] Request error:', error);
+    return Promise.reject(error);
   }
 );
 
-// Add response interceptor for better error handling
+// Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     if (error.response) {
-      console.error('[API] Error Response:', {
-        status: error.response.status,
-        data: error.response.data,
-        url: error.config?.url,
-        method: error.config?.method
-      });
-    } else if (error.request) {
-      console.error('[API] Network Error:', {
-        url: error.config?.url,
-        method: error.config?.method,
-        message: error.message
-      });
-      
-      // Check if we should use mock data in development
-      if (shouldUseMockData() && error.config) {
-        try {
-          return await handleMockResponse(error.config);
-        } catch (mockError) {
-          console.error('[API] Mock data fallback failed:', mockError);
-        }
+      // Server responded with error status
+      console.error('[API] Response error:', error.response.status, error.response.data);
+      if (error.response.status === 401) {
+        // Handle unauthorized access
+        window.location.href = '/login';
       }
+    } else if (error.request) {
+      // Request made but no response received
+      console.error('[API] Network error:', error.request);
     } else {
-      console.error('[API] Request Error:', error.message);
+      // Error in request configuration
+      console.error('[API] Error:', error.message);
     }
     return Promise.reject(error);
   }

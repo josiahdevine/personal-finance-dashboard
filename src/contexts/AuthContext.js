@@ -4,7 +4,9 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  signInAnonymously as firebaseSignInAnonymously
+  signInAnonymously as firebaseSignInAnonymously,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 // Import Firebase initialization
 import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth, loginUser, registerUser } from '../services/firebase';
@@ -565,6 +567,17 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     signInAnonymously
   }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout, loginWithGoogle]);
+
+  useEffect(() => {
+    // Set persistence to LOCAL on mount
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        console.log('[Firebase] Auth persistence set to LOCAL successfully');
+      })
+      .catch((error) => {
+        console.error('[Firebase] Error setting auth persistence:', error);
+      });
+  }, []);
 
   return (
     <ErrorBoundary componentName="AuthProvider" showDetails={process.env.NODE_ENV === 'development'}>

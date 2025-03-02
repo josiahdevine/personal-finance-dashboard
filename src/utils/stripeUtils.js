@@ -5,26 +5,26 @@ import { loadStripe } from '@stripe/stripe-js';
  * 
  * @returns {Promise<Stripe|null>} A Promise that resolves to the Stripe instance or null if unavailable
  */
-export const initializeStripe = () => {
+export const initializeStripe = async () => {
   const STRIPE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
   
-  // Check if we have a Stripe key
-  if (!STRIPE_KEY) {
-    console.error('Stripe publishable key is missing. Please check your environment variables.');
-    return Promise.resolve(null);
+  // Check if we have a valid Stripe key
+  if (!STRIPE_KEY || typeof STRIPE_KEY !== 'string' || !STRIPE_KEY.startsWith('pk_')) {
+    console.error('Invalid Stripe publishable key. Please check your environment variables.');
+    return null;
   }
   
-  // Initialize Stripe with the available key
   try {
-    const stripePromise = loadStripe(STRIPE_KEY);
+    const stripePromise = await loadStripe(STRIPE_KEY);
     if (!stripePromise) {
       console.error('Failed to initialize Stripe with the provided key.');
-      return Promise.resolve(null);
+      return null;
     }
+    console.log('[Stripe] Successfully initialized');
     return stripePromise;
   } catch (error) {
-    console.error('Failed to initialize Stripe:', error);
-    return Promise.resolve(null);
+    console.error('[Stripe] Failed to initialize:', error);
+    return null;
   }
 };
 
@@ -35,5 +35,5 @@ export const initializeStripe = () => {
  */
 export const isStripeAvailable = () => {
   const key = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
-  return !!key && key.startsWith('pk_');
+  return !!key && typeof key === 'string' && key.startsWith('pk_');
 }; 

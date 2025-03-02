@@ -6,7 +6,7 @@ import { log, logError } from '../utils/logger';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const API_BASE_URL = isDevelopment 
   ? 'http://localhost:8888/.netlify/functions'
-  : 'https://api.trypersonalfinance.com';
+  : '/.netlify/functions';
 
 log('API', `Initializing API with base URL: ${API_BASE_URL}`, { 
   environment: process.env.NODE_ENV,
@@ -42,9 +42,13 @@ api.interceptors.request.use(
     // Add environment info to headers
     config.headers['X-Environment'] = process.env.NODE_ENV;
     
-    // Remove /api prefix since Netlify Functions don't use it
+    // Handle URL paths for Netlify Functions
     if (config.url.startsWith('/api/')) {
+      // Remove /api prefix since Netlify Functions don't use it
       config.url = config.url.replace('/api/', '/');
+    } else if (!config.url.startsWith('/')) {
+      // Add leading slash if missing
+      config.url = '/' + config.url;
     }
     
     // Log API request

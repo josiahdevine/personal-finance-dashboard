@@ -53,7 +53,8 @@ api.interceptors.request.use(
       params: config.params,
       data: config.data,
       baseURL: config.baseURL,
-      fullUrl: `${config.baseURL}${config.url}`
+      fullUrl: `${config.baseURL}${config.url}`,
+      withCredentials: config.withCredentials // Log withCredentials setting
     });
     
     try {
@@ -92,6 +93,28 @@ api.interceptors.response.use(
     const requestId = error.config?.requestId;
     let errorMessage = 'An unknown error occurred';
     let errorCode = 'UNKNOWN_ERROR';
+    
+    // Specifically check for CORS errors
+    if (error.message && error.message.includes('Network Error')) {
+      errorCode = 'CORS_ERROR';
+      errorMessage = 'Network error: This may be due to CORS restrictions. Check that the server allows credentials and has proper CORS headers.';
+      
+      logError('API', 'CORS Error detected', { 
+        requestId,
+        error: error.message,
+        code: errorCode,
+        url: error.config?.url,
+        withCredentials: error.config?.withCredentials,
+        baseURL: error.config?.baseURL
+      });
+      
+      // Enhance error object with CORS-specific information
+      error.isCorsError = true;
+      error.userMessage = errorMessage;
+      error.code = errorCode;
+      
+      return Promise.reject(error);
+    }
     
     if (error.response) {
       // Server responded with error status
@@ -176,8 +199,8 @@ const apiService = {
   },
   
   // Plaid API
-  getPlaidLinkToken: async () => {
-    const response = await api.post('/plaid/link-token');
+  getPlaidLinkToken: async (redirectUri) => {
+    const response = await api.post('/plaid/link-token', { redirectUri });
     return response.data;
   },
   
@@ -259,52 +282,35 @@ const apiService = {
     return response.data;
   },
   
-  // System status
-  getHealthStatus: async () => {
-    const response = await api.get('/health');
+  // Transactions Analytics
+  getTransactionsAnalytics: async (params) => {
+    const response = await api.get('/transactions-analytics', { params });
     return response.data;
   },
   
-  // Admin endpoints (protected by admin role)
-  getAdminStats: async () => {
-    const response = await api.get('/admin/stats');
-    return response.data;
-  },
-  
-  getUserStats: async () => {
-    const response = await api.get('/user/stats');
-    return response.data;
-  },
-  
-  // Balance History
-  getBalanceHistory: async (params) => {
-    const response = await api.get('/plaid/balance-history', { 
-      params: {
-        ...params,
-        environment: process.env.NODE_ENV
-      }
-    });
-    return response.data;
-  },
-  
-  // Utility to handle API errors
-  handleApiError: (error, fallbackMessage = 'An error occurred') => {
-    // Log the error for debugging
-    logError('API', 'API error handler', {
-      error,
-      requestId: error.requestId,
-      code: error.code
-    });
-    
-    // Return a standardized error object
-    return {
-      message: error.userMessage || fallbackMessage,
-      code: error.code || 'UNKNOWN_ERROR',
-      status: error.response?.status || 500,
-      requestId: error.requestId,
-      details: error.response?.data || null
-    };
+  // Health check
+  checkHealth: async () => {
+    try {
+      const response = await api.get('/api-status');
+      log('API', 'Health check successful', response.data);
+      return { status: 'healthy', data: response.data };
+    } catch (error) {
+      logError('API', 'Health check failed', error);
+      return { status: 'unhealthy', error };
+    }
   }
 };
+
+// Run a health check in development mode
+if (isDevelopment) {
+  apiService.checkHealth().then(result => {
+    if (result.status === 'unhealthy') {
+      console.warn('⚠️ API health check failed - some features may not work properly');
+      if (result.error?.isCorsError) {
+        console.error('🔴 CORS error detected - check server CORS configuration');
+      }
+    }
+  });
+}
 
 export default apiService; 

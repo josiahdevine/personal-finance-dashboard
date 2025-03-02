@@ -3,9 +3,9 @@
  * This module provides functions to backup and restore database data
  */
 
-const { query } = require('./db-connector');
-const fs = require('fs');
-const path = require('path');
+import { query } from './db-connector.js';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration
 const config = {
@@ -267,7 +267,7 @@ function cleanupOldBackups() {
   }
 }
 
-module.exports = {
+export {
   createBackup,
   restoreBackup,
   listBackups

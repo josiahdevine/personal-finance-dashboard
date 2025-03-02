@@ -3,8 +3,8 @@
  * This module provides functions to analyze and optimize database queries
  */
 
-const { query } = require('./db-connector');
-const dbMonitor = require('./db-monitor');
+import { query } from './db-connector.js';
+import dbMonitor from './db-monitor.js';
 
 // Configuration
 const config = {
@@ -424,7 +424,7 @@ function resetOptimizationStats() {
   console.log('Query optimization statistics have been reset');
 }
 
-module.exports = {
+export {
   analyzeQuery,
   getOptimizationStats,
   resetOptimizationStats

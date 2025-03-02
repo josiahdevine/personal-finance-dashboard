@@ -1,112 +1,148 @@
 /**
- * Shared CORS Handler for Netlify Functions
- * This module provides standardized CORS handling for all API functions
+ * CORS Handler Utility
+ * Provides standardized CORS handling for Netlify Functions
  */
+
+// List of allowed origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8888',
+  'https://trypersonalfinance.com',
+  'https://www.trypersonalfinance.com',
+  'https://personal-finance-dashboard.netlify.app'
+];
 
 /**
- * Generate standardized CORS headers
- * @param {string} origin - The request origin or '*' as fallback
- * @param {string[]} [methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']] - Allowed HTTP methods
- * @param {boolean} [credentials=true] - Whether to allow credentials
- * @returns {object} - Object containing CORS headers
+ * Determine if an origin is allowed
+ * @param {string} origin - The requesting origin
+ * @returns {boolean} Whether the origin is allowed
  */
-function getCorsHeaders(origin = '*', methods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], credentials = true) {
-  // List of allowed origins in production
-  const allowedOrigins = [
-    'https://trypersonalfinance.com',
-    'https://www.trypersonalfinance.com',
-    'https://api.trypersonalfinance.com',
-    'http://localhost:3000',
-    'https://willowy-choux-870c3b.netlify.app'
-  ];
-
-  // When credentials are true, we must specify an exact origin (not wildcard)
-  // In production, only allow specific origins
-  let allowedOrigin;
-  
-  if (credentials) {
-    // For requests with credentials, we must use a specific origin
-    // If the origin is in our allowed list, use it; otherwise use the first allowed origin
-    allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-    
-    // Log the CORS decision for debugging
-    console.log(`CORS: Using specific origin for credentials request: ${allowedOrigin}`, {
-      requestOrigin: origin,
-      isAllowed: allowedOrigins.includes(origin),
-      environment: process.env.NODE_ENV
-    });
-  } else {
-    // For requests without credentials, we can use wildcard in development
-    allowedOrigin = process.env.NODE_ENV === 'production'
-      ? allowedOrigins.includes(origin) ? origin : allowedOrigins[0]
-      : '*';
-  }
-  
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-Api-Key, X-Environment, X-Request-ID",
-    "Access-Control-Allow-Methods": methods.join(', '),
-    "Access-Control-Allow-Credentials": credentials ? "true" : "false",
-    "Access-Control-Max-Age": "86400", // 24 hours
-    "Cache-Control": "no-cache",
-    "Vary": "Origin" // Important when using dynamic origins
-  };
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  return allowedOrigins.includes(origin);
 }
 
 /**
- * Handle CORS preflight requests (OPTIONS method)
- * @param {object} event - The Netlify function event
- * @returns {object|null} - Response object for OPTIONS requests, null for other methods
+ * Get the appropriate Access-Control-Allow-Origin value
+ * @param {string} origin - The requesting origin
+ * @param {boolean} withCredentials - Whether the request includes credentials
+ * @returns {string} The appropriate Access-Control-Allow-Origin value
  */
-function handleCorsPreflightRequest(event) {
-  const origin = event.headers.origin || event.headers.Origin || '*';
+function getAllowedOriginValue(origin, withCredentials = false) {
+  // If credentials are included, we must specify the exact origin (not a wildcard)
+  if (withCredentials) {
+    return isAllowedOrigin(origin) ? origin : null;
+  }
+  
+  // If no credentials, we can use the origin if it's allowed, or a wildcard
+  return isAllowedOrigin(origin) ? origin : '*';
+}
 
-  // For OPTIONS method, return 204 No Content with CORS headers
-  if (event.httpMethod === "OPTIONS") {
-    console.log(`Handling OPTIONS preflight request for ${event.path}`, {
-      origin,
-      path: event.path,
-      headers: event.headers
-    });
-    
+/**
+ * Create a CORS-enabled response
+ * @param {number} statusCode - HTTP status code
+ * @param {object} body - Response body
+ * @param {string} origin - Requesting origin
+ * @param {boolean} withCredentials - Whether the request includes credentials
+ * @returns {object} CORS-enabled response object
+ */
+function createCorsResponse(statusCode, body, origin, withCredentials = true) {
+  // Determine the appropriate Access-Control-Allow-Origin value
+  const allowOrigin = getAllowedOriginValue(origin, withCredentials);
+  
+  // Log CORS details for debugging
+  console.log('CORS Response:', {
+    origin,
+    allowOrigin,
+    withCredentials,
+    statusCode
+  });
+  
+  // If we can't determine a valid origin for a credentials request, return 403
+  if (withCredentials && !allowOrigin) {
+    console.log(`CORS Error: Origin ${origin} not allowed with credentials`);
     return {
-      statusCode: 204,
-      headers: getCorsHeaders(origin),
-      body: ""
+      statusCode: 403,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        error: 'CORS Error: Origin not allowed with credentials'
+      })
     };
   }
-
-  // For non-OPTIONS methods, return null to continue normal processing
-  return null;
-}
-
-/**
- * Create a CORS response
- * @param {number} statusCode - HTTP status code
- * @param {object|string} body - Response body (will be stringified if object)
- * @param {string} origin - Request origin
- * @param {object} [additionalHeaders={}] - Additional headers to include
- * @returns {object} - Formatted response with CORS headers
- */
-function createCorsResponse(statusCode, body, origin = '*', additionalHeaders = {}) {
-  const responseBody = typeof body === 'string' ? body : JSON.stringify(body);
   
-  // Combine CORS headers with additional headers and ensure Content-Type is set
+  // Create headers based on whether credentials are included
   const headers = {
-    ...getCorsHeaders(origin),
-    "Content-Type": "application/json",
-    ...additionalHeaders
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowOrigin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
   };
+  
+  // Only add Allow-Credentials header if credentials are included and we have a valid origin
+  if (withCredentials && allowOrigin) {
+    headers['Access-Control-Allow-Credentials'] = 'true';
+  }
   
   return {
     statusCode,
     headers,
-    body: responseBody
+    body: JSON.stringify(body)
   };
 }
 
-module.exports = {
-  getCorsHeaders,
-  handleCorsPreflightRequest,
-  createCorsResponse
+/**
+ * Handle OPTIONS requests for CORS preflight
+ * @param {object} event - Netlify function event
+ * @returns {object} Response for OPTIONS request
+ */
+function handleOptionsRequest(event) {
+  const origin = event.headers.origin || event.headers.Origin || '*';
+  const withCredentials = true; // Assume credentials for preflight requests
+  
+  // Determine the appropriate Access-Control-Allow-Origin value
+  const allowOrigin = getAllowedOriginValue(origin, withCredentials);
+  
+  // Log preflight details for debugging
+  console.log('CORS Preflight:', {
+    origin,
+    allowOrigin,
+    method: event.httpMethod,
+    path: event.path
+  });
+  
+  // If we can't determine a valid origin for a credentials request, return 403
+  if (!allowOrigin) {
+    console.log(`CORS Preflight Error: Origin ${origin} not allowed with credentials`);
+    return {
+      statusCode: 403,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        error: 'CORS Error: Origin not allowed with credentials'
+      })
+    };
+  }
+  
+  // Create headers for preflight response
+  const headers = {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400' // 24 hours
+  };
+  
+  return {
+    statusCode: 204, // No content
+    headers
+  };
+}
+
+export {
+  isAllowedOrigin,
+  createCorsResponse,
+  handleOptionsRequest
 }; 

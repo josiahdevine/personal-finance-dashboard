@@ -3,12 +3,12 @@
  * Provides monitoring data for the Neon Tech PostgreSQL database
  */
 
-const corsHandler = require('./utils/cors-handler');
-const dbConnector = require('./utils/db-connector');
-const authHandler = require('./utils/auth-handler');
+import corsHandler from './utils/cors-handler.js';
+import dbConnector from './utils/db-connector.js';
+import authHandler from './utils/auth-handler.js';
 
 // Export the handler with authentication middleware
-exports.handler = authHandler.requireAuth(async function(event, context) {
+export const handler = authHandler.requireAuth(async function(event, context) {
   console.log("Received db-metrics request:", {
     httpMethod: event.httpMethod,
     path: event.path,

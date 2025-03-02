@@ -3,9 +3,9 @@
  * This module provides standardized database connection handling for Netlify Functions
  */
 
-const { Pool } = require('pg');
-const dbMonitor = require('./db-monitor');
-const queryOptimizer = require('./query-optimizer');
+import { Pool } from 'pg';
+import dbMonitor from './db-monitor.js';
+import queryOptimizer from './query-optimizer.js';
 
 // Pool instance to be reused across function invocations
 let pool = null;
@@ -338,7 +338,7 @@ function closePool() {
 }
 
 // Export database functions
-module.exports = {
+export {
   getDbPool,
   query,
   checkDbStatus,

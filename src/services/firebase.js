@@ -40,15 +40,14 @@ console.log('[Firebase Debug] Environment Info:', {
 });
 
 // Define the correct Firebase configuration for the project
-// Verified against Firebase console values and hardcoded as fallback
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "personal-finance-dashboa-f76f6.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "personal-finance-dashboa-f76f6",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "personal-finance-dashboa-f76f6.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "772716663750",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:772716663750:web:f0bf14ba121524684118c7",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-6RVP8YZH3S"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Print complete Firebase config for debugging

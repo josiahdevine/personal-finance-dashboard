@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { log, logError } from '../../utils/logger';
 
 console.log('AuthMenu.js: Initializing AuthMenu component');
 
@@ -10,118 +11,91 @@ const AuthMenu = ({ isOpen, onClose }) => {
     console.log('AuthMenu.js: AuthMenu component rendering with props:', { isOpen });
     
     const [isLogin, setIsLogin] = useState(true);
-    const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-    });
-    
-    // Log auth state
-    const { login, register, loading } = useAuth();
-    console.log('AuthMenu.js: Auth state received:', { 
-        loginExists: typeof login === 'function',
-        registerExists: typeof register === 'function',
-        loading 
-    });
-    
-    const menuRef = useRef(null);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { login, register, googleSignIn } = useAuth();
     const navigate = useNavigate();
 
     // Log component lifecycle
     useEffect(() => {
-        console.log('AuthMenu.js: Component mounted');
-        return () => {
-            console.log('AuthMenu.js: Component unmounting');
-        };
+        log('AuthMenu', 'Component mounted');
+        return () => log('AuthMenu', 'Component unmounted');
     }, []);
 
     // Log open/close state changes
     useEffect(() => {
-        console.log('AuthMenu.js: isOpen state changed:', isOpen);
+        log('AuthMenu', 'isOpen state changed', { isOpen });
     }, [isOpen]);
 
     // Log form mode changes
     useEffect(() => {
-        console.log('AuthMenu.js: Form mode changed:', isLogin ? 'Login' : 'Register');
+        log('AuthMenu', 'Form mode changed', { isLogin });
+        // Reset form when switching modes
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
     }, [isLogin]);
 
     useEffect(() => {
-        console.log('AuthMenu.js: Setting up click outside handler');
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                console.log('AuthMenu.js: Click detected outside menu, closing');
-                onClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            console.log('AuthMenu.js: Removing click outside handler');
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [onClose]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        console.log(`AuthMenu.js: Form field "${name}" changed:`, value.length > 0 ? '[value entered]' : '[empty]');
-        setFormData({
-            ...formData,
-            [name]: value
-        });
-    };
+        if (!isOpen) {
+            onClose();
+        }
+    }, [isOpen, onClose]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(`AuthMenu.js: Form submitted in ${isLogin ? 'login' : 'register'} mode`);
+        setLoading(true);
 
         try {
             if (isLogin) {
-                console.log('AuthMenu.js: Attempting login with email:', formData.email);
-                if (typeof login !== 'function') {
-                    console.error('AuthMenu.js: login is not a function!', { loginType: typeof login });
-                    toast.error('Authentication service unavailable. Please try again later.');
-                    return;
-                }
-                await login(formData.email, formData.password);
-                console.log('AuthMenu.js: Login successful, navigating to dashboard');
+                log('AuthMenu', 'Attempting login', { email });
+                await login(email, password);
+                toast.success('Successfully logged in!');
                 navigate('/dashboard');
             } else {
-                if (formData.password !== formData.confirmPassword) {
-                    console.warn('AuthMenu.js: Passwords do not match');
-                    toast.error('Passwords do not match');
-                    return;
+                if (password !== confirmPassword) {
+                    throw new Error('Passwords do not match');
                 }
-                
-                console.log('AuthMenu.js: Attempting registration with email:', formData.email);
-                if (typeof register !== 'function') {
-                    console.error('AuthMenu.js: register is not a function!', { registerType: typeof register });
-                    toast.error('Registration service unavailable. Please try again later.');
-                    return;
-                }
-                await register(formData.username, formData.email, formData.password);
-                console.log('AuthMenu.js: Registration successful, switching to login view');
+                log('AuthMenu', 'Attempting registration', { email });
+                await register(email, password);
+                toast.success('Successfully registered! Please log in.');
                 setIsLogin(true);
             }
         } catch (error) {
-            console.error(`AuthMenu.js: ${isLogin ? 'Login' : 'Registration'} error:`, error);
-            toast.error(error.message || `Failed to ${isLogin ? 'login' : 'register'}. Please try again.`);
+            logError('AuthMenu', isLogin ? 'Login failed' : 'Registration failed', error);
+            toast.error(error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
-    console.log('AuthMenu.js: Rendering component with state:', { 
-        isOpen, 
-        isLogin, 
-        formDataExists: Object.values(formData).some(val => val.length > 0),
-        loadingAuth: loading,
-        menuRefExists: !!menuRef.current
+    const handleGoogleSignIn = async () => {
+        try {
+            log('AuthMenu', 'Attempting Google sign in');
+            await googleSignIn();
+            toast.success('Successfully signed in with Google!');
+            navigate('/dashboard');
+        } catch (error) {
+            logError('AuthMenu', 'Google sign in failed', error);
+            toast.error(error.message);
+        }
+    };
+
+    console.log('AuthMenu.js: Rendering with state:', {
+        isOpen,
+        isLogin,
+        emailExists: email.length > 0,
+        passwordExists: password.length > 0,
+        confirmPasswordExists: confirmPassword.length > 0,
+        loadingAuth: loading
     });
 
     return (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    ref={menuRef}
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
@@ -130,46 +104,25 @@ const AuthMenu = ({ isOpen, onClose }) => {
                 >
                     <div className="p-6">
                         <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-                            {isLogin ? 'Welcome Back' : 'Create Account'}
+                            {isLogin ? 'Login' : 'Register'}
                         </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {!isLogin && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Username
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={formData.username}
-                                        onChange={handleChange}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        required={!isLogin}
-                                    />
-                                </div>
-                            )}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Email
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700">Email</label>
                                 <input
                                     type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Password
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700">Password</label>
                                 <input
                                     type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 />
@@ -181,9 +134,8 @@ const AuthMenu = ({ isOpen, onClose }) => {
                                     </label>
                                     <input
                                         type="password"
-                                        name="confirmPassword"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required={!isLogin}
                                     />
@@ -203,8 +155,15 @@ const AuthMenu = ({ isOpen, onClose }) => {
                                         Processing...
                                     </span>
                                 ) : (
-                                    isLogin ? 'Sign In' : 'Create Account'
+                                    isLogin ? 'Login' : 'Register'
                                 )}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleGoogleSignIn}
+                                className="w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                Sign in with Google
                             </button>
                         </form>
                         <div className="mt-4 text-center">
@@ -215,7 +174,7 @@ const AuthMenu = ({ isOpen, onClose }) => {
                                 }}
                                 className="text-sm text-blue-600 hover:text-blue-500"
                             >
-                                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+                                {isLogin ? "Don't have an account? Register" : 'Already have an account? Login'}
                             </button>
                         </div>
                     </div>

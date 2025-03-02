@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
+import apiService from '../../services/apiService';
 import { HiOutlineExclamationCircle, HiOutlineRefresh, HiOutlineDocumentDownload, HiOutlineCalendar, HiOutlineChartPie } from 'react-icons/hi';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {
@@ -37,7 +38,7 @@ const TransactionAnalytics = () => {
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/transactions/analytics');
+      const response = await apiService.getTransactionsAnalytics();
       setAnalytics(response.data);
       setError(null);
     } catch (err) {

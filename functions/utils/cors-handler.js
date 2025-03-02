@@ -141,8 +141,11 @@ function handleOptionsRequest(event) {
   };
 }
 
-export {
+// Create a default export object with all the functions
+const corsHandler = {
   isAllowedOrigin,
   createCorsResponse,
   handleOptionsRequest
-}; 
+};
+
+export default corsHandler; 

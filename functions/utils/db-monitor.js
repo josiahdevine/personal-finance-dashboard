@@ -180,10 +180,12 @@ function logMetricsToFile() {
   }
 }
 
-// Export module functions
-export {
+// Create a default export object with all the functions
+const dbMonitor = {
   recordQuery,
   recordConnection,
   getMetrics,
   resetMetrics
-}; 
+};
+
+export default dbMonitor; 

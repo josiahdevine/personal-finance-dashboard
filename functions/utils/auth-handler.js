@@ -178,37 +178,43 @@ function createAuthErrorResponse(statusCode, body, origin) {
 
 /**
  * Middleware to require authentication
- * @param {object} event - Netlify function event
- * @returns {object|null} - Error response or user object if authenticated
+ * @param {function} handler - The handler function to wrap
+ * @returns {function} - Wrapped handler function with authentication check
  */
-async function requireAuth(event) {
-  const origin = event.headers.origin || event.headers.Origin;
-  
-  // Handle OPTIONS request for CORS preflight
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 204,
-      headers: getAuthCorsHeaders(origin),
-      body: ""
-    };
-  }
-  
-  // Verify user authentication
-  const user = await verifyAuthToken(event);
-  
-  // If user is not authenticated
-  if (!user) {
-    return createAuthErrorResponse(401, {
-      error: "Unauthorized",
-      message: "Authentication required for this endpoint"
-    }, origin);
-  }
-  
-  // Authentication successful
-  return { user };
+function requireAuth(handler) {
+  return async (event, context) => {
+    const origin = event.headers.origin || event.headers.Origin;
+    
+    // Handle OPTIONS request for CORS preflight
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 204,
+        headers: getAuthCorsHeaders(origin),
+        body: ""
+      };
+    }
+    
+    // Verify user authentication
+    const user = await verifyAuthToken(event);
+    
+    // If user is not authenticated
+    if (!user) {
+      return createAuthErrorResponse(401, {
+        error: "Unauthorized",
+        message: "Authentication required for this endpoint"
+      }, origin);
+    }
+    
+    // Add user to event object
+    event.user = user;
+    
+    // Call the original handler with the authenticated user
+    return handler(event, context);
+  };
 }
 
-export {
+// Create a default export object with all the functions
+const authHandler = {
   verifyAuthToken,
   hasRole,
   extractToken,
@@ -216,4 +222,6 @@ export {
   requireAuth,
   getAuthCorsHeaders,
   createAuthErrorResponse
-}; 
+};
+
+export default authHandler; 

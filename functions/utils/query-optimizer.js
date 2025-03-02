@@ -424,8 +424,11 @@ function resetOptimizationStats() {
   console.log('Query optimization statistics have been reset');
 }
 
-export {
+// Create a default export object with all the functions
+const queryOptimizer = {
   analyzeQuery,
   getOptimizationStats,
   resetOptimizationStats
-}; 
+};
+
+export default queryOptimizer; 

@@ -828,40 +828,26 @@ function BillsAnalysis({ onExpenseAdded, onExpenseDeleted, onExpensesUpdated }) 
                                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                                     <h3 className="font-medium mb-3">Add New Expense</h3>
                                     <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Name</label>
+                                        <div className="mb-4">
+                                            <label htmlFor="billName" className="block text-sm font-medium text-gray-700">
+                                                Bill Name
+                                            </label>
                                             <input
+                                                id="billName"
                                                 type="text"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                                 value={newExpense.name}
                                                 onChange={(e) => setNewExpense({...newExpense, name: e.target.value})}
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Category</label>
-                                            <select
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                value={newExpense.category}
-                                                onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                                            >
-                                                <option value="">Select category</option>
-                                                <option value="Housing">Housing</option>
-                                                <option value="Food">Food</option>
-                                                <option value="Transportation">Transportation</option>
-                                                <option value="Entertainment">Entertainment</option>
-                                                <option value="Utilities">Utilities</option>
-                                                <option value="Insurance">Insurance</option>
-                                                <option value="Healthcare">Healthcare</option>
-                                                <option value="Debt">Debt</option>
-                                                <option value="Subscriptions">Subscriptions</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Amount ($)</label>
+                                        <div className="mb-4">
+                                            <label htmlFor="billAmount" className="block text-sm font-medium text-gray-700">
+                                                Amount
+                                            </label>
                                             <input
+                                                id="billAmount"
                                                 type="number"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                                 value={newExpense.amount}
                                                 onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
                                             />
@@ -927,40 +913,26 @@ function BillsAnalysis({ onExpenseAdded, onExpenseDeleted, onExpensesUpdated }) 
                                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                                     <h3 className="font-medium mb-3">Edit Expense</h3>
                                     <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Name</label>
+                                        <div className="mb-4">
+                                            <label htmlFor="billName" className="block text-sm font-medium text-gray-700">
+                                                Bill Name
+                                            </label>
                                             <input
+                                                id="billName"
                                                 type="text"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                                 value={editingExpense.name}
                                                 onChange={(e) => setEditingExpense({...editingExpense, name: e.target.value})}
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Category</label>
-                                            <select
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                                value={editingExpense.category}
-                                                onChange={(e) => setEditingExpense({...editingExpense, category: e.target.value})}
-                                            >
-                                                <option value="">Select category</option>
-                                                <option value="Housing">Housing</option>
-                                                <option value="Food">Food</option>
-                                                <option value="Transportation">Transportation</option>
-                                                <option value="Entertainment">Entertainment</option>
-                                                <option value="Utilities">Utilities</option>
-                                                <option value="Insurance">Insurance</option>
-                                                <option value="Healthcare">Healthcare</option>
-                                                <option value="Debt">Debt</option>
-                                                <option value="Subscriptions">Subscriptions</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Amount ($)</label>
+                                        <div className="mb-4">
+                                            <label htmlFor="billAmount" className="block text-sm font-medium text-gray-700">
+                                                Amount
+                                            </label>
                                             <input
+                                                id="billAmount"
                                                 type="number"
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                                 value={editingExpense.amount}
                                                 onChange={(e) => setEditingExpense({...editingExpense, amount: e.target.value})}
                                             />

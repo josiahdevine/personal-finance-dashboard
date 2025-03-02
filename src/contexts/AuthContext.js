@@ -91,27 +91,47 @@ export const AuthProvider = ({ children }) => {
   // Handle auth state changes with Firebase
   useEffect(() => {
     if (!firebaseInitialized) {
+      log('AuthContext', 'Firebase not initialized yet, waiting...');
       return;
     }
 
     try {
+      log('AuthContext', 'Setting up auth state listener');
       const authInstance = ensureAuth();
       if (!authInstance) {
         throw new Error('Auth not available');
       }
 
+      // Add debug info to help troubleshoot auth issues
+      log('AuthContext', 'Auth configuration', {
+        authDomain: authInstance.config.authDomain,
+        currentHostname: window.location.hostname,
+        apiKey: authInstance.config.apiKey ? '[PRESENT]' : '[MISSING]',
+        persistence: localStorage.getItem('firebase:authUser') ? 'LOCAL' : 'NONE'
+      });
+
       const unsubscribe = onAuthStateChanged(
         authInstance,
         (user) => {
           if (user) {
+            log('AuthContext', 'User authenticated', { 
+              uid: user.uid,
+              email: user.email,
+              emailVerified: user.emailVerified
+            });
             setCurrentUser(user);
             setIsAuthenticated(true);
+            
+            // Store auth state in localStorage for debugging
+            localStorage.setItem('auth_state', 'authenticated');
+            localStorage.setItem('auth_timestamp', Date.now().toString());
           } else {
+            log('AuthContext', 'No authenticated user');
             setCurrentUser(null);
             setIsAuthenticated(false);
+            localStorage.setItem('auth_state', 'unauthenticated');
           }
           setLoading(false);
-          log('AuthContext', 'Auth state changed', { userId: user?.uid });
         },
         (error) => {
           logError('AuthContext', 'Auth state change error', error);
@@ -120,6 +140,11 @@ export const AuthProvider = ({ children }) => {
             code: error.code
           });
           setLoading(false);
+          localStorage.setItem('auth_error', JSON.stringify({
+            code: error.code,
+            message: error.message,
+            time: new Date().toISOString()
+          }));
         }
       );
 
@@ -127,6 +152,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       logError('AuthContext', 'Error setting up auth state listener', error);
       setLoading(false);
+      localStorage.setItem('auth_setup_error', JSON.stringify({
+        message: error.message,
+        time: new Date().toISOString()
+      }));
     }
   }, [firebaseInitialized]);
 

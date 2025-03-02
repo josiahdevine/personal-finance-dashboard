@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import api from '../services/api';
-import apiService from '../services/apiService';
+import apiService from '../services/liveApi';
 import { usePlaid } from '../contexts/PlaidContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaidLink } from '../contexts/PlaidLinkContext';
@@ -53,13 +52,12 @@ const LinkAccounts = () => {
         institution_name: metadata.institution.name
       });
       
-      const response = await api.post('/api/plaid/exchange-token', {
-        public_token: publicToken,
+      const response = await apiService.exchangePlaidPublicToken(publicToken, {
         institution: metadata.institution,
         user_id: currentUser.uid
       });
       
-      if (response.data) {
+      if (response) {
         toast.success('Account connected successfully!');
         fetchAccounts();
       }
@@ -87,7 +85,7 @@ const LinkAccounts = () => {
     try {
       setLoading(true);
       const response = await apiService.getPlaidAccounts();
-      setAccounts(response.data || []);
+      setAccounts(response || []);
     } catch (error) {
       console.error('Error fetching accounts:', error);
       toast.error('Failed to load accounts');
@@ -100,9 +98,9 @@ const LinkAccounts = () => {
   const refreshAccounts = async () => {
     try {
       setRefreshing(true);
-      const response = await api.post('/api/plaid/refresh-accounts');
-      if (response.data) {
-        setAccounts(response.data);
+      const response = await apiService.getPlaidAccounts();
+      if (response) {
+        setAccounts(response);
         toast.success('Accounts refreshed successfully');
       }
     } catch (error) {
@@ -133,11 +131,11 @@ const LinkAccounts = () => {
     
     try {
       setLoading(true);
-      const response = await api.post('/api/accounts/manual', manualAccount);
+      const response = await apiService.addManualAccount(manualAccount);
       
-      if (response.data) {
+      if (response) {
         toast.success('Manual account added successfully');
-        setAccounts([...accounts, response.data]);
+        setAccounts([...accounts, response]);
         setManualAccount({
           name: '',
           type: 'checking',

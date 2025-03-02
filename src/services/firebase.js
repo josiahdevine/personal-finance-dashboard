@@ -107,8 +107,17 @@ const initializeFirebaseWithRetry = async () => {
     // Always ensure auth domain is correctly set
     if (auth) {
       const originalAuthDomain = auth.config.authDomain;
-      // ALWAYS use the Firebase project's auth domain from config
-      auth.config.authDomain = firebaseConfig.authDomain;
+      
+      // CRITICAL FIX: Use the current hostname as auth domain for localhost or custom domains
+      // This ensures Firebase auth works correctly with your domain
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // For local development, use the Firebase project's auth domain
+        auth.config.authDomain = firebaseConfig.authDomain;
+      } else {
+        // For production, use the current hostname to avoid CORS issues
+        auth.config.authDomain = window.location.hostname;
+        console.log(`[Firebase] Using current hostname as auth domain: ${window.location.hostname}`);
+      }
       
       if (originalAuthDomain !== auth.config.authDomain) {
         console.log(`[Firebase] Updated Auth domain from ${originalAuthDomain} to ${auth.config.authDomain}`);
@@ -123,6 +132,7 @@ const initializeFirebaseWithRetry = async () => {
         localStorage.setItem('deployment_platform', isNetlify ? 'netlify' : (isTryPersonalFinance ? 'custom-domain' : 'other'));
         localStorage.setItem('app_version', '2.0.1'); // Increment version for tracking
         localStorage.setItem('auth_init_timestamp', Date.now().toString());
+        localStorage.setItem('auth_domain', auth.config.authDomain); // Store the auth domain for debugging
       } catch (persistenceError) {
         console.error('[Firebase] Failed to set LOCAL persistence:', persistenceError);
         // Fall back to session persistence as last resort

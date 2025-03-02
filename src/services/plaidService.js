@@ -3,10 +3,9 @@ import { getToken } from './auth';
 
 // Create a dedicated Plaid API instance
 const plaidApi = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 
-           (window.location.hostname === 'localhost' ? 
-           'http://localhost:8888/.netlify/functions' : 
-           'https://api.trypersonalfinance.com'),
+  baseURL: window.location.hostname === 'localhost' 
+    ? 'http://localhost:8888/.netlify/functions' 
+    : '/.netlify/functions',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -15,7 +14,7 @@ const plaidApi = axios.create({
   validateStatus: function (status) {
     return status >= 200 && status < 500;
   },
-  withCredentials: false // Disable credentials for CORS
+  withCredentials: true // Enable credentials for CORS
 });
 
 // Add request interceptor for authentication and logging
@@ -28,7 +27,13 @@ plaidApi.interceptors.request.use(
       }
       
       // Add request ID for tracking
-      config.headers['X-Request-ID'] = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      config.headers['X-Request-ID'] = requestId;
+      
+      // Fix URL paths for Netlify Functions
+      if (config.url.startsWith('/api/')) {
+        config.url = config.url.replace('/api/', '/');
+      }
       
       // Log request for debugging
       console.log('[Plaid] Request:', {

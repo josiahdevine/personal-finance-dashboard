@@ -4,7 +4,7 @@ import { log, logError } from '../utils/logger';
 
 // Create an axios instance with a base URL
 const isDevelopment = process.env.NODE_ENV === 'development';
-const API_BASE_URL = isDevelopment 
+const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:8888/.netlify/functions'
   : '/.netlify/functions';
 
@@ -35,6 +35,7 @@ api.interceptors.request.use(
   async config => {
     const requestId = generateRequestId();
     config.requestId = requestId;
+    config.timestamp = Date.now(); // Add timestamp for performance tracking
     
     // Add request ID to headers
     config.headers['X-Request-ID'] = requestId;
@@ -54,6 +55,10 @@ api.interceptors.request.use(
       const token = await getToken();
       if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
+        // Log token presence but not the actual token
+        log('API', 'Auth token added to request', { hasToken: true });
+      } else {
+        log('API', 'No auth token available for request');
       }
     } catch (error) {
       logError('API', 'Error getting auth token', error);

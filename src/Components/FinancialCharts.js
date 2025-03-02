@@ -737,6 +737,7 @@ const FinancialCharts = () => {
         
         console.log('Analytics data received:', response);
         setAnalyticsData(response);
+        setLoading(false);
       } catch (err) {
         console.error('Error fetching analytics data:', err);
         
@@ -745,6 +746,16 @@ const FinancialCharts = () => {
           setError({
             message: 'Network error: Unable to connect to the analytics service. This may be due to CORS restrictions.',
             details: 'Please check your network connection and ensure the API server is running.'
+          });
+        } else if (err.response && err.response.status === 401) {
+          setError({
+            message: 'Authentication required',
+            details: 'Please sign in to view your financial analytics.'
+          });
+        } else if (err.response && err.response.status === 403) {
+          setError({
+            message: 'Access denied',
+            details: 'You do not have permission to access this data.'
           });
         } else {
           setError({
@@ -758,7 +769,7 @@ const FinancialCharts = () => {
           console.log('Generating fallback data for development');
           setAnalyticsData(generateFallbackData());
         }
-      } finally {
+        
         setLoading(false);
       }
     };

@@ -9,8 +9,8 @@ import {
   ArcElement,
   RadialLinearScale,
   Title, 
-  Tooltip, 
-  Legend,
+  Tooltip as ChartJSTooltip, 
+  Legend as ChartJSLegend,
   Filler
 } from 'chart.js';
 import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
@@ -19,16 +19,7 @@ import apiService from '../services/liveApi';
 import { currencyFormatter } from '../utils/formatters';
 import { log, logError } from '../utils/logger';
 import LoadingSpinner from './ui/LoadingSpinner';
-import { 
-  LineChart, 
-  ResponsiveContainer, 
-  CartesianGrid, 
-  XAxis, 
-  YAxis, 
-  PieChart, 
-  Pie, 
-  Cell 
-} from 'recharts';
+import * as ReCharts from 'recharts';
 import api from '../services/api';
 
 // Register ChartJS components
@@ -41,8 +32,8 @@ ChartJS.register(
   ArcElement,
   RadialLinearScale,
   Title,
-  Tooltip,
-  Legend,
+  ChartJSTooltip,
+  ChartJSLegend,
   Filler
 );
 
@@ -871,22 +862,22 @@ const FinancialCharts = () => {
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold mb-4">Monthly Income & Spending</h2>
         <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
+          <ReCharts.ResponsiveContainer width="100%" height="100%">
+            <ReCharts.LineChart
               data={analyticsData?.monthlyTrends}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
+              <ReCharts.CartesianGrid strokeDasharray="3 3" />
+              <ReCharts.XAxis 
                 dataKey="month" 
                 tickFormatter={formatMonth}
                 tick={{ fontSize: 12 }}
               />
-              <YAxis 
+              <ReCharts.YAxis 
                 tickFormatter={(value) => `$${value/1000}k`}
                 tick={{ fontSize: 12 }}
               />
-              <Tooltip 
+              <ReCharts.Tooltip 
                 formatter={(value) => formatCurrency(value)}
                 labelFormatter={(label) => {
                   try {
@@ -897,8 +888,8 @@ const FinancialCharts = () => {
                   }
                 }}
               />
-              <Legend />
-              <Line 
+              <ReCharts.Legend />
+              <ReCharts.Line 
                 type="monotone" 
                 dataKey="income" 
                 stroke="#0088FE" 
@@ -906,15 +897,15 @@ const FinancialCharts = () => {
                 activeDot={{ r: 8 }} 
                 name="Income"
               />
-              <Line 
+              <ReCharts.Line 
                 type="monotone" 
                 dataKey="spending" 
                 stroke="#FF8042" 
                 strokeWidth={2}
                 name="Spending"
               />
-            </LineChart>
-          </ResponsiveContainer>
+            </ReCharts.LineChart>
+          </ReCharts.ResponsiveContainer>
         </div>
       </div>
 
@@ -924,9 +915,9 @@ const FinancialCharts = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4">Spending by Category</h2>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
+            <ReCharts.ResponsiveContainer width="100%" height="100%">
+              <ReCharts.PieChart>
+                <ReCharts.Pie
                   data={analyticsData?.categoryBreakdown}
                   cx="50%"
                   cy="50%"
@@ -938,13 +929,13 @@ const FinancialCharts = () => {
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
                   {analyticsData?.categoryBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <ReCharts.Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Legend layout="vertical" verticalAlign="middle" align="right" />
-              </PieChart>
-            </ResponsiveContainer>
+                </ReCharts.Pie>
+                <ReCharts.Tooltip formatter={(value) => formatCurrency(value)} />
+                <ReCharts.Legend layout="vertical" verticalAlign="middle" align="right" />
+              </ReCharts.PieChart>
+            </ReCharts.ResponsiveContainer>
           </div>
         </div>
 
@@ -952,24 +943,24 @@ const FinancialCharts = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4">Top Merchants</h2>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
+            <ReCharts.ResponsiveContainer width="100%" height="100%">
+              <ReCharts.BarChart
                 data={analyticsData?.topMerchants}
                 layout="vertical"
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(value) => `$${value}`} />
-                <YAxis type="category" dataKey="name" width={100} />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Legend />
-                <Bar dataKey="amount" fill="#8884d8" name="Amount Spent">
+                <ReCharts.CartesianGrid strokeDasharray="3 3" />
+                <ReCharts.XAxis type="number" tickFormatter={(value) => `$${value}`} />
+                <ReCharts.YAxis type="category" dataKey="name" width={100} />
+                <ReCharts.Tooltip formatter={(value) => formatCurrency(value)} />
+                <ReCharts.Legend />
+                <ReCharts.Bar dataKey="amount" fill="#8884d8" name="Amount Spent">
                   {analyticsData?.topMerchants.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <ReCharts.Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                </ReCharts.Bar>
+              </ReCharts.BarChart>
+            </ReCharts.ResponsiveContainer>
           </div>
         </div>
       </div>

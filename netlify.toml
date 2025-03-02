@@ -57,11 +57,14 @@
 
 [[plugins]]
   package = "@netlify/plugin-lighthouse"
-
-[plugins.inputs]
-  output_path = "lighthouse-report"
-  fail_deploy_on_score = false
-  performance_budget = { speed_index = 5, total_blocking_time = 500 }
+  
+  [plugins.inputs]
+    output_path = "lighthouse-report"
+    fail_deploy_on_score = false
+    
+    [plugins.inputs.performance_budget]
+      speed_index = 5
+      total_blocking_time = 500
 
 [[redirects]]
   from = "/api/*"

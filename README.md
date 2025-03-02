@@ -114,6 +114,8 @@ yarn test:integration
    - Verify Neon Tech DB credentials
    - Check SSL mode configuration
    - Ensure proper network access
+   - Review database metrics for error patterns
+   - Check connection pool configuration
 
 2. **Plaid Integration Issues**
    - Verify Plaid API credentials
@@ -129,8 +131,9 @@ yarn test:integration
 
 - [Plaid Integration Guide](./documentation/plaid-implementation.md)
 - [Test Setup Guide](./TEST-SETUP.md)
-- [Database Schema](./documentation/database-schema.md)
+- [Database Schema](./DATABASE-SCHEMA.md)
 - [API Documentation](./documentation/api-docs.md)
+- [Neon DB Improvements](./NEON-DB-IMPROVEMENTS.md)
 
 ## 🔐 Security
 
@@ -140,6 +143,20 @@ yarn test:integration
 - Rate limiting
 - XSS protection
 - CORS configuration
+
+## 🛠️ Database Features
+
+### Neon Tech PostgreSQL Integration
+
+The application uses Neon Tech PostgreSQL as its primary database with several advanced features:
+
+- **Connection Pooling**: Optimized connection management for better performance
+- **Query Monitoring**: Comprehensive tracking of query performance and errors
+- **Automatic Optimization**: Analysis and suggestions for query improvements
+- **Backup System**: Automated backup and restore functionality
+- **Error Handling**: Robust error handling with retry mechanisms
+
+For more details, see the [Neon DB Improvements](./NEON-DB-IMPROVEMENTS.md) documentation.
 
 ## 📝 License
 

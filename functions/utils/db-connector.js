@@ -4,26 +4,45 @@
  */
 
 const { Pool } = require('pg');
+const dbMonitor = require('./db-monitor');
+const queryOptimizer = require('./query-optimizer');
 
 // Pool instance to be reused across function invocations
 let pool = null;
 
+// Configuration
+const config = {
+  enableQueryOptimization: process.env.ENABLE_QUERY_OPTIMIZATION === 'true',
+  optimizeSelectQueriesOnly: true
+};
+
 // Get or create a database connection pool
 function getDbPool() {
   if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
+    try {
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+      });
 
-    // Add error handler to prevent connection issues from crashing the app
-    pool.on('error', (err) => {
-      console.error('Unexpected error on idle client', err);
-      process.exit(-1);
-    });
+      // Add error handler to prevent connection issues from crashing the app
+      pool.on('error', (err) => {
+        console.error('Unexpected error on idle client', err);
+        dbMonitor.recordConnection(false, err);
+        process.exit(-1);
+      });
+      
+      // Record successful pool creation
+      dbMonitor.recordConnection(true);
+      console.log('Database pool created successfully');
+    } catch (error) {
+      console.error('Error creating database pool:', error);
+      dbMonitor.recordConnection(false, error);
+      throw error;
+    }
   }
   return pool;
 }
@@ -40,6 +59,13 @@ async function query(text, params = [], maxRetries = 3) {
   let lastError;
   let client;
   let pool = getDbPool();
+  
+  // Check if query should be optimized
+  let shouldOptimize = config.enableQueryOptimization && 
+    (!config.optimizeSelectQueriesOnly || text.trim().toUpperCase().startsWith('SELECT'));
+  
+  // Store original query for optimization analysis
+  const originalQuery = text;
 
   while (retries < maxRetries) {
     const start = Date.now();
@@ -57,9 +83,32 @@ async function query(text, params = [], maxRetries = 3) {
         success: true
       });
       
+      // Record successful query
+      dbMonitor.recordQuery({
+        text,
+        duration,
+        success: true
+      });
+      
+      // Analyze query for optimization if enabled
+      if (shouldOptimize) {
+        const analysis = queryOptimizer.analyzeQuery(originalQuery, duration);
+        
+        // Log optimization suggestions if any
+        if (analysis.analyzed && analysis.suggestions && analysis.suggestions.length > 0) {
+          console.log('Query optimization suggestions:', {
+            query: originalQuery.substring(0, 100) + (originalQuery.length > 100 ? '...' : ''),
+            duration,
+            suggestions: analysis.suggestions
+          });
+        }
+      }
+      
       return result;
     } catch (error) {
       lastError = error;
+      const duration = Date.now() - start;
+      
       console.error('Database query error:', {
         message: error.message,
         code: error.code,
@@ -70,6 +119,14 @@ async function query(text, params = [], maxRetries = 3) {
         params: JSON.stringify(params),
         attempt: retries + 1,
         stack: error.stack
+      });
+      
+      // Record failed query
+      dbMonitor.recordQuery({
+        text,
+        duration,
+        success: false,
+        error
       });
 
       // If the error is related to the connection, reset the pool
@@ -216,6 +273,62 @@ async function verifyTableSchema(tableName, requiredColumns) {
   }
 }
 
+/**
+ * Get database metrics and optimization statistics
+ * @returns {Promise<object>} Database metrics, status, and optimization stats
+ */
+async function getDbMetrics() {
+  try {
+    // Get basic database status
+    const status = await checkDbStatus();
+    
+    // Get monitoring metrics
+    const metrics = dbMonitor.getMetrics();
+    
+    // Get optimization statistics if enabled
+    const optimizationStats = config.enableQueryOptimization 
+      ? queryOptimizer.getOptimizationStats() 
+      : { enabled: false };
+    
+    // Get pool statistics
+    const poolStats = pool ? {
+      totalCount: pool.totalCount,
+      idleCount: pool.idleCount,
+      waitingCount: pool.waitingCount
+    } : null;
+    
+    return {
+      status,
+      metrics,
+      optimization: optimizationStats,
+      poolStats,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error getting database metrics:', error);
+    return {
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Enable or disable query optimization
+ * @param {boolean} enable - Whether to enable query optimization
+ */
+function setQueryOptimization(enable) {
+  config.enableQueryOptimization = !!enable;
+  console.log(`Query optimization ${config.enableQueryOptimization ? 'enabled' : 'disabled'}`);
+  
+  // Reset optimization stats when toggling
+  if (config.enableQueryOptimization) {
+    queryOptimizer.resetOptimizationStats();
+  }
+  
+  return { enabled: config.enableQueryOptimization };
+}
+
 // Close the connection pool
 function closePool() {
   if (pool) {
@@ -231,5 +344,7 @@ module.exports = {
   checkDbStatus,
   verifyTableSchema,
   createTableIfNotExists,
+  getDbMetrics,
+  setQueryOptimization,
   closePool
 }; 

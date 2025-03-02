@@ -3,12 +3,12 @@
  * Provides endpoints to create, list, and restore database backups
  */
 
-const corsHandler = require('./utils/cors-handler');
-const dbBackup = require('./utils/db-backup');
-const authHandler = require('./utils/auth-handler');
+import corsHandler from './utils/cors-handler.js';
+import dbBackup from './utils/db-backup.js';
+import authHandler from './utils/auth-handler.js';
 
 // Export the handler with authentication middleware
-exports.handler = authHandler.requireAuth(async function(event, context) {
+export const handler = authHandler.requireAuth(async function(event, context) {
   console.log("Received db-backup request:", {
     httpMethod: event.httpMethod,
     path: event.path,

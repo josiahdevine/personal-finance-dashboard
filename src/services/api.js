@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken } from './auth';
+import { getAuth } from 'firebase/auth';
 
 // Mock data for development mode
 const MOCK_DATA = {
@@ -225,14 +225,19 @@ const getCurrentPort = () => {
   return '5000'; // Default fallback
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://api.trypersonalfinance.com';
+// Determine the base URL based on environment
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:8888/.netlify/functions'
+    : '/.netlify/functions');
 
+// Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Required for CORS with credentials
+  timeout: 30000, // 30 seconds
+  withCredentials: true, // Always send credentials for CORS
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
   }
 });
 
@@ -343,86 +348,83 @@ const handleMockResponse = async (config) => {
   throw error;
 };
 
-// Add request interceptor to handle auth
+// Request interceptor for adding auth token and logging
 api.interceptors.request.use(
-  (config) => {
-    // Get auth token if available
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // Log outgoing requests in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[API] ${config.method.toUpperCase()} ${config.url}`, { 
+  async (config) => {
+    try {
+      // Get current user from Firebase Auth
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      // If user is authenticated, add token to headers
+      if (user) {
+        const token = await user.getIdToken();
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // Log outgoing request (without sensitive data)
+      console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, {
         withCredentials: config.withCredentials,
-        hasAuthHeader: !!config.headers.Authorization,
-        origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
+        baseURL: config.baseURL,
+        headers: {
+          ...config.headers,
+          Authorization: config.headers.Authorization ? '[REDACTED]' : undefined
+        }
       });
+      
+      return config;
+    } catch (error) {
+      console.error('Error in API request interceptor:', error);
+      return config;
     }
-    
-    return config;
   },
   (error) => {
-    console.error('[API] Request error:', error);
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor to handle errors
+// Response interceptor for error handling and logging
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log successful response (without sensitive data)
+    console.log(`API Response: ${response.status} ${response.config.url}`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
+    
+    return response;
+  },
   (error) => {
-    if (error.response) {
-      // Server responded with error status
-      console.error('[API] Response error:', {
-        status: error.response.status,
-        url: error.config?.url,
-        data: error.response.data,
-        headers: error.response.headers
+    // Handle CORS errors specifically
+    if (error.message && error.message.includes('Network Error')) {
+      console.error('CORS Error detected:', error);
+      return Promise.reject({
+        ...error,
+        isCorsError: true,
+        message: 'Network error: This may be due to CORS restrictions. Please check console for details.'
       });
-      
-      if (error.response.status === 401) {
-        // Handle unauthorized access
-        console.warn('[API] Authentication error - redirecting to login');
-        localStorage.removeItem('authToken'); // Clear invalid token
-        window.location.href = '/login';
-      }
-      
-      // Check for CORS errors
-      if (error.response.status === 0 || 
-          (error.message && error.message.includes('Network Error'))) {
-        console.error('[API] Possible CORS error - check server configuration', {
-          url: error.config?.url,
-          withCredentials: error.config?.withCredentials,
-          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
-          message: error.message
-        });
-      }
-    } else if (error.request) {
-      // Request made but no response received
-      console.error('[API] Network error:', {
-        request: error.request,
-        url: error.config?.url,
-        message: error.message,
-        type: error.name
-      });
-      
-      // Check for CORS errors in the browser console
-      if (error.message && (
-          error.message.includes('NetworkError') || 
-          error.message.includes('Failed to fetch') ||
-          error.message.includes('Network request failed'))) {
-        console.error('[API] Possible CORS or network connectivity issue', {
-          url: error.config?.url,
-          withCredentials: error.config?.withCredentials,
-          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
-        });
-      }
-    } else {
-      // Error in request configuration
-      console.error('[API] Error:', error.message);
     }
+    
+    // Log error response
+    console.error('API Error Response:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL,
+        withCredentials: error.config?.withCredentials,
+        headers: {
+          ...error.config?.headers,
+          Authorization: error.config?.headers?.Authorization ? '[REDACTED]' : undefined
+        }
+      }
+    });
+    
     return Promise.reject(error);
   }
 );

@@ -1,46 +1,29 @@
 /**
- * Authentication Handler Utility for Firebase Auth
- * This module provides standardized auth handling for Netlify Functions
+ * Authentication Handler for Netlify Functions
+ * Provides utilities for verifying Firebase authentication tokens
  */
 
-const admin = require('firebase-admin');
-// Import the CORS handler utility
-const corsHandler = require('./cors-handler');
+import admin from 'firebase-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
 let firebaseApp;
-function getFirebaseAdmin() {
-  if (!firebaseApp) {
-    // Check for required environment variables
-    const projectId = process.env.FIREBASE_PROJECT_ID || 
-                      process.env.REACT_APP_FIREBASE_PROJECT_ID;
-                      
-    if (!projectId) {
-      console.error('Firebase configuration missing! Auth verification will not work.');
-      return null;
-    }
-
+function initializeFirebaseAdmin() {
+  if (!firebaseApp && process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
-      // Initialize the app with credentials from environment
+      // Parse the service account JSON
+      const serviceAccount = JSON.parse(
+        Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8')
+      );
+      
+      // Initialize the app
       firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: projectId,
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-        }),
-        databaseURL: process.env.FIREBASE_DATABASE_URL
+        credential: admin.credential.cert(serviceAccount)
       });
       
       console.log('Firebase Admin SDK initialized successfully');
     } catch (error) {
-      if (error.code === 'app/duplicate-app') {
-        // App already exists, get the existing one
-        firebaseApp = admin.app();
-        console.log('Using existing Firebase Admin app instance');
-      } else {
-        console.error('Firebase Admin SDK initialization error:', error);
-        return null;
-      }
+      console.error('Error initializing Firebase Admin SDK:', error);
+      throw new Error('Firebase initialization failed');
     }
   }
   
@@ -48,41 +31,78 @@ function getFirebaseAdmin() {
 }
 
 /**
- * Verify Firebase authentication token
- * @param {string} authHeader - The full Authorization header value
- * @returns {Promise<object|null>} - User object if verified, null if invalid
+ * Extract the JWT token from the Authorization header
+ * @param {object} event - Netlify function event
+ * @returns {string|null} The JWT token or null if not found
  */
-async function verifyAuthToken(authHeader) {
-  // Check if auth header exists
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('No valid Authorization header found');
-    return null;
-  }
-
-  const firebase = getFirebaseAdmin();
-  if (!firebase) {
-    console.error('Firebase Admin not initialized, cannot verify token');
-    return null;
-  }
-
-  // Extract the token
-  const token = authHeader.split('Bearer ')[1];
+function extractToken(event) {
+  // Check for Authorization header
+  const authHeader = event.headers.authorization || event.headers.Authorization;
   
+  if (!authHeader) {
+    console.log('No Authorization header found');
+    return null;
+  }
+  
+  // Extract the token from the Bearer format
+  const match = authHeader.match(/^Bearer\s+(.*)$/i);
+  if (!match) {
+    console.log('Invalid Authorization header format');
+    return null;
+  }
+  
+  return match[1];
+}
+
+/**
+ * Verify a Firebase authentication token
+ * @param {object} event - Netlify function event
+ * @returns {Promise<object|null>} The decoded user object or null if invalid
+ */
+async function verifyAuthToken(event) {
   try {
-    // Verify the token with Firebase
+    // Extract token from request
+    const token = extractToken(event);
+    if (!token) {
+      return null;
+    }
+    
+    // Initialize Firebase if needed
+    initializeFirebaseAdmin();
+    
+    // Verify the token
     const decodedToken = await admin.auth().verifyIdToken(token);
     
-    console.log('Auth token verified successfully for user:', {
+    // Log successful verification
+    console.log('Token verified successfully:', {
       uid: decodedToken.uid,
-      email: decodedToken.email || 'no email',
-      authTime: new Date(decodedToken.auth_time * 1000).toISOString()
+      email: decodedToken.email,
+      emailVerified: decodedToken.email_verified
     });
     
     return decodedToken;
   } catch (error) {
-    console.error('Error verifying auth token:', error.message);
+    console.error('Token verification failed:', error);
     return null;
   }
+}
+
+/**
+ * Check if a user has the required role
+ * @param {object} user - The decoded user object
+ * @param {string|string[]} requiredRoles - The required role(s)
+ * @returns {boolean} Whether the user has the required role
+ */
+function hasRole(user, requiredRoles) {
+  if (!user || !user.roles) {
+    return false;
+  }
+  
+  // Convert to array if string
+  const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+  
+  // Check if user has any of the required roles
+  return roles.some(role => user.roles.includes(role));
 }
 
 /**
@@ -91,8 +111,7 @@ async function verifyAuthToken(authHeader) {
  * @returns {Promise<object>} - User info object with uid and isAuthenticated
  */
 async function getUserFromRequest(event) {
-  const authHeader = event.headers.authorization || event.headers.Authorization;
-  const user = await verifyAuthToken(authHeader);
+  const user = await verifyAuthToken(event);
   
   // If we have a valid user from auth token
   if (user) {
@@ -128,82 +147,73 @@ async function getUserFromRequest(event) {
 }
 
 /**
- * Authentication middleware for Netlify functions
- * Use this to protect routes that require authentication
- * 
- * @param {Function} handler - The function handler to protect
- * @param {object} options - Options for auth middleware
- * @returns {Function} - Wrapped handler with auth checking
+ * Create standard CORS headers for auth responses
+ * @param {string} origin - Request origin
+ * @returns {object} - CORS headers
  */
-function requireAuth(handler, options = {}) {
-  return async (event, context) => {
-    const origin = event.headers.origin || event.headers.Origin || '*';
-    
-    // CRITICAL FIX: Handle OPTIONS request for CORS preflight directly
-    // Always bypass all middleware and authentication for OPTIONS
-    if (event.httpMethod === "OPTIONS") {
-      console.log('Auth middleware bypassed for OPTIONS request', {
-        path: event.path,
-        origin
-      });
-      
-      // Return immediate 204 No Content response with CORS headers
-      return {
-        statusCode: 204,
-        headers: corsHandler.getCorsHeaders(origin),
-        body: ""
-      };
-    }
-    
-    // Verify user authentication
-    const user = await getUserFromRequest(event);
-    
-    // If authentication is required and user is not authenticated
-    if (options.requireAuth !== false && !user.isAuthenticated) {
-      console.log('Authentication failed for protected route', {
-        path: event.path,
-        method: event.httpMethod,
-        origin
-      });
-      
-      return corsHandler.createCorsResponse(401, {
-        error: "Unauthorized",
-        message: "Authentication required for this endpoint"
-      }, origin);
-    }
-    
-    // Authentication successful, add user to event context
-    const modifiedEvent = {
-      ...event,
-      user
-    };
-    
-    // Continue to the handler - let the original handler use our response
-    try {
-      const response = await handler(modifiedEvent, context);
-      
-      // If the handler didn't set headers, add CORS headers
-      if (!response.headers || !response.headers['Access-Control-Allow-Origin']) {
-        response.headers = {
-          ...response.headers,
-          ...corsHandler.getCorsHeaders(origin)
-        };
-      }
-      
-      return response;
-    } catch (error) {
-      console.error('Error in protected route handler:', error);
-      return corsHandler.createCorsResponse(500, {
-        error: "Internal Server Error",
-        message: "An error occurred processing your request"
-      }, origin);
-    }
+function getAuthCorsHeaders(origin) {
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true'
   };
 }
 
-module.exports = {
-  getFirebaseAdmin,
+/**
+ * Create a standard auth error response with CORS headers
+ * @param {number} statusCode - HTTP status code
+ * @param {object} body - Response body
+ * @param {string} origin - Request origin
+ * @returns {object} - Formatted response
+ */
+function createAuthErrorResponse(statusCode, body, origin) {
+  return {
+    statusCode,
+    headers: getAuthCorsHeaders(origin),
+    body: JSON.stringify(body)
+  };
+}
+
+/**
+ * Middleware to require authentication
+ * @param {object} event - Netlify function event
+ * @returns {object|null} - Error response or user object if authenticated
+ */
+async function requireAuth(event) {
+  const origin = event.headers.origin || event.headers.Origin;
+  
+  // Handle OPTIONS request for CORS preflight
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      headers: getAuthCorsHeaders(origin),
+      body: ""
+    };
+  }
+  
+  // Verify user authentication
+  const user = await verifyAuthToken(event);
+  
+  // If user is not authenticated
+  if (!user) {
+    return createAuthErrorResponse(401, {
+      error: "Unauthorized",
+      message: "Authentication required for this endpoint"
+    }, origin);
+  }
+  
+  // Authentication successful
+  return { user };
+}
+
+export {
   verifyAuthToken,
+  hasRole,
+  extractToken,
   getUserFromRequest,
-  requireAuth
+  requireAuth,
+  getAuthCorsHeaders,
+  createAuthErrorResponse
 }; 

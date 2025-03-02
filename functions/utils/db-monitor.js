@@ -3,8 +3,8 @@
  * This module provides monitoring and metrics for database connections
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // In-memory metrics storage
 let metrics = {
@@ -180,7 +180,8 @@ function logMetricsToFile() {
   }
 }
 
-module.exports = {
+// Export module functions
+export {
   recordQuery,
   recordConnection,
   getMetrics,

@@ -134,6 +134,15 @@ function createSuccessResponse(data, requestId = null) {
   };
 }
 
+/**
+ * Gets a Plaid client instance with an access token
+ */
+function getClientWithToken(accessToken) {
+  const client = getPlaidClient();
+  client.accessToken = accessToken;
+  return client;
+}
+
 export {
   getPlaidClient,
   getPlaidConfig,
@@ -141,5 +150,6 @@ export {
   createPlaidResponseHeaders,
   createErrorResponse,
   createSuccessResponse,
-  DEFAULT_CONFIG
+  DEFAULT_CONFIG,
+  getClientWithToken
 }; 

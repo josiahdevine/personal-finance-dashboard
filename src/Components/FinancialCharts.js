@@ -148,17 +148,21 @@ const FinancialCharts = () => {
       
       try {
         let data;
+        let dates, netWorthValues, assetValues, liabilityValues;
+        let cashFlowLabels, incomeData, expenseData, savingsData;
+        let categories, amounts, backgroundColors;
+        let goalNames, targetAmounts, currentAmounts, percentComplete;
         
         switch (activeChart) {
-          case 'netWorth':
+          case 'netWorth': {
             log('FinancialCharts', 'Fetching net worth data', { timeRange });
             const balances = await apiService.getBalanceHistory(timeRange);
             
             // Process balances data
-            const dates = balances.map(item => new Date(item.date).toLocaleDateString());
-            const netWorthValues = balances.map(item => item.netWorth);
-            const assetValues = balances.map(item => item.assets);
-            const liabilityValues = balances.map(item => item.liabilities);
+            dates = balances.map(item => new Date(item.date).toLocaleDateString());
+            netWorthValues = balances.map(item => item.netWorth);
+            assetValues = balances.map(item => item.assets);
+            liabilityValues = balances.map(item => item.liabilities);
             
             data = {
               labels: dates,
@@ -205,16 +209,17 @@ const FinancialCharts = () => {
               ]
             };
             break;
+          }
           
-          case 'cashFlow':
+          case 'cashFlow': {
             log('FinancialCharts', 'Fetching cash flow data', { timeRange });
             const cashFlow = await apiService.getCashFlowData(timeRange);
             
             // Process cash flow data
-            const cashFlowLabels = cashFlow.map(item => item.month);
-            const incomeData = cashFlow.map(item => item.income);
-            const expenseData = cashFlow.map(item => Math.abs(item.expenses));
-            const savingsData = cashFlow.map(item => item.income - Math.abs(item.expenses));
+            cashFlowLabels = cashFlow.map(item => item.month);
+            incomeData = cashFlow.map(item => item.income);
+            expenseData = cashFlow.map(item => Math.abs(item.expenses));
+            savingsData = cashFlow.map(item => item.income - Math.abs(item.expenses));
             
             data = {
               labels: cashFlowLabels,
@@ -247,15 +252,16 @@ const FinancialCharts = () => {
               ]
             };
             break;
+          }
           
-          case 'spending':
+          case 'spending': {
             log('FinancialCharts', 'Fetching spending data', { timeRange });
             const spending = await apiService.getSpendingByCategory(timeRange);
             
             // Process spending data
-            const categories = spending.map(item => item.category);
-            const amounts = spending.map(item => Math.abs(item.amount));
-            const backgroundColors = spending.map((_, index) => {
+            categories = spending.map(item => item.category);
+            amounts = spending.map(item => Math.abs(item.amount));
+            backgroundColors = spending.map((_, index) => {
               const colorKeys = Object.keys(chartColors).filter(key => !key.includes('Gradient'));
               return chartColors[colorKeys[index % colorKeys.length]];
             });
@@ -273,16 +279,17 @@ const FinancialCharts = () => {
               ]
             };
             break;
+          }
           
-          case 'goals':
+          case 'goals': {
             log('FinancialCharts', 'Fetching goals data');
             const goals = await apiService.getFinancialGoals();
             
             // Process goals data
-            const goalNames = goals.map(goal => goal.name);
-            const targetAmounts = goals.map(goal => goal.target_amount);
-            const currentAmounts = goals.map(goal => goal.current_amount);
-            const percentComplete = goals.map(goal => 
+            goalNames = goals.map(goal => goal.name);
+            targetAmounts = goals.map(goal => goal.target_amount);
+            currentAmounts = goals.map(goal => goal.current_amount);
+            percentComplete = goals.map(goal => 
               (goal.current_amount / goal.target_amount) * 100
             );
             
@@ -304,6 +311,7 @@ const FinancialCharts = () => {
               ]
             };
             break;
+          }
           
           default:
             throw new Error(`Unknown chart type: ${activeChart}`);

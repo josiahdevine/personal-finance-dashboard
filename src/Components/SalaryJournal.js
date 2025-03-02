@@ -14,6 +14,7 @@ import {
 import 'react-toastify/dist/ReactToastify.css';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { log, logError } from '../utils/logger';
 
 // Register ChartJS components
 ChartJS.register(
@@ -556,6 +557,45 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const [retirement401k, setRetirement401k] = useState('0');
 
     const [editingEntryId, setEditingEntryId] = useState(null);
+
+    // Handle salary added callback
+    const handleSalaryAdded = (newSalary) => {
+        if (onSalaryAdded) {
+            try {
+                onSalaryAdded(newSalary);
+                log('SalaryJournal', 'Salary entry added successfully', { id: newSalary.id });
+            } catch (error) {
+                logError('SalaryJournal', 'Error in onSalaryAdded callback', error);
+                toast.error('Error processing new salary entry');
+            }
+        }
+    };
+
+    // Handle salary updated callback
+    const handleSalaryUpdated = (updatedSalary) => {
+        if (onSalaryUpdated) {
+            try {
+                onSalaryUpdated(updatedSalary);
+                log('SalaryJournal', 'Salary entry updated successfully', { id: updatedSalary.id });
+            } catch (error) {
+                logError('SalaryJournal', 'Error in onSalaryUpdated callback', error);
+                toast.error('Error updating salary entry');
+            }
+        }
+    };
+
+    // Handle salary deleted callback
+    const handleSalaryDeleted = (salaryId) => {
+        if (onSalaryDeleted) {
+            try {
+                onSalaryDeleted(salaryId);
+                log('SalaryJournal', 'Salary entry deleted successfully', { id: salaryId });
+            } catch (error) {
+                logError('SalaryJournal', 'Error in onSalaryDeleted callback', error);
+                toast.error('Error deleting salary entry');
+            }
+        }
+    };
 
     const handleEditEntry = (entry) => {
         // Populate the form with the selected entry data

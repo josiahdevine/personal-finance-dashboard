@@ -2,18 +2,20 @@
  * Serverless function for retrieving balance history from Plaid
  */
 
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const corsHandler = require('./utils/cors-handler');
-const authHandler = require('./utils/auth-handler');
-const { createLogger } = require('./utils/logger');
-const { validatePlaidConfig, getClientWithToken } = require('./utils/plaid-client');
-const dbConnector = require('./utils/db-connector');
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import { validatePlaidConfig, getClientWithToken } from './utils/plaid-client.js';
+import { createLogger } from './utils/logger.js';
+import corsHandler from './utils/cors-handler.js';
+import dbConnector from './utils/db-connector.js';
+import retry from './utils/retry.js';
+import dotenv from 'dotenv';
+import authHandler from './utils/auth-handler.js';
 
-// Initialize logger
+dotenv.config();
+
 const logger = createLogger('plaid-balance-history');
 
-// Create a standalone handler that properly handles CORS
-exports.handler = async function(event, context) {
+export const handler = async (event) => {
   const requestId = event.headers['x-request-id'] || Date.now().toString();
   const origin = event.headers.origin || event.headers.Origin || '*';
 

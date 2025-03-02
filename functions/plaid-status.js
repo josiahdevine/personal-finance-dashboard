@@ -2,12 +2,18 @@
  * Serverless function for checking Plaid connection status
  */
 
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const corsHandler = require('./utils/cors-handler');
-const authHandler = require('./utils/auth-handler');
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import { createLogger } from './utils/logger.js';
+import corsHandler from './utils/cors-handler.js';
+import dotenv from 'dotenv';
+import authHandler from './utils/auth-handler.js';
+
+dotenv.config();
+
+const logger = createLogger('plaid-status');
 
 // IMPORTANT: Create a standalone handler that properly handles CORS
-exports.handler = async function(event, context) {
+export const handler = async function(event, context) {
   console.log("Received plaid-status request:", {
     httpMethod: event.httpMethod,
     path: event.path,

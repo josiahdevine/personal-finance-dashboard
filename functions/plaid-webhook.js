@@ -2,16 +2,16 @@
  * Serverless function for handling Plaid webhooks
  */
 
-const crypto = require('crypto');
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const corsHandler = require('./utils/cors-handler');
-const { createLogger } = require('./utils/logger');
-const { validatePlaidConfig, getClientWithToken } = require('./utils/plaid-client');
-const dbConnector = require('./utils/db-connector');
-const retry = require('./utils/retry');
-require('dotenv').config();
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import { validatePlaidConfig, getClientWithToken } from './utils/plaid-client.js';
+import { createLogger } from './utils/logger.js';
+import corsHandler from './utils/cors-handler.js';
+import dbConnector from './utils/db-connector.js';
+import retry from './utils/retry.js';
+import dotenv from 'dotenv';
 
-// Initialize logger
+dotenv.config();
+
 const logger = createLogger('plaid-webhook');
 
 /**
@@ -222,8 +222,7 @@ const handleIncomeWebhook = async (webhookData) => {
   // TODO: Implement income refresh handling
 };
 
-// Export the handler
-exports.handler = async (event) => {
+export const handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {

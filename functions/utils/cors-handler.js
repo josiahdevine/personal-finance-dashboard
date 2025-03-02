@@ -16,13 +16,31 @@ function getCorsHeaders(origin = '*', methods = ['GET', 'POST', 'PUT', 'DELETE',
     'https://trypersonalfinance.com',
     'https://www.trypersonalfinance.com',
     'https://api.trypersonalfinance.com',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'https://willowy-choux-870c3b.netlify.app'
   ];
 
+  // When credentials are true, we must specify an exact origin (not wildcard)
   // In production, only allow specific origins
-  const allowedOrigin = process.env.NODE_ENV === 'production'
-    ? allowedOrigins.includes(origin) ? origin : allowedOrigins[0]
-    : '*';
+  let allowedOrigin;
+  
+  if (credentials) {
+    // For requests with credentials, we must use a specific origin
+    // If the origin is in our allowed list, use it; otherwise use the first allowed origin
+    allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+    
+    // Log the CORS decision for debugging
+    console.log(`CORS: Using specific origin for credentials request: ${allowedOrigin}`, {
+      requestOrigin: origin,
+      isAllowed: allowedOrigins.includes(origin),
+      environment: process.env.NODE_ENV
+    });
+  } else {
+    // For requests without credentials, we can use wildcard in development
+    allowedOrigin = process.env.NODE_ENV === 'production'
+      ? allowedOrigins.includes(origin) ? origin : allowedOrigins[0]
+      : '*';
+  }
   
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
@@ -30,7 +48,8 @@ function getCorsHeaders(origin = '*', methods = ['GET', 'POST', 'PUT', 'DELETE',
     "Access-Control-Allow-Methods": methods.join(', '),
     "Access-Control-Allow-Credentials": credentials ? "true" : "false",
     "Access-Control-Max-Age": "86400", // 24 hours
-    "Cache-Control": "no-cache"
+    "Cache-Control": "no-cache",
+    "Vary": "Origin" // Important when using dynamic origins
   };
 }
 
@@ -46,7 +65,8 @@ function handleCorsPreflightRequest(event) {
   if (event.httpMethod === "OPTIONS") {
     console.log(`Handling OPTIONS preflight request for ${event.path}`, {
       origin,
-      path: event.path
+      path: event.path,
+      headers: event.headers
     });
     
     return {

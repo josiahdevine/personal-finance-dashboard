@@ -240,7 +240,7 @@ const api = axios.create({
 console.log('[API] Client initialized with:', {
   baseURL: api.defaults.baseURL,
   environment: process.env.NODE_ENV,
-  hostname: window.location.hostname
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown'
 });
 
 // Add a simple health check function to test API connectivity
@@ -351,6 +351,16 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log outgoing requests in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[API] ${config.method.toUpperCase()} ${config.url}`, { 
+        withCredentials: config.withCredentials,
+        hasAuthHeader: !!config.headers.Authorization,
+        origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
+      });
+    }
+    
     return config;
   },
   (error) => {
@@ -365,14 +375,50 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       // Server responded with error status
-      console.error('[API] Response error:', error.response.status, error.response.data);
+      console.error('[API] Response error:', {
+        status: error.response.status,
+        url: error.config?.url,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+      
       if (error.response.status === 401) {
         // Handle unauthorized access
+        console.warn('[API] Authentication error - redirecting to login');
+        localStorage.removeItem('authToken'); // Clear invalid token
         window.location.href = '/login';
+      }
+      
+      // Check for CORS errors
+      if (error.response.status === 0 || 
+          (error.message && error.message.includes('Network Error'))) {
+        console.error('[API] Possible CORS error - check server configuration', {
+          url: error.config?.url,
+          withCredentials: error.config?.withCredentials,
+          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+          message: error.message
+        });
       }
     } else if (error.request) {
       // Request made but no response received
-      console.error('[API] Network error:', error.request);
+      console.error('[API] Network error:', {
+        request: error.request,
+        url: error.config?.url,
+        message: error.message,
+        type: error.name
+      });
+      
+      // Check for CORS errors in the browser console
+      if (error.message && (
+          error.message.includes('NetworkError') || 
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('Network request failed'))) {
+        console.error('[API] Possible CORS or network connectivity issue', {
+          url: error.config?.url,
+          withCredentials: error.config?.withCredentials,
+          origin: typeof window !== 'undefined' ? window.location.origin : 'unknown'
+        });
+      }
     } else {
       // Error in request configuration
       console.error('[API] Error:', error.message);

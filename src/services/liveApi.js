@@ -22,7 +22,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   validateStatus: (status) => status >= 200 && status < 500, // Don't reject if status is 2xx/3xx/4xx
-  withCredentials: false // Disable credentials for CORS
+  withCredentials: true // Enable credentials for CORS
 });
 
 // Generate request ID

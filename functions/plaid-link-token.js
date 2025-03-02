@@ -1,127 +1,111 @@
 /**
- * Serverless function for creating Plaid link tokens
+ * Plaid Link Token API
+ * Creates a link token for initializing Plaid Link
  */
 
-import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import { 
-  getPlaidClient, 
-  getPlaidConfig, 
-  createSuccessResponse, 
-  createErrorResponse 
-} from './utils/plaid-client.js';
-import corsHandler from './utils/cors-handler.js';
-import authHandler from './utils/auth-handler.js';
-import { createLogger } from './utils/logger.js';
+const corsHandler = require('./utils/cors-handler');
+const authHandler = require('./utils/auth-handler');
+const { getPlaidClient } = require('./utils/plaid-client');
+const { logInfo, logError } = require('./utils/logger');
 
-// Initialize logger
-const logger = createLogger('plaid-link-token');
-
-// Validate Plaid configuration
-function validatePlaidConfig(config) {
-  const { clientId, secret, env } = config;
-  const errors = [];
-
-  if (!clientId) errors.push('Missing PLAID_CLIENT_ID');
-  if (!secret) errors.push('Missing PLAID_SECRET');
-  if (!env || !Object.keys(PlaidEnvironments).includes(env)) {
-    errors.push(`Invalid PLAID_ENV: ${env}. Must be one of: ${Object.keys(PlaidEnvironments).join(', ')}`);
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// Initialize Plaid client with configuration
-function initializePlaidClient(config) {
-  const { clientId, secret, env } = config;
+exports.handler = async function(event, context) {
+  // Get the requesting origin
+  const origin = event.headers.origin || event.headers.Origin || '*';
   
-  const configuration = new Configuration({
-    basePath: PlaidEnvironments[env],
-    baseOptions: {
-      headers: {
-        'PLAID-CLIENT-ID': clientId,
-        'PLAID-SECRET': secret,
-        'PLAID-VERSION': '2020-09-14',
-      },
-    },
-  });
-  
-  return new PlaidApi(configuration);
-}
-
-// Create a standalone handler that properly handles CORS
-export const handler = async function(event, context) {
-  const origin = event.headers.origin || '*';
-  const requestId = event.headers['x-request-id'] || `req_${Date.now()}`;
-
   // Handle preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return corsHandler.createPreflightResponse(origin);
-  }
+  const preflightResponse = corsHandler.handleCorsPreflightRequest(event);
+  if (preflightResponse) return preflightResponse;
+
+  // Log the request
+  logInfo('plaid-link-token', 'Received request', {
+    path: event.path,
+    method: event.httpMethod,
+    origin: origin,
+    headers: Object.keys(event.headers)
+  });
 
   try {
-    // Only allow POST requests
-    if (event.httpMethod !== 'POST') {
-      return createErrorResponse(405, { message: 'Method not allowed' });
+    // Verify authentication
+    const user = await authHandler.verifyUser(event);
+    if (!user) {
+      return corsHandler.createCorsResponse(401, {
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      }, origin);
     }
 
-    // Get user from request
-    const user = await authHandler.getUserFromRequest(event);
-    
-    // Check if user is authenticated
-    if (!user.isAuthenticated) {
-      logger.warn('Unauthorized request', { requestId });
-      return createErrorResponse(401, { 
-        message: 'Authentication required for this endpoint',
-        code: 'UNAUTHORIZED'
-      });
-    }
-
-    logger.info('Creating Plaid link token', {
-      requestId,
-      userId: user.uid
-    });
-
+    // Get Plaid client
     const plaidClient = getPlaidClient();
-    const config = getPlaidConfig();
+    if (!plaidClient) {
+      logError('plaid-link-token', 'Plaid client initialization failed');
+      return corsHandler.createCorsResponse(500, {
+        error: 'Plaid Configuration Error',
+        message: 'Failed to initialize Plaid client'
+      }, origin);
+    }
 
-    // Prepare link token request
-    const request = {
+    // Parse request body if present
+    let requestBody = {};
+    if (event.body) {
+      try {
+        requestBody = JSON.parse(event.body);
+      } catch (e) {
+        logError('plaid-link-token', 'Failed to parse request body', e);
+      }
+    }
+
+    // Create link token request
+    const linkTokenRequest = {
       user: {
-        client_user_id: user.uid,
+        client_user_id: user.uid || 'anonymous-user',
       },
       client_name: 'Personal Finance Dashboard',
-      products: config.products,
-      country_codes: config.countryCodes,
-      language: config.language,
-      webhook: config.webhookUrl,
+      products: ['transactions', 'auth'],
+      country_codes: ['US'],
+      language: 'en',
+      webhook: process.env.PLAID_WEBHOOK_URL,
+      ...requestBody
     };
 
-    // Add redirect URI if configured
-    if (config.redirectUri) {
-      request.redirect_uri = config.redirectUri;
+    // Log the link token request (without sensitive data)
+    logInfo('plaid-link-token', 'Creating link token', {
+      clientUserId: linkTokenRequest.user.client_user_id,
+      products: linkTokenRequest.products,
+      countryCodes: linkTokenRequest.country_codes
+    });
+
+    // Create the link token
+    const createTokenResponse = await plaidClient.linkTokenCreate(linkTokenRequest);
+    const linkToken = createTokenResponse.data.link_token;
+
+    // Return the link token
+    return corsHandler.createCorsResponse(200, {
+      link_token: linkToken,
+      expiration: createTokenResponse.data.expiration
+    }, origin);
+  } catch (error) {
+    // Log the error
+    logError('plaid-link-token', 'Error creating link token', {
+      error: error.message,
+      stack: error.stack,
+      plaidError: error.response?.data
+    });
+
+    // Determine the appropriate status code
+    let statusCode = 500;
+    let errorMessage = 'An error occurred while creating the link token';
+    
+    if (error.response) {
+      // Handle Plaid API errors
+      statusCode = error.response.status;
+      errorMessage = error.response.data.error_message || errorMessage;
     }
 
-    const createTokenResponse = await plaidClient.linkTokenCreate(request);
-    
-    logger.info('Link token created successfully', {
-      requestId,
-      userId: user.uid,
-      linkTokenExpiration: createTokenResponse.data.expiration
-    });
-
-    return createSuccessResponse(createTokenResponse.data, requestId);
-  } catch (error) {
-    logger.error('Failed to create link token', {
-      requestId,
-      error: {
-        message: error.message,
-        type: error.constructor.name
-      }
-    });
-
-    return createErrorResponse(500, error, requestId);
+    // Return the error response
+    return corsHandler.createCorsResponse(statusCode, {
+      error: 'Plaid API Error',
+      message: errorMessage,
+      requestId: context.awsRequestId
+    }, origin);
   }
 }; 

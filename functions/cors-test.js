@@ -1,43 +1,65 @@
 /**
  * CORS Test Function
- * 
- * This function is designed to test CORS handling and provide detailed
- * debugging information about the request. It can be used to verify
- * that CORS is working correctly before testing more complex endpoints.
+ * This function helps diagnose CORS issues by returning detailed information
+ * about the request and the CORS headers being sent back.
  */
 
 const corsHandler = require('./utils/cors-handler');
 
 exports.handler = async function(event, context) {
-  // Get origin
+  // Get the requesting origin
   const origin = event.headers.origin || event.headers.Origin || '*';
   
-  console.log('CORS Test Function Called', {
+  // Log the request details for debugging
+  console.log('CORS Test Request:', {
     method: event.httpMethod,
-    origin: origin,
     path: event.path,
+    origin: origin,
     headers: event.headers,
-    timestamp: new Date().toISOString()
+    queryParams: event.queryStringParameters || {}
   });
 
-  // Special handler for OPTIONS preflight requests
-  if (event.httpMethod === "OPTIONS") {
-    console.log('Handling OPTIONS request in cors-test');
+  // Handle OPTIONS preflight requests
+  if (event.httpMethod === 'OPTIONS') {
     return corsHandler.handleCorsPreflightRequest(event);
   }
 
-  // For all other requests, return a success response with request details
-  return corsHandler.createCorsResponse(200, {
-    message: "CORS test successful!",
-    details: {
-      httpMethod: event.httpMethod,
+  // Create a response with detailed information
+  const response = {
+    success: true,
+    message: 'CORS test successful',
+    timestamp: new Date().toISOString(),
+    request: {
+      method: event.httpMethod,
       path: event.path,
       origin: origin,
-      headers: event.headers,
-      timestamp: new Date().toISOString()
+      headers: Object.keys(event.headers).reduce((obj, key) => {
+        // Don't include authorization tokens in the response
+        if (key.toLowerCase() !== 'authorization') {
+          obj[key] = event.headers[key];
+        } else {
+          obj[key] = '(hidden for security)';
+        }
+        return obj;
+      }, {}),
+      queryParams: event.queryStringParameters || {}
     },
     cors: {
-      headers: corsHandler.getCorsHeaders(origin)
+      allowedOrigins: [
+        'https://trypersonalfinance.com',
+        'https://www.trypersonalfinance.com',
+        'https://api.trypersonalfinance.com',
+        'http://localhost:3000'
+      ],
+      responseOrigin: corsHandler.getCorsHeaders(origin)['Access-Control-Allow-Origin'],
+      withCredentials: true
+    },
+    environment: {
+      node_env: process.env.NODE_ENV || '(not set)',
+      netlify: process.env.NETLIFY || '(not set)'
     }
-  }, origin);
+  };
+
+  // Return the response with CORS headers
+  return corsHandler.createCorsResponse(200, response, origin);
 }; 

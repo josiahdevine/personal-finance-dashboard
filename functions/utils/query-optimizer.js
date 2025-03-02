@@ -3,7 +3,7 @@
  * This module provides functions to analyze and optimize database queries
  */
 
-import { query } from './db-connector.js';
+import dbConnector from './db-connector.js';
 import dbMonitor from './db-monitor.js';
 
 // Configuration
@@ -376,7 +376,7 @@ async function runAnalyzeOnFrequentTables() {
     
     for (const table of topTables) {
       console.log(`Running ANALYZE on frequently queried table: ${table}`);
-      await query(`ANALYZE ${table}`);
+      await dbConnector.query(`ANALYZE ${table}`);
     }
   } catch (error) {
     console.error('Error running ANALYZE on tables:', error);

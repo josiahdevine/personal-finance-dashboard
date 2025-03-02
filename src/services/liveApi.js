@@ -44,40 +44,53 @@ api.interceptors.request.use(
     
     // Handle URL paths for Netlify Functions
     if (config.url.startsWith('/api/')) {
-      // Remove /api prefix since Netlify Functions don't use it
+      // Remove /api prefix for Netlify Functions
       config.url = config.url.replace('/api/', '/');
-    } else if (!config.url.startsWith('/')) {
-      // Add leading slash if missing
-      config.url = '/' + config.url;
+      log('API', `Transformed URL from /api/ prefix: ${config.url}`);
     }
     
-    // Log API request
-    log('API', `${config.method?.toUpperCase() || 'REQUEST'} ${config.url}`, { 
-      requestId,
-      params: config.params,
-      data: config.data,
-      baseURL: config.baseURL,
-      fullUrl: `${config.baseURL}${config.url}`,
-      withCredentials: config.withCredentials // Log withCredentials setting
-    });
-    
+    // Add auth token if available
     try {
-      // Add auth token to every request
       const token = await getToken();
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers['Authorization'] = `Bearer ${token}`;
       }
-      return config;
     } catch (error) {
-      logError('API', 'Failed to get auth token for request', {
-        error,
-        requestId
-      });
-      return config;
+      logError('API', 'Error getting auth token', error);
     }
+    
+    // Log outgoing request (redact sensitive data)
+    const logData = {
+      method: config.method.toUpperCase(),
+      url: config.url,
+      requestId,
+      headers: { ...config.headers }
+    };
+    
+    // Redact sensitive headers
+    if (logData.headers.Authorization) {
+      logData.headers.Authorization = 'Bearer [REDACTED]';
+    }
+    
+    // Log request data but redact sensitive fields
+    if (config.data) {
+      logData.data = { ...config.data };
+      
+      // Redact sensitive fields
+      const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth'];
+      sensitiveFields.forEach(field => {
+        if (logData.data[field]) {
+          logData.data[field] = '[REDACTED]';
+        }
+      });
+    }
+    
+    log('API', `Request: ${config.method.toUpperCase()} ${config.url}`, logData);
+    
+    return config;
   },
   error => {
-    logError('API', 'Request interceptor error', error);
+    logError('API', 'Request error', error);
     return Promise.reject(error);
   }
 );
@@ -288,8 +301,14 @@ const apiService = {
   
   // Transactions Analytics
   getTransactionsAnalytics: async (params) => {
-    const response = await api.get('/transactions-analytics', { params });
-    return response.data;
+    try {
+      log('API', 'Fetching transactions analytics', { params });
+      const response = await api.get('/transactions-analytics', { params });
+      return response.data;
+    } catch (error) {
+      logError('API', 'Error fetching transactions analytics', error);
+      throw error;
+    }
   },
   
   // Health check

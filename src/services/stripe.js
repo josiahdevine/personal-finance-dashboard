@@ -29,37 +29,32 @@ export const getStripe = async () => {
 };
 
 /**
- * Create a payment intent for a transaction
- * @param {Object} paymentData Payment details
- * @param {number} paymentData.amount Amount to charge (in cents)
- * @param {string} paymentData.currency Currency code (e.g., 'usd')
- * @param {Object} paymentData.metadata Additional metadata
- * @returns {Promise<{clientSecret: string}>} Payment intent client secret
+ * Create a payment intent
+ * @param {Object} paymentData Payment data
+ * @returns {Promise<Object>} Payment intent details
  */
 export const createPaymentIntent = async (paymentData) => {
   try {
-    const response = await api.post('/api/payments/create-payment-intent', paymentData);
+    const response = await api.post('/payments/create-payment-intent', paymentData);
     return response.data;
   } catch (error) {
     console.error('Error creating payment intent:', error);
-    throw new Error(error.response?.data?.message || 'Payment processing failed');
+    throw new Error(error.response?.data?.message || 'Failed to create payment intent');
   }
 };
 
 /**
  * Create a subscription
- * @param {Object} subscriptionData Subscription details
- * @param {string} subscriptionData.priceId Stripe price ID
- * @param {string} subscriptionData.customerId Stripe customer ID
+ * @param {Object} subscriptionData Subscription data
  * @returns {Promise<Object>} Subscription details
  */
 export const createSubscription = async (subscriptionData) => {
   try {
-    const response = await api.post('/api/payments/create-subscription', subscriptionData);
+    const response = await api.post('/payments/create-subscription', subscriptionData);
     return response.data;
   } catch (error) {
     console.error('Error creating subscription:', error);
-    throw new Error(error.response?.data?.message || 'Subscription creation failed');
+    throw new Error(error.response?.data?.message || 'Failed to create subscription');
   }
 };
 
@@ -69,7 +64,7 @@ export const createSubscription = async (subscriptionData) => {
  */
 export const getPaymentMethods = async () => {
   try {
-    const response = await api.get('/api/payments/payment-methods');
+    const response = await api.get('/payments/payment-methods');
     return response.data;
   } catch (error) {
     console.error('Error fetching payment methods:', error);
@@ -84,7 +79,7 @@ export const getPaymentMethods = async () => {
  */
 export const addPaymentMethod = async (paymentMethodId) => {
   try {
-    const response = await api.post('/api/payments/add-payment-method', { paymentMethodId });
+    const response = await api.post('/payments/add-payment-method', { paymentMethodId });
     return response.data;
   } catch (error) {
     console.error('Error adding payment method:', error);
@@ -99,7 +94,7 @@ export const addPaymentMethod = async (paymentMethodId) => {
  */
 export const removePaymentMethod = async (paymentMethodId) => {
   try {
-    const response = await api.delete('/api/payments/payment-methods/' + paymentMethodId);
+    const response = await api.delete('/payments/payment-methods/' + paymentMethodId);
     return response.data;
   } catch (error) {
     console.error('Error removing payment method:', error);
@@ -113,7 +108,7 @@ export const removePaymentMethod = async (paymentMethodId) => {
  */
 export const getSubscriptionDetails = async () => {
   try {
-    const response = await api.get('/api/payments/subscription');
+    const response = await api.get('/payments/subscription');
     return response.data;
   } catch (error) {
     console.error('Error fetching subscription details:', error);
@@ -123,14 +118,14 @@ export const getSubscriptionDetails = async () => {
 
 /**
  * Cancel subscription
- * @returns {Promise<Object>} Cancellation details
+ * @returns {Promise<{success: boolean}>} Cancellation status
  */
 export const cancelSubscription = async () => {
   try {
-    const response = await api.post('/api/payments/cancel-subscription');
+    const response = await api.post('/payments/cancel-subscription');
     return response.data;
   } catch (error) {
-    console.error('Error canceling subscription:', error);
+    console.error('Error cancelling subscription:', error);
     throw new Error(error.response?.data?.message || 'Failed to cancel subscription');
   }
 }; 

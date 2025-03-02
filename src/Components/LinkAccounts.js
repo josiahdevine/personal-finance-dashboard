@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
+import apiService from '../services/apiService';
 import { usePlaid } from '../contexts/PlaidContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaidLink } from '../contexts/PlaidLinkContext';
@@ -85,7 +86,7 @@ const LinkAccounts = () => {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/plaid/accounts');
+      const response = await apiService.getPlaidAccounts();
       setAccounts(response.data || []);
     } catch (error) {
       console.error('Error fetching accounts:', error);

@@ -3,8 +3,8 @@
  * Provides analytics data for user transactions
  */
 
-import { createCorsResponse, handleOptionsRequest } from './utils/cors-handler.js';
-import { verifyAuthToken } from './utils/auth-handler.js';
+import corsHandler from './utils/cors-handler.js';
+import authHandler from './utils/auth-handler.js';
 
 /**
  * Generate mock analytics data for development
@@ -91,7 +91,7 @@ export const handler = async (event, context) => {
   
   // Handle OPTIONS request (CORS preflight)
   if (event.httpMethod === 'OPTIONS') {
-    return handleOptionsRequest(event);
+    return corsHandler.handleOptionsRequest(event);
   }
   
   // Get request origin for CORS
@@ -99,14 +99,14 @@ export const handler = async (event, context) => {
   
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
-    return createCorsResponse(405, { error: 'Method not allowed' }, origin);
+    return corsHandler.createCorsResponse(405, { error: 'Method not allowed' }, origin);
   }
   
   try {
     // Verify authentication
-    const user = await verifyAuthToken(event);
+    const user = await authHandler.verifyAuthToken(event);
     if (!user) {
-      return createCorsResponse(401, { error: 'Unauthorized' }, origin);
+      return corsHandler.createCorsResponse(401, { error: 'Unauthorized' }, origin);
     }
     
     // Log authenticated user
@@ -130,13 +130,13 @@ export const handler = async (event, context) => {
     }
     
     // Return successful response with analytics data
-    return createCorsResponse(200, analyticsData, origin);
+    return corsHandler.createCorsResponse(200, analyticsData, origin);
   } catch (error) {
     // Log error details
     console.error('Error in transactions analytics:', error);
     
     // Return error response
-    return createCorsResponse(500, { 
+    return corsHandler.createCorsResponse(500, { 
       error: 'Internal server error',
       message: error.message
     }, origin);

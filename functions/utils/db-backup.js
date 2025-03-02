@@ -3,7 +3,7 @@
  * This module provides functions to backup and restore database data
  */
 
-import { query } from './db-connector.js';
+import dbConnector from './db-connector.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -52,7 +52,7 @@ async function createBackup(tables = config.tables) {
       console.log(`Backing up table: ${table}`);
       
       // Get table data
-      const result = await query(`SELECT * FROM ${table}`);
+      const result = await dbConnector.query(`SELECT * FROM ${table}`);
       
       // Add table data to backup
       backupData.tables[table] = {
@@ -167,7 +167,7 @@ async function restoreBackup(backupFilename, tables = null) {
         const values = columns.map(col => row[col]);
         
         // Execute query
-        await query(query, values);
+        await dbConnector.query(query, values);
         rowsRestored++;
       }
       

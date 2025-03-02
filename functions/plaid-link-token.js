@@ -4,8 +4,8 @@
  */
 
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import { createCorsResponse, handleOptionsRequest } from './utils/cors-handler.js';
-import { verifyAuthToken } from './utils/auth-handler.js';
+import corsHandler from './utils/cors-handler.js';
+import authHandler from './utils/auth-handler.js';
 
 // Initialize Plaid client
 const plaidConfig = new Configuration({
@@ -33,7 +33,7 @@ export const handler = async (event, context) => {
   
   // Handle OPTIONS request (CORS preflight)
   if (event.httpMethod === 'OPTIONS') {
-    return handleOptionsRequest(event);
+    return corsHandler.handleOptionsRequest(event);
   }
   
   // Get request origin for CORS
@@ -41,14 +41,14 @@ export const handler = async (event, context) => {
   
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
-    return createCorsResponse(405, { error: 'Method not allowed' }, origin);
+    return corsHandler.createCorsResponse(405, { error: 'Method not allowed' }, origin);
   }
   
   try {
     // Verify authentication
-    const user = await verifyAuthToken(event);
+    const user = await authHandler.verifyAuthToken(event);
     if (!user) {
-      return createCorsResponse(401, { error: 'Unauthorized' }, origin);
+      return corsHandler.createCorsResponse(401, { error: 'Unauthorized' }, origin);
     }
     
     // Log authenticated user
@@ -95,7 +95,7 @@ export const handler = async (event, context) => {
     const createTokenResponse = await plaidClient.linkTokenCreate(tokenRequest);
     
     // Return the link token
-    return createCorsResponse(200, {
+    return corsHandler.createCorsResponse(200, {
       linkToken: createTokenResponse.data.link_token,
       expiration: createTokenResponse.data.expiration
     }, origin);
@@ -113,7 +113,7 @@ export const handler = async (event, context) => {
     }
     
     // Return error response
-    return createCorsResponse(500, {
+    return corsHandler.createCorsResponse(500, {
       error: 'Failed to create link token',
       errorCode,
       message: errorMessage

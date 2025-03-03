@@ -18,13 +18,23 @@ const getBaseURL = () => {
 const isDevelopment = process.env.NODE_ENV === 'development';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || getBaseURL();
 
+// Define API endpoints
+const AUTH_ENDPOINTS = {
+  login: '/.netlify/functions/auth-login',
+  logout: '/.netlify/functions/auth-logout',
+  verify: '/.netlify/functions/auth-verify'
+};
+
 log('API', `Client initialized with:`, { 
   baseURL: API_BASE_URL,
   environment: process.env.NODE_ENV,
   hostname: window.location.hostname
 });
 
-// Initialize API service after ensuring Firebase auth is ready
+// Create and export the API service
+let apiService = null;
+
+// Initialize the API service
 const initializeApiService = async () => {
   try {
     // Ensure Firebase auth is initialized
@@ -51,7 +61,7 @@ const initializeApiService = async () => {
       async config => {
         const requestId = generateRequestId();
         config.requestId = requestId;
-        config.timestamp = Date.now(); // Add timestamp for performance tracking
+        config.timestamp = Date.now();
         
         // Add request ID to headers
         config.headers['X-Request-ID'] = requestId;
@@ -61,7 +71,6 @@ const initializeApiService = async () => {
         
         // Handle URL paths for Netlify Functions
         if (config.url.startsWith('/api/')) {
-          // Remove /api prefix for Netlify Functions
           config.url = config.url.replace('/api/', '/');
           log('API', `Transformed URL from /api/ prefix: ${config.url}`);
         }
@@ -71,7 +80,6 @@ const initializeApiService = async () => {
           const token = await getToken();
           if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
-            // Log token presence but not the actual token
             log('API', 'Auth token added to request', { hasToken: true });
           } else {
             log('API', 'No auth token available for request');
@@ -93,19 +101,6 @@ const initializeApiService = async () => {
           logData.headers.Authorization = 'Bearer [REDACTED]';
         }
         
-        // Log request data but redact sensitive fields
-        if (config.data) {
-          logData.data = { ...config.data };
-          
-          // Redact sensitive fields
-          const sensitiveFields = ['password', 'token', 'secret', 'key', 'auth'];
-          sensitiveFields.forEach(field => {
-            if (logData.data[field]) {
-              logData.data[field] = '[REDACTED]';
-            }
-          });
-        }
-        
         log('API', `Request: ${config.method.toUpperCase()} ${config.url}`, logData);
         
         return config;
@@ -119,10 +114,8 @@ const initializeApiService = async () => {
     // Response interceptor for logging and error handling
     api.interceptors.response.use(
       response => {
-        // Log successful response
         log('API', `Response ${response.status} from ${response.config.url}`, {
           requestId: response.config.requestId,
-          data: response.data,
           timing: Date.now() - new Date(response.config.timestamp)
         });
         return response;
@@ -146,7 +139,6 @@ const initializeApiService = async () => {
             baseURL: error.config?.baseURL
           });
           
-          // Enhance error object with CORS-specific information
           error.isCorsError = true;
           error.userMessage = errorMessage;
           error.code = errorCode;
@@ -155,7 +147,6 @@ const initializeApiService = async () => {
         }
         
         if (error.response) {
-          // Server responded with error status
           const status = error.response.status;
           const data = error.response.data;
           
@@ -174,7 +165,6 @@ const initializeApiService = async () => {
             case 401:
               errorCode = 'UNAUTHORIZED';
               errorMessage = 'Your session has expired. Please login again.';
-              // Trigger logout or token refresh here
               break;
             case 403:
               errorCode = 'FORBIDDEN';
@@ -194,8 +184,7 @@ const initializeApiService = async () => {
                 errorMessage = 'A server error occurred. Please try again later.';
               }
           }
-        } else if (error.request) {
-          // Request made but no response received
+        } else if (!error.response) {
           errorCode = 'NETWORK_ERROR';
           errorMessage = 'No response received from server. Please check your internet connection.';
           logError('API', `No response received from ${error.config.url}`, {
@@ -204,7 +193,6 @@ const initializeApiService = async () => {
             code: errorCode
           });
         } else {
-          // Error setting up request
           errorCode = 'REQUEST_SETUP_ERROR';
           errorMessage = error.message || errorMessage;
           logError('API', 'Error setting up request', {
@@ -214,7 +202,6 @@ const initializeApiService = async () => {
           });
         }
         
-        // Enhance error object with additional information
         error.userMessage = errorMessage;
         error.code = errorCode;
         error.requestId = requestId;
@@ -230,215 +217,236 @@ const initializeApiService = async () => {
   }
 };
 
-const AUTH_ENDPOINTS = {
-  login: '/.netlify/functions/auth-login',
-  logout: '/.netlify/functions/auth-logout',
-  verify: '/.netlify/functions/auth-verify'
+// Initialize the API service with retries
+let initRetryCount = 0;
+const MAX_INIT_RETRIES = 3;
+
+const initializeWithRetry = async () => {
+  while (initRetryCount < MAX_INIT_RETRIES) {
+    try {
+      const api = await initializeApiService();
+      if (api) {
+        apiService = {
+          // Authentication
+          login: async (email, password) => {
+            try {
+              const response = await api.post(AUTH_ENDPOINTS.login, { email, password });
+              if (response.data.token) {
+                localStorage.setItem('authToken', response.data.token);
+                api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+              }
+              return response.data;
+            } catch (error) {
+              logError('API', 'Login error', error);
+              throw error;
+            }
+          },
+          
+          logout: async () => {
+            const response = await api.post(AUTH_ENDPOINTS.logout);
+            return response.data;
+          },
+          
+          // Plaid API
+          getPlaidLinkToken: async (userId) => {
+            const response = await api.post('/plaid-link-token', { user_id: userId });
+            return response.data;
+          },
+          
+          exchangePlaidPublicToken: async (publicToken, userId) => {
+            const response = await api.post('/plaid-exchange-token', { 
+              public_token: publicToken,
+              user_id: userId,
+              metadata: {
+                environment: process.env.NODE_ENV,
+                timestamp: new Date().toISOString()
+              }
+            });
+            return response.data;
+          },
+          
+          getPlaidAccounts: async () => {
+            const response = await api.get('/plaid-accounts');
+            return response.data;
+          },
+          
+          getPlaidStatus: async () => {
+            try {
+              const response = await api.get('/plaid-status');
+              return response.data;
+            } catch (error) {
+              if (error.response?.status === 403) {
+                throw {
+                  message: 'Access denied',
+                  details: 'You need to connect your accounts to view analytics.',
+                  code: 'ACCOUNTS_NOT_CONNECTED'
+                };
+              }
+              throw error;
+            }
+          },
+          
+          getTransactionsAnalytics: async (params) => {
+            try {
+              const response = await api.get('/transactions-analytics', { params });
+              return response.data;
+            } catch (error) {
+              if (error.response?.status === 403) {
+                throw {
+                  message: 'Access denied',
+                  details: 'You need to connect your accounts to view analytics.',
+                  code: 'ACCOUNTS_NOT_CONNECTED'
+                };
+              }
+              throw error;
+            }
+          },
+          
+          getBalanceHistory: async (params) => {
+            try {
+              const response = await api.get('/plaid-balance-history', { params });
+              return response.data;
+            } catch (error) {
+              if (error.response?.status === 403) {
+                throw {
+                  message: 'Access denied',
+                  details: 'You need to connect your accounts to view balance history.',
+                  code: 'ACCOUNTS_NOT_CONNECTED'
+                };
+              }
+              throw error;
+            }
+          },
+          
+          // Salary Entries
+          getSalaryEntries: async (params) => {
+            try {
+              const response = await api.get('/api/salary-journal', { params });
+              return response.data;
+            } catch (error) {
+              logError('API', 'Error fetching salary entries', error);
+              throw {
+                message: 'Failed to fetch salary entries',
+                details: error.response?.data?.message || error.message,
+                code: error.response?.status || 'UNKNOWN_ERROR'
+              };
+            }
+          },
+          
+          createSalaryEntry: async (salaryData) => {
+            try {
+              const response = await api.post('/api/salary-journal', salaryData);
+              return response.data;
+            } catch (error) {
+              logError('API', 'Error creating salary entry', error);
+              throw {
+                message: 'Failed to create salary entry',
+                details: error.response?.data?.message || error.message,
+                code: error.response?.status || 'UNKNOWN_ERROR'
+              };
+            }
+          },
+          
+          updateSalaryEntry: async (id, salaryData) => {
+            try {
+              const response = await api.put(`/api/salary-journal/${id}`, salaryData);
+              return response.data;
+            } catch (error) {
+              logError('API', 'Error updating salary entry', error);
+              throw {
+                message: 'Failed to update salary entry',
+                details: error.response?.data?.message || error.message,
+                code: error.response?.status || 'UNKNOWN_ERROR'
+              };
+            }
+          },
+          
+          deleteSalaryEntry: async (id) => {
+            try {
+              const response = await api.delete(`/api/salary-journal/${id}`);
+              return response.data;
+            } catch (error) {
+              logError('API', 'Error deleting salary entry', error);
+              throw {
+                message: 'Failed to delete salary entry',
+                details: error.response?.data?.message || error.message,
+                code: error.response?.status || 'UNKNOWN_ERROR'
+              };
+            }
+          },
+          
+          // Financial Goals
+          getGoals: async () => {
+            const response = await api.get('/goals');
+            return response.data;
+          },
+          
+          createGoal: async (goalData) => {
+            const response = await api.post('/goals', goalData);
+            return response.data;
+          },
+          
+          updateGoal: async (id, goalData) => {
+            const response = await api.put(`/goals/${id}`, goalData);
+            return response.data;
+          },
+          
+          deleteGoal: async (id) => {
+            const response = await api.delete(`/goals/${id}`);
+            return response.data;
+          },
+          
+          // Health check
+          checkHealth: async () => {
+            try {
+              const response = await api.get('/api-status');
+              log('API', 'Health check successful', response.data);
+              return { status: 'healthy', data: response.data };
+            } catch (error) {
+              logError('API', 'Health check failed', error);
+              return { status: 'unhealthy', error };
+            }
+          }
+        };
+        
+        log('API', 'API service initialized successfully');
+        return apiService;
+      }
+      throw new Error('API initialization failed');
+    } catch (error) {
+      initRetryCount++;
+      if (initRetryCount >= MAX_INIT_RETRIES) {
+        logError('API', 'API initialization failed after retries', error);
+        throw error;
+      }
+      const delay = Math.min(1000 * Math.pow(2, initRetryCount), 8000);
+      log('API', `Retrying API initialization in ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 };
 
-// Create and export the API service
-let apiService = null;
+// Start initialization
+initializeWithRetry().catch(error => {
+  logError('API', 'Failed to initialize API service after retries', error);
+});
 
-// Initialize the API service
-initializeApiService()
-  .then(api => {
-    apiService = {
-      // Authentication
-      login: async (email, password) => {
-        try {
-          const response = await api.post(AUTH_ENDPOINTS.login, { email, password });
-          if (response.data.token) {
-            localStorage.setItem('authToken', response.data.token);
-            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+// Export a proxy to handle methods being called before initialization
+export default new Proxy({}, {
+  get: (target, prop) => {
+    if (!apiService) {
+      return async (...args) => {
+        if (!apiService) {
+          try {
+            await initializeWithRetry();
+          } catch (error) {
+            logError('API', 'API service not initialized', error);
+            throw new Error('API service not initialized');
           }
-          return response.data;
-        } catch (error) {
-          console.error('Login error:', error);
-          throw error;
         }
-      },
-      
-      logout: async () => {
-        const response = await api.post(AUTH_ENDPOINTS.logout);
-        return response.data;
-      },
-      
-      // Plaid API
-      getPlaidLinkToken: async (userId) => {
-        const response = await api.post('/plaid-link-token', { user_id: userId });
-        return response.data;
-      },
-      
-      exchangePlaidPublicToken: async (publicToken, userId) => {
-        const response = await api.post('/plaid-exchange-token', { 
-          public_token: publicToken,
-          user_id: userId,
-          metadata: {
-            environment: process.env.NODE_ENV,
-            timestamp: new Date().toISOString()
-          }
-        });
-        return response.data;
-      },
-      
-      getPlaidAccounts: async () => {
-        const response = await api.get('/plaid-accounts');
-        return response.data;
-      },
-      
-      getPlaidStatus: async () => {
-        try {
-          const response = await api.get('/plaid-status');
-          return response.data;
-        } catch (error) {
-          if (error.response?.status === 403) {
-            throw {
-              message: 'Access denied',
-              details: 'You need to connect your accounts to view analytics.',
-              code: 'ACCOUNTS_NOT_CONNECTED'
-            };
-          }
-          throw error;
-        }
-      },
-      
-      getTransactionsAnalytics: async (params) => {
-        try {
-          const response = await api.get('/transactions-analytics', { params });
-          return response.data;
-        } catch (error) {
-          if (error.response?.status === 403) {
-            throw {
-              message: 'Access denied',
-              details: 'You need to connect your accounts to view analytics.',
-              code: 'ACCOUNTS_NOT_CONNECTED'
-            };
-          }
-          throw error;
-        }
-      },
-      
-      getBalanceHistory: async (params) => {
-        try {
-          const response = await api.get('/plaid-balance-history', { params });
-          return response.data;
-        } catch (error) {
-          if (error.response?.status === 403) {
-            throw {
-              message: 'Access denied',
-              details: 'You need to connect your accounts to view balance history.',
-              code: 'ACCOUNTS_NOT_CONNECTED'
-            };
-          }
-          throw error;
-        }
-      },
-      
-      // Salary Entries
-      getSalaryEntries: async (params) => {
-        try {
-          const response = await api.get('/api/salary-journal', { params });
-          return response.data;
-        } catch (error) {
-          logError('API', 'Error fetching salary entries', error);
-          throw {
-            message: 'Failed to fetch salary entries',
-            details: error.response?.data?.message || error.message,
-            code: error.response?.status || 'UNKNOWN_ERROR'
-          };
-        }
-      },
-      
-      createSalaryEntry: async (salaryData) => {
-        try {
-          const response = await api.post('/api/salary-journal', salaryData);
-          return response.data;
-        } catch (error) {
-          logError('API', 'Error creating salary entry', error);
-          throw {
-            message: 'Failed to create salary entry',
-            details: error.response?.data?.message || error.message,
-            code: error.response?.status || 'UNKNOWN_ERROR'
-          };
-        }
-      },
-      
-      updateSalaryEntry: async (id, salaryData) => {
-        try {
-          const response = await api.put(`/api/salary-journal/${id}`, salaryData);
-          return response.data;
-        } catch (error) {
-          logError('API', 'Error updating salary entry', error);
-          throw {
-            message: 'Failed to update salary entry',
-            details: error.response?.data?.message || error.message,
-            code: error.response?.status || 'UNKNOWN_ERROR'
-          };
-        }
-      },
-      
-      deleteSalaryEntry: async (id) => {
-        try {
-          const response = await api.delete(`/api/salary-journal/${id}`);
-          return response.data;
-        } catch (error) {
-          logError('API', 'Error deleting salary entry', error);
-          throw {
-            message: 'Failed to delete salary entry',
-            details: error.response?.data?.message || error.message,
-            code: error.response?.status || 'UNKNOWN_ERROR'
-          };
-        }
-      },
-      
-      // Financial Goals
-      getGoals: async () => {
-        const response = await api.get('/goals');
-        return response.data;
-      },
-      
-      createGoal: async (goalData) => {
-        const response = await api.post('/goals', goalData);
-        return response.data;
-      },
-      
-      updateGoal: async (id, goalData) => {
-        const response = await api.put(`/goals/${id}`, goalData);
-        return response.data;
-      },
-      
-      deleteGoal: async (id) => {
-        const response = await api.delete(`/goals/${id}`);
-        return response.data;
-      },
-      
-      // Health check
-      checkHealth: async () => {
-        try {
-          const response = await api.get('/api-status');
-          log('API', 'Health check successful', response.data);
-          return { status: 'healthy', data: response.data };
-        } catch (error) {
-          logError('API', 'Health check failed', error);
-          return { status: 'unhealthy', error };
-        }
-      }
-    };
-  })
-  .catch(error => {
-    console.error('Failed to initialize API service:', error);
-  });
-
-// Run a health check in development mode
-if (isDevelopment) {
-  apiService.checkHealth().then(result => {
-    if (result.status === 'unhealthy') {
-      console.warn('⚠️ API health check failed - some features may not work properly');
-      if (result.error?.isCorsError) {
-        console.error('🔴 CORS error detected - check server CORS configuration');
-      }
+        return apiService[prop](...args);
+      };
     }
-  });
-}
-
-export default apiService; 
+    return apiService[prop];
+  }
+}); 

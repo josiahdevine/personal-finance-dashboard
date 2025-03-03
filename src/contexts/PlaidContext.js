@@ -49,6 +49,7 @@ export function PlaidProvider({ children }) {
   const [error, setError] = useState(null);
   const [contextReady, setContextReady] = useState(false);
   const [plaidConfig, setPlaidConfig] = useState(null);
+  const [initializationAttempted, setInitializationAttempted] = useState(false);
   
   // Fetch Plaid accounts
   const fetchPlaidAccounts = useCallback(async () => {
@@ -143,9 +144,52 @@ export function PlaidProvider({ children }) {
     }
   }, [currentUser]);
   
+  // Initialize context
+  useEffect(() => {
+    const initializePlaid = async () => {
+      if (!currentUser || initializationAttempted) {
+        return;
+      }
+      
+      setInitializationAttempted(true);
+      setLoading(true);
+      
+      try {
+        log('PlaidContext', 'Initializing Plaid context');
+        await checkPlaidStatus();
+        log('PlaidContext', 'Plaid context initialized successfully');
+      } catch (err) {
+        logError('PlaidContext', 'Error initializing Plaid context', err);
+        setError('Failed to initialize Plaid integration');
+      } finally {
+        setLoading(false);
+        setContextReady(true);
+      }
+    };
+    
+    initializePlaid();
+  }, [currentUser]);
+  
+  // Reset context when user changes
+  useEffect(() => {
+    if (!currentUser) {
+      setLinkToken(null);
+      setAccessToken(null);
+      setIsPlaidConnected(false);
+      setAccounts([]);
+      setTransactions([]);
+      setError(null);
+      setContextReady(false);
+      setInitializationAttempted(false);
+    }
+  }, [currentUser]);
+  
   // Check Plaid connection status
   const checkPlaidStatus = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      log('PlaidContext', 'Cannot check Plaid status: No authenticated user');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -160,7 +204,7 @@ export function PlaidProvider({ children }) {
       
       // If connected, fetch accounts
       if (status.connected === true) {
-        fetchPlaidAccounts();
+        await fetchPlaidAccounts();
       }
       
       setContextReady(true);
@@ -269,22 +313,6 @@ export function PlaidProvider({ children }) {
       setPlaidConfig(config);
     }
   }, [linkToken, createSharedPlaidConfig]);
-  
-  // Initialize context
-  useEffect(() => {
-    if (currentUser) {
-      checkPlaidStatus();
-    } else {
-      // Reset state when user is not authenticated
-      setLinkToken(null);
-      setAccessToken(null);
-      setIsPlaidConnected(false);
-      setAccounts([]);
-      setTransactions([]);
-      setError(null);
-      setContextReady(false);
-    }
-  }, [currentUser, checkPlaidStatus]);
   
   // Memorize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

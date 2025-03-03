@@ -57,8 +57,8 @@ console.log('[Firebase Debug] Full Firebase Config:', {
 });
 
 // Enhanced logging for production troubleshooting
-console.log(`[Firebase Config] Using Auth Domain: ${firebaseConfig.authDomain}`);
-console.log(`[Firebase Config] Current Origin: ${window.location.origin}`);
+
+
 
 // Type check firebaseConfig to ensure it's valid
 let configValid = true;
@@ -68,14 +68,14 @@ const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 if (missingKeys.length > 0) {
   configValid = false;
   logError('Firebase', 'Missing required Firebase configuration keys', new Error('Invalid config'), { missingKeys });
-  console.error('[Firebase Config Error] Missing required keys:', missingKeys);
+  
 }
 
 for (const [key, value] of Object.entries(firebaseConfig)) {
   if (value === undefined || value === null || value === '') {
     configValid = false;
     logError('Firebase', `Firebase config key ${key} has invalid value`, new Error('Invalid config value'), { key });
-    console.error('[Firebase Config Error] Invalid value for key:', key);
+    
   }
 }
 
@@ -87,70 +87,70 @@ const MAX_INIT_RETRIES = 3;
 const initializeFirebaseWithRetry = async () => {
   try {
     if (initRetryCount > 0) {
-      console.log(`[Firebase] Retry attempt ${initRetryCount}/${MAX_INIT_RETRIES}...`);
+      console.log(`[Firebase] Retry attempt ${initRetryCount} of ${MAX_INIT_RETRIES}`);
     }
     
-    // Initialize the Firebase app
+    // Initialize the Firebase app if not already initialized
     if (!app) {
       console.log('[Firebase] Initializing Firebase app...');
       app = initializeApp(firebaseConfig);
-      console.log('[Firebase Debug] Firebase app initialized:', !!app);
+      console.log('[Firebase] Firebase app initialized successfully');
     }
     
-    // Initialize Auth
+    // Initialize Auth if not already initialized
     if (!auth) {
       console.log('[Firebase] Initializing Firebase auth...');
       auth = getAuth(app);
-      console.log('[Firebase Debug] Firebase auth initialized:', !!auth);
+      console.log('[Firebase] Firebase auth initialized successfully');
     }
     
     // Always ensure auth domain is correctly set
     if (auth) {
       const originalAuthDomain = auth.config.authDomain;
       
-      // CRITICAL FIX: Use the current hostname as auth domain for localhost or custom domains
-      // This ensures Firebase auth works correctly with your domain
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // For local development, use the Firebase project's auth domain
-        auth.config.authDomain = firebaseConfig.authDomain;
-      } else {
-        // For production, use the current hostname to avoid CORS issues
+      // Use the current hostname as auth domain for production custom domains
+      if (!isLocalhost && !isNetlify) {
         auth.config.authDomain = window.location.hostname;
-        console.log(`[Firebase] Using current hostname as auth domain: ${window.location.hostname}`);
+        console.log('[Firebase] Updated auth domain for custom domain:', window.location.hostname);
       }
       
       if (originalAuthDomain !== auth.config.authDomain) {
-        console.log(`[Firebase] Updated Auth domain from ${originalAuthDomain} to ${auth.config.authDomain}`);
+        console.log('[Firebase] Auth domain updated:', {
+          from: originalAuthDomain,
+          to: auth.config.authDomain
+        });
       }
       
       // Set persistence to LOCAL
       try {
         await setPersistence(auth, browserLocalPersistence);
-        console.log('[Firebase] Auth persistence set to LOCAL successfully');
+        console.log('[Firebase] Successfully set persistence to LOCAL');
         
         // Store deployment info for version tracking
         localStorage.setItem('deployment_platform', isNetlify ? 'netlify' : (isTryPersonalFinance ? 'custom-domain' : 'other'));
-        localStorage.setItem('app_version', '2.0.1'); // Increment version for tracking
+        localStorage.setItem('app_version', '2.0.1');
         localStorage.setItem('auth_init_timestamp', Date.now().toString());
-        localStorage.setItem('auth_domain', auth.config.authDomain); // Store the auth domain for debugging
+        localStorage.setItem('auth_domain', auth.config.authDomain);
+        
+        return true;
       } catch (persistenceError) {
-        console.error('[Firebase] Failed to set LOCAL persistence:', persistenceError);
+        console.error('[Firebase] Error setting LOCAL persistence:', persistenceError);
         // Fall back to session persistence as last resort
         try {
           await setPersistence(auth, browserSessionPersistence);
-          console.log('[Firebase] Fallback: SESSION persistence set successfully');
+          console.log('[Firebase] Successfully set fallback persistence to SESSION');
+          return true;
         } catch (sessionError) {
-          console.error('[Firebase] Critical: Failed to set any persistence type');
+          console.error('[Firebase] Critical: Failed to set any persistence:', sessionError);
+          throw sessionError;
         }
       }
-      
-      return true; // Success
     }
     
-    return false; // Failed
+    throw new Error('Failed to initialize Firebase auth');
   } catch (error) {
-    console.error(`[Firebase] Initialization attempt ${initRetryCount + 1} failed:`, error);
-    throw error; // Re-throw for retry logic
+    console.error('[Firebase] Initialization error:', error);
+    throw error;
   }
 };
 
@@ -159,16 +159,16 @@ const initFirebase = async () => {
     try {
       const success = await initializeFirebaseWithRetry();
       if (success) {
-        console.log('[Firebase] Initialization successful after', initRetryCount > 0 ? `${initRetryCount} retries` : 'first attempt');
+        
         
         // Test auth functionality
         if (auth) {
           try {
             // Use a safe property access to verify auth is working
             const testTenantId = auth.tenantId;
-            console.log('[Firebase] Auth verification successful:', testTenantId === null ? 'No tenant ID (expected)' : 'Has tenant ID');
+            console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
           } catch (testError) {
-            console.error('[Firebase] Auth verification failed:', testError);
+            
           }
         }
         
@@ -178,13 +178,13 @@ const initFirebase = async () => {
     } catch (error) {
       initRetryCount++;
       if (initRetryCount >= MAX_INIT_RETRIES) {
-        console.error('[Firebase] All initialization attempts failed');
+        
         logError('Firebase', 'Firebase initialization failed after retries', error);
         break;
       }
       // Wait before retrying (exponential backoff)
       const delay = Math.min(1000 * (2 ** initRetryCount), 8000);
-      console.log(`[Firebase] Waiting ${delay}ms before retry...`);
+      
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -192,7 +192,7 @@ const initFirebase = async () => {
 
 // Start initialization immediately
 initFirebase().catch(error => {
-  console.error('[Firebase] Critical initialization error:', error);
+  
   // Record the error for diagnostics
   try {
     localStorage.setItem('firebase_init_error', JSON.stringify({
@@ -201,7 +201,7 @@ initFirebase().catch(error => {
       time: new Date().toISOString()
     }));
   } catch (e) {
-    console.error('[Firebase] Failed to record error details');
+    
   }
 });
 
@@ -210,13 +210,13 @@ export const ensureAuth = () => {
   try {
     // If auth is not initialized, try to initialize it
     if (!auth && app) {
-      console.log('[Firebase] Auth not initialized, attempting to initialize...');
+      
       auth = getAuth(app);
     }
     
     // If app is not initialized, initialize it
     if (!app) {
-      console.log('[Firebase] App not initialized, attempting to initialize...');
+      
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
     }
@@ -225,11 +225,11 @@ export const ensureAuth = () => {
     if (auth) {
       // Test a safe property access
       const testTenantId = auth.tenantId;
-      console.log('[Firebase] Auth verification successful:', testTenantId === null ? 'No tenant ID (expected)' : 'Has tenant ID');
+      console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
       return auth;
     }
 
-    console.error('[Firebase] Auth initialization failed');
+    
     const error = new Error('Firebase authentication is not initialized');
     error.code = 'auth/service-unavailable';
     error.details = {
@@ -243,7 +243,7 @@ export const ensureAuth = () => {
     };
     throw error;
   } catch (error) {
-    console.error('[Firebase] Error in ensureAuth:', error);
+    
     throw error;
   }
 };
@@ -252,7 +252,7 @@ export const ensureAuth = () => {
 export const loginUser = async (email, password) => {
   return timeOperation('Firebase', 'User login', async () => {
     log('Firebase', 'Attempting to login user with email', { email });
-    console.log('[Firebase Debug] Login attempt:', { email, authInitialized: !!auth });
+    
     
     try {
       // Use the ensureAuth function to verify auth is initialized
@@ -263,13 +263,13 @@ export const loginUser = async (email, password) => {
       log('Firebase', 'Set persistence to LOCAL for login attempt');
       
       // Then proceed with sign in
-      console.log('[Firebase Debug] Attempting signInWithEmailAndPassword...');
+      
       const userCredential = await signInWithEmailAndPassword(currentAuth, email, password);
       log('Firebase', 'User login successful', { 
         uid: userCredential.user.uid,
         emailVerified: userCredential.user.emailVerified 
       });
-      console.log('[Firebase Debug] Login successful');
+      
       
       // Set/update deployment tracking info
       localStorage.setItem('deployment_platform', isNetlify ? 'netlify' : (isTryPersonalFinance ? 'custom-domain' : 'other'));
@@ -318,7 +318,7 @@ export const loginUser = async (email, password) => {
           });
           break;
         default:
-          console.error('[Firebase Debug] Unhandled error code:', error.code);
+          
           friendlyMessage = `Login failed: ${error.message}`;
           break;
       }
@@ -420,7 +420,7 @@ export const onAuthStateChange = (callback) => {
   try {
     // First check if auth is initialized
     if (!auth) {
-      console.warn('[Firebase] Auth not initialized for state listener, will retry...');
+      
       
       // Set up retry mechanism for auth state listener
       let retryCount = 0;
@@ -429,15 +429,15 @@ export const onAuthStateChange = (callback) => {
       
       const retryIntervalId = setInterval(() => {
         retryCount++;
-        console.log(`[Firebase] Retry ${retryCount}/${maxRetries} for auth state listener...`);
+        
         
         if (auth) {
           clearInterval(retryIntervalId);
-          console.log('[Firebase] Auth became available, setting up state listener');
+          
           setupAuthStateListener(callback);
         } else if (retryCount >= maxRetries) {
           clearInterval(retryIntervalId);
-          console.error('[Firebase] Failed to set up auth state listener after retries');
+          
           callback(null); // Notify with null user after all retries fail
         }
       }, retryInterval);
@@ -445,7 +445,7 @@ export const onAuthStateChange = (callback) => {
       // Return a function to clear the retry interval
       return () => {
         clearInterval(retryIntervalId);
-        console.log('[Firebase] Auth state listener retry canceled');
+        
       };
     }
     
@@ -491,7 +491,7 @@ const setupAuthStateListener = (callback) => {
     try {
       callback(null);
     } catch (cbError) {
-      console.error('[Firebase] Error calling auth state error callback', cbError);
+      
     }
   });
 };
@@ -519,7 +519,7 @@ const googleProvider = new GoogleAuthProvider();
 export const signInWithGoogle = async () => {
   return timeOperation('Firebase', 'Google Sign In', async () => {
     log('Firebase', 'Attempting to sign in with Google');
-    console.log('[Firebase Debug] Google Sign In attempt');
+    
     
     try {
       // Use the ensureAuth function to verify auth is initialized
@@ -531,7 +531,7 @@ export const signInWithGoogle = async () => {
       });
       
       // Proceed with Google sign in
-      console.log('[Firebase Debug] Attempting signInWithPopup with Google provider...');
+      
       const userCredential = await signInWithPopup(currentAuth, googleProvider);
       
       log('Firebase', 'Google sign in successful', { 
@@ -539,7 +539,7 @@ export const signInWithGoogle = async () => {
         email: userCredential.user.email,
         emailVerified: userCredential.user.emailVerified 
       });
-      console.log('[Firebase Debug] Google Login successful');
+      
       
       // Set/update deployment tracking info
       localStorage.setItem('deployment_platform', isNetlify ? 'netlify' : (isTryPersonalFinance ? 'custom-domain' : 'other'));
@@ -547,7 +547,7 @@ export const signInWithGoogle = async () => {
       return userCredential;
     } catch (error) {
       log('Firebase', 'Google sign in failed', { error });
-      console.error('[Firebase] Google Sign In Error:', error);
+      
       throw error;
     }
   });

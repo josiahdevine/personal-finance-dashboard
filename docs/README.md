@@ -1,123 +1,87 @@
 # Personal Finance Dashboard Documentation
 
-Welcome to the Personal Finance Dashboard documentation. This guide provides comprehensive information about the application's architecture, setup, and maintenance.
-
-## Table of Contents
-
-### Getting Started
-- [Project Overview](../README.md)
-- [Installation Guide](../README.md#-quick-start)
-- [Environment Setup](../README.md#prerequisites)
-
-### Frontend
-- [Component Documentation](./frontend/COMPONENTS.md)
-- [State Management](./frontend/STATE_MANAGEMENT.md)
-- [Styling Guide](./frontend/STYLING.md)
-
-### Backend
-- [API Documentation](./backend/api-docs.md)
-- [Database Schema](./backend/database-schema.md)
-- [Plaid Integration](./backend/plaid-implementation.md)
-
-### Testing
-- [Test Setup Guide](./testing/TEST-SETUP.md)
-- [Plaid Testing Guide](./testing/plaid-testing.md)
-- [Test Coverage Requirements](./testing/TEST-COVERAGE.md)
-
-### Deployment
-- [Deployment Guide](./deployment/DEPLOYMENT_GUIDE.md)
-- [CI/CD Pipeline](./deployment/CICD.md)
-- [Monitoring & Logging](./deployment/MONITORING.md)
-
-### Security
-- [Security Guide](./security/SECURITY_GUIDE.md)
-- [Authentication & Authorization](./security/AUTH.md)
-- [Data Protection](./security/DATA_PROTECTION.md)
-
 ## Documentation Structure
 
-```
-docs/
-├── frontend/
-│   ├── COMPONENTS.md
-│   ├── STATE_MANAGEMENT.md
-│   └── STYLING.md
-├── backend/
-│   ├── api-docs.md
-│   ├── database-schema.md
-│   └── plaid-implementation.md
-├── testing/
-│   ├── TEST-SETUP.md
-│   ├── plaid-testing.md
-│   └── TEST-COVERAGE.md
-├── deployment/
-│   ├── DEPLOYMENT_GUIDE.md
-│   ├── CICD.md
-│   └── MONITORING.md
-├── security/
-│   ├── SECURITY_GUIDE.md
-│   ├── AUTH.md
-│   └── DATA_PROTECTION.md
-└── README.md
-```
+### `/api`
+API documentation including endpoints, request/response formats, and authentication.
+
+### `/database`
+Database-related documentation:
+- [Database Connector](database/database-connector.md) - Core database connection and query handling
+- [User Synchronization](database/user-sync.md) - Firebase user synchronization system
+
+### `/utils`
+Utility function documentation and helper modules.
+
+### `/components`
+React component documentation and usage guidelines.
+
+### `/deployment`
+Deployment guides and configuration documentation.
+
+### `/guides`
+General guides and tutorials:
+- Getting Started
+- Development Setup
+- Best Practices
+- Troubleshooting
+
+## Quick Links
+
+### Setup & Installation
+- [Development Environment Setup](guides/development-setup.md)
+- [Database Setup](database/setup.md)
+- [Firebase Configuration](deployment/firebase-setup.md)
+
+### Development
+- [Component Guidelines](components/guidelines.md)
+- [API Integration](api/integration.md)
+- [State Management](utils/state-management.md)
+
+### Deployment
+- [Production Deployment](deployment/production.md)
+- [Environment Configuration](deployment/environment.md)
+- [Monitoring & Logging](deployment/monitoring.md)
 
 ## Contributing to Documentation
 
-1. **File Organization**
-   - Place documentation in appropriate folders
-   - Use consistent naming conventions
-   - Keep files focused and concise
+### Documentation Standards
+1. Use Markdown for all documentation files
+2. Include code examples where applicable
+3. Keep documentation up-to-date with code changes
+4. Add links to related documentation
+5. Include troubleshooting sections for common issues
 
-2. **Markdown Guidelines**
-   - Use proper headings (# for titles)
-   - Include code examples in appropriate language blocks
-   - Add tables for structured data
-   - Include links to related documentation
+### Adding New Documentation
+1. Create new documentation in the appropriate directory
+2. Update this README with links to new documentation
+3. Follow the established format and style
+4. Include necessary metadata and tags
+5. Cross-reference related documentation
 
-3. **Documentation Updates**
-   - Keep documentation in sync with code changes
-   - Update version numbers when applicable
-   - Add changelog entries for significant changes
+### Updating Existing Documentation
+1. Review and update documentation when making code changes
+2. Mark deprecated features or documentation
+3. Update examples to reflect current best practices
+4. Verify all links and references remain valid
 
-## Documentation Best Practices
+## Maintenance
 
-1. **Content**
-   - Keep information current and accurate
-   - Use clear, concise language
-   - Include practical examples
-   - Document edge cases and known issues
+### Regular Updates
+- Documentation is reviewed and updated monthly
+- Deprecated features are marked and eventually removed
+- New features are documented as they are added
+- Examples are tested and verified regularly
 
-2. **Structure**
-   - Use consistent formatting
-   - Break down complex topics
-   - Include table of contents for long documents
-   - Cross-reference related documentation
-
-3. **Maintenance**
-   - Review documentation regularly
-   - Remove outdated information
-   - Update examples with latest practices
-   - Address documentation issues promptly
+### Version Control
+- Documentation versions align with software releases
+- Major changes are tracked in CHANGELOG.md
+- Historical documentation is archived appropriately
 
 ## Getting Help
+- For documentation issues: File an issue in the repository
+- For technical questions: Refer to the appropriate guide
+- For immediate assistance: Contact the development team
 
-If you find any issues or have suggestions for improving the documentation:
-
-1. Check existing documentation issues
-2. Create a new issue if needed
-3. Submit a pull request with improvements
-4. Contact the development team for clarification
-
-## Recent Updates
-
-- Added Plaid integration testing documentation
-- Updated deployment guide with Neon Tech DB instructions
-- Added security documentation
-- Updated component documentation with TypeScript examples
-
-## TODO
-
-- [ ] Add performance optimization guide
-- [ ] Create troubleshooting guide
-- [ ] Add API versioning documentation
-- [ ] Include mobile responsiveness guidelines 
+## License
+This documentation is covered under the project's main license. See LICENSE file in the root directory. 

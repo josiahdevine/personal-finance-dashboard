@@ -40,7 +40,8 @@ const AccountConnectionsMobile = () => {
     type: 'checking',
     balance: '',
     institution: '',
-    notes: ''
+    notes: '',
+    additional_details: {}
   });
   const [error, setError] = useState(null);
   const [showAccountDetails, setShowAccountDetails] = useState(null);
@@ -108,12 +109,25 @@ const AccountConnectionsMobile = () => {
 
   // Handle manual account input changes
   const handleManualInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setManualAccount({
-      ...manualAccount,
-      [name]: type === 'checkbox' ? checked : 
-              name === 'balance' ? parseFloat(value) || '' : value
-    });
+    const { name, value, type: inputType, checked } = e.target;
+    if (name.startsWith('additional_details.')) {
+      const detailField = name.split('.')[1];
+      setManualAccount(prev => ({
+        ...prev,
+        additional_details: {
+          ...prev.additional_details,
+          [detailField]: inputType === 'number' ? parseFloat(value) || 0 : value
+        }
+      }));
+    } else {
+      setManualAccount(prev => ({
+        ...prev,
+        [name]: inputType === 'checkbox' ? checked : 
+                name === 'balance' ? parseFloat(value) || '' : value,
+        // Reset additional details when account type changes
+        additional_details: name === 'type' ? {} : prev.additional_details
+      }));
+    }
   };
 
   // Add manual account
@@ -137,7 +151,8 @@ const AccountConnectionsMobile = () => {
         type: 'checking',
         balance: '',
         institution: '',
-        notes: ''
+        notes: '',
+        additional_details: {}
       });
       setShowAddManual(false);
       
@@ -175,6 +190,238 @@ const AccountConnectionsMobile = () => {
   // Toggle account details view
   const toggleAccountDetails = (accountId) => {
     setShowAccountDetails(showAccountDetails === accountId ? null : accountId);
+  };
+
+  // Render type-specific fields based on account type
+  const renderTypeSpecificFields = () => {
+    switch (manualAccount.type) {
+      case 'mortgage':
+        return (
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Mortgage Details</h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.original_loan_amount">
+                Original Loan Amount
+              </label>
+              <input
+                id="additional_details.original_loan_amount"
+                name="additional_details.original_loan_amount"
+                type="number"
+                value={manualAccount.additional_details.original_loan_amount || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="0.00"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.interest_rate">
+                Interest Rate (%)
+              </label>
+              <input
+                id="additional_details.interest_rate"
+                name="additional_details.interest_rate"
+                type="number"
+                value={manualAccount.additional_details.interest_rate || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="3.5"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.term_years">
+                Term (Years)
+              </label>
+              <input
+                id="additional_details.term_years"
+                name="additional_details.term_years"
+                type="number"
+                value={manualAccount.additional_details.term_years || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="30"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.start_date">
+                Start Date
+              </label>
+              <input
+                id="additional_details.start_date"
+                name="additional_details.start_date"
+                type="date"
+                value={manualAccount.additional_details.start_date || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+        );
+      case 'vehicle_loan':
+        return (
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Vehicle Loan Details</h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.vehicle_value">
+                Vehicle Value
+              </label>
+              <input
+                id="additional_details.vehicle_value"
+                name="additional_details.vehicle_value"
+                type="number"
+                value={manualAccount.additional_details.vehicle_value || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="0.00"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.interest_rate">
+                Interest Rate (%)
+              </label>
+              <input
+                id="additional_details.interest_rate"
+                name="additional_details.interest_rate"
+                type="number"
+                value={manualAccount.additional_details.interest_rate || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="4.5"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.term_months">
+                Term (Months)
+              </label>
+              <input
+                id="additional_details.term_months"
+                name="additional_details.term_months"
+                type="number"
+                value={manualAccount.additional_details.term_months || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="60"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.start_date">
+                Start Date
+              </label>
+              <input
+                id="additional_details.start_date"
+                name="additional_details.start_date"
+                type="date"
+                value={manualAccount.additional_details.start_date || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+        );
+      case 'retirement':
+        return (
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Retirement Account Details</h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.account_subtype">
+                Account Type
+              </label>
+              <select
+                id="additional_details.account_subtype"
+                name="additional_details.account_subtype"
+                value={manualAccount.additional_details.account_subtype || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select Type</option>
+                <option value="401k">401(k)</option>
+                <option value="403b">403(b)</option>
+                <option value="457b">457(b)</option>
+                <option value="ira">Traditional IRA</option>
+                <option value="roth_ira">Roth IRA</option>
+                <option value="sep_ira">SEP IRA</option>
+                <option value="simple_ira">SIMPLE IRA</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.employer_match">
+                Employer Match (%)
+              </label>
+              <input
+                id="additional_details.employer_match"
+                name="additional_details.employer_match"
+                type="number"
+                value={manualAccount.additional_details.employer_match || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="3"
+                step="0.1"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.contribution_ytd">
+                YTD Contributions
+              </label>
+              <input
+                id="additional_details.contribution_ytd"
+                name="additional_details.contribution_ytd"
+                type="number"
+                value={manualAccount.additional_details.contribution_ytd || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="0.00"
+                step="0.01"
+              />
+            </div>
+          </div>
+        );
+      case 'investment':
+        return (
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Investment Account Details</h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.account_subtype">
+                Account Type
+              </label>
+              <select
+                id="additional_details.account_subtype"
+                name="additional_details.account_subtype"
+                value={manualAccount.additional_details.account_subtype || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select Type</option>
+                <option value="brokerage">Brokerage</option>
+                <option value="mutual_fund">Mutual Fund</option>
+                <option value="bonds">Bonds</option>
+                <option value="stocks">Stocks</option>
+                <option value="etf">ETF</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="additional_details.cost_basis">
+                Cost Basis
+              </label>
+              <input
+                id="additional_details.cost_basis"
+                name="additional_details.cost_basis"
+                type="number"
+                value={manualAccount.additional_details.cost_basis || ''}
+                onChange={handleManualInputChange}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
+                placeholder="0.00"
+                step="0.01"
+              />
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   // If loading initial data
@@ -388,9 +635,11 @@ const AccountConnectionsMobile = () => {
                   >
                     <option value="checking">Checking</option>
                     <option value="savings">Savings</option>
-                    <option value="credit card">Credit Card</option>
+                    <option value="credit">Credit Card</option>
+                    <option value="mortgage">Mortgage</option>
+                    <option value="vehicle_loan">Vehicle Loan</option>
+                    <option value="retirement">Retirement</option>
                     <option value="investment">Investment</option>
-                    <option value="loan">Loan</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
@@ -444,6 +693,9 @@ const AccountConnectionsMobile = () => {
                     rows="3"
                   ></textarea>
                 </div>
+
+                {/* Add the type-specific fields after the basic fields */}
+                {renderTypeSpecificFields()}
               </div>
               
               <div className="mt-6 flex gap-3">

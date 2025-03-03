@@ -81,7 +81,18 @@ const FinancialCharts = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [touchPosition, setTouchPosition] = useState(null);
   const chartRef = useRef(null);
-  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState({
+    summary: {
+      totalSpending: 0,
+      totalIncome: 0,
+      savingsRate: 0,
+      transactionCount: 0,
+      averageTransaction: 0
+    },
+    categoryBreakdown: [],
+    monthlyTrends: [],
+    topMerchants: []
+  });
 
   // Handle window resize for responsive charts
   useEffect(() => {
@@ -736,8 +747,12 @@ const FinancialCharts = () => {
         const response = await apiService.getTransactionsAnalytics();
         
         console.log('Analytics data received:', response);
-        setAnalyticsData(response);
-        setLoading(false);
+        if (response && response.data) {
+          setAnalyticsData(response.data);
+        } else {
+          // Use fallback data if no response
+          setAnalyticsData(generateFallbackData());
+        }
       } catch (err) {
         console.error('Error fetching analytics data:', err);
         
@@ -775,7 +790,7 @@ const FinancialCharts = () => {
     };
 
     fetchAnalyticsData();
-  }, []);
+  }, [timeRange]);
 
   // Generate fallback data for development/demo purposes
   const generateFallbackData = () => {

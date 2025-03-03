@@ -337,14 +337,14 @@ function closePool() {
   }
 }
 
-// Create a default export object with all the functions
-const dbConnector = {
+// Export the database connector interface
+export const dbConnector = {
   getDbPool,
   query,
+  createTableIfNotExists,
   checkDbStatus,
   verifyTableSchema,
-  createTableIfNotExists,
-  getDbMetrics,
+  getDbMetrics: getDbMetrics || null,
   setQueryOptimization,
   closePool
 };

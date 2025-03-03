@@ -276,11 +276,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               if (error.response?.status === 403) {
-                throw {
-                  message: 'Access denied',
-                  details: 'You need to connect your accounts to view analytics.',
-                  code: 'ACCOUNTS_NOT_CONNECTED'
-                };
+                const err = new Error('Access denied');
+                err.details = 'You need to connect your accounts to view analytics.';
+                err.code = 'ACCOUNTS_NOT_CONNECTED';
+                throw err;
               }
               throw error;
             }
@@ -292,11 +291,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               if (error.response?.status === 403) {
-                throw {
-                  message: 'Access denied',
-                  details: 'You need to connect your accounts to view analytics.',
-                  code: 'ACCOUNTS_NOT_CONNECTED'
-                };
+                const err = new Error('Access denied');
+                err.details = 'You need to connect your accounts to view analytics.';
+                err.code = 'ACCOUNTS_NOT_CONNECTED';
+                throw err;
               }
               throw error;
             }
@@ -308,11 +306,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               if (error.response?.status === 403) {
-                throw {
-                  message: 'Access denied',
-                  details: 'You need to connect your accounts to view balance history.',
-                  code: 'ACCOUNTS_NOT_CONNECTED'
-                };
+                const err = new Error('Access denied');
+                err.details = 'You need to connect your accounts to view balance history.';
+                err.code = 'ACCOUNTS_NOT_CONNECTED';
+                throw err;
               }
               throw error;
             }
@@ -325,11 +322,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               logError('API', 'Error fetching salary entries', error);
-              throw {
-                message: 'Failed to fetch salary entries',
-                details: error.response?.data?.message || error.message,
-                code: error.response?.status || 'UNKNOWN_ERROR'
-              };
+              const err = new Error('Failed to fetch salary entries');
+              err.details = error.response?.data?.message || error.message;
+              err.code = error.response?.status || 'UNKNOWN_ERROR';
+              throw err;
             }
           },
           
@@ -339,11 +335,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               logError('API', 'Error creating salary entry', error);
-              throw {
-                message: 'Failed to create salary entry',
-                details: error.response?.data?.message || error.message,
-                code: error.response?.status || 'UNKNOWN_ERROR'
-              };
+              const err = new Error('Failed to create salary entry');
+              err.details = error.response?.data?.message || error.message;
+              err.code = error.response?.status || 'UNKNOWN_ERROR';
+              throw err;
             }
           },
           
@@ -353,11 +348,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               logError('API', 'Error updating salary entry', error);
-              throw {
-                message: 'Failed to update salary entry',
-                details: error.response?.data?.message || error.message,
-                code: error.response?.status || 'UNKNOWN_ERROR'
-              };
+              const err = new Error('Failed to update salary entry');
+              err.details = error.response?.data?.message || error.message;
+              err.code = error.response?.status || 'UNKNOWN_ERROR';
+              throw err;
             }
           },
           
@@ -367,11 +361,10 @@ const initializeWithRetry = async () => {
               return response.data;
             } catch (error) {
               logError('API', 'Error deleting salary entry', error);
-              throw {
-                message: 'Failed to delete salary entry',
-                details: error.response?.data?.message || error.message,
-                code: error.response?.status || 'UNKNOWN_ERROR'
-              };
+              const err = new Error('Failed to delete salary entry');
+              err.details = error.response?.data?.message || error.message;
+              err.code = error.response?.status || 'UNKNOWN_ERROR';
+              throw err;
             }
           },
           

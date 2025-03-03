@@ -1,0 +1,469 @@
+[1mdiff --git a/functions/utils/auth-handler.js b/functions/utils/auth-handler.js[m
+[1mindex ab2fd31..1996899 100644[m
+[1m--- a/functions/utils/auth-handler.js[m
+[1m+++ b/functions/utils/auth-handler.js[m
+[36m@@ -4,18 +4,14 @@[m
+  */[m
+ [m
+ import admin from 'firebase-admin';[m
+[32m+[m[32mimport serviceAccount from '../firebase-config.json' assert { type: 'json' };[m
+ [m
+ // Initialize Firebase Admin SDK if not already initialized[m
+ let firebaseApp;[m
+ function initializeFirebaseAdmin() {[m
+[31m-  if (!firebaseApp && process.env.FIREBASE_SERVICE_ACCOUNT) {[m
+[32m+[m[32m  if (!firebaseApp) {[m
+     try {[m
+[31m-      // Parse the service account JSON[m
+[31m-      const serviceAccount = JSON.parse([m
+[31m-        Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8')[m
+[31m-      );[m
+[31m-      [m
+[31m-      // Initialize the app[m
+[32m+[m[32m      // Initialize the app with service account from JSON file[m
+       firebaseApp = admin.initializeApp({[m
+         credential: admin.credential.cert(serviceAccount)[m
+       });[m
+[36m@@ -163,12 +159,22 @@[m [masync function getUserFromRequest(event) {[m
+  * @returns {object} - CORS headers[m
+  */[m
+ function getAuthCorsHeaders(origin) {[m
+[32m+[m[32m  // Allow only our domains[m
+[32m+[m[32m  const allowedOrigins = [[m
+[32m+[m[32m    'https://trypersonalfinance.com',[m
+[32m+[m[32m    'http://localhost:3000',[m
+[32m+[m[32m    'http://localhost:8888'[m
+[32m+[m[32m  ];[m
+[32m+[m[41m  [m
+[32m+[m[32m  const validOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];[m
+[32m+[m[41m  [m
+   return {[m
+     'Content-Type': 'application/json',[m
+[31m-    'Access-Control-Allow-Origin': origin || '*',[m
+[32m+[m[32m    'Access-Control-Allow-Origin': validOrigin,[m
+     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',[m
+     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID',[m
+[31m-    'Access-Control-Allow-Credentials': 'true'[m
+[32m+[m[32m    'Access-Control-Allow-Credentials': 'true',[m
+[32m+[m[32m    'Vary': 'Origin'[m
+   };[m
+ }[m
+ [m
+[36m@@ -210,17 +216,44 @@[m [mfunction requireAuth(handler) {[m
+     [m
+     // If user is not authenticated[m
+     if (!user) {[m
+[31m-      return createAuthErrorResponse(401, {[m
+[31m-        error: "Unauthorized",[m
+[31m-        message: "Authentication required for this endpoint"[m
+[31m-      }, origin);[m
+[32m+[m[32m      return {[m
+[32m+[m[32m        statusCode: 401,[m
+[32m+[m[32m        headers: getAuthCorsHeaders(origin),[m
+[32m+[m[32m        body: JSON.stringify({[m
+[32m+[m[32m          error: "Authentication required",[m
+[32m+[m[32m          code: "UNAUTHORIZED"[m
+[32m+[m[32m        })[m
+[32m+[m[32m      };[m
+     }[m
+     [m
+     // Add user to event object[m
+     event.user = user;[m
+     [m
+[31m-    // Call the original handler with the authenticated user[m
+[31m-    return handler(event, context);[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      // Call the original handler with the authenticated user[m
+[32m+[m[32m      const response = await handler(event, context);[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Ensure CORS headers are added to the response[m
+[32m+[m[32m      return {[m
+[32m+[m[32m        ...response,[m
+[32m+[m[32m        headers: {[m
+[32m+[m[32m          ...getAuthCorsHeaders(origin),[m
+[32m+[m[32m          ...(response.headers || {})[m
+[32m+[m[32m        }[m
+[32m+[m[32m      };[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('Handler error:', error);[m
+[32m+[m[41m      [m
+[32m+[m[32m      return {[m
+[32m+[m[32m        statusCode: 500,[m
+[32m+[m[32m        headers: getAuthCorsHeaders(origin),[m
+[32m+[m[32m        body: JSON.stringify({[m
+[32m+[m[32m          error: "Internal server error",[m
+[32m+[m[32m          code: "SERVER_ERROR",[m
+[32m+[m[32m          message: error.message[m
+[32m+[m[32m        })[m
+[32m+[m[32m      };[m
+[32m+[m[32m    }[m
+   };[m
+ }[m
+ [m
+[1mdiff --git a/functions/utils/cors-handler.js b/functions/utils/cors-handler.js[m
+[1mindex 8b866ed..48acab0 100644[m
+[1m--- a/functions/utils/cors-handler.js[m
+[1m+++ b/functions/utils/cors-handler.js[m
+[36m@@ -8,28 +8,27 @@[m
+  * @param {string} origin - Request origin[m
+  * @returns {object} CORS headers[m
+  */[m
+[31m-function getCorsHeaders(origin) {[m
+[31m-  // Allow specific origins in production, any in development[m
+[31m-  const allowedOrigins = process.env.NODE_ENV === 'production'[m
+[31m-    ? ['https://trypersonalfinance.com'][m
+[31m-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8888'];[m
+[32m+[m[32mconst getCorsHeaders = (origin) => {[m
+[32m+[m[32m  // Validate origin against allowed origins[m
+[32m+[m[32m  const allowedOrigins = [[m
+[32m+[m[32m    'https://trypersonalfinance.com',[m
+[32m+[m[32m    'https://www.trypersonalfinance.com',[m
+[32m+[m[32m    'http://localhost:3000',[m
+[32m+[m[32m    'http://localhost:8888'[m
+[32m+[m[32m  ];[m
+ [m
+[31m-  // Check if origin is allowed[m
+[31m-  const isAllowed = allowedOrigins.includes(origin);[m
+[31m-  if (!isAllowed && process.env.NODE_ENV === 'production') {[m
+[31m-    console.warn(`Blocked request from unauthorized origin: ${origin}`);[m
+[31m-    return null;[m
+[31m-  }[m
+[32m+[m[32m  // If origin is not in allowed list, use the first allowed origin as fallback[m
+[32m+[m[32m  const validOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];[m
+ [m
+   return {[m
+[31m-    'Access-Control-Allow-Origin': origin || allowedOrigins[0],[m
+[32m+[m[32m    'Access-Control-Allow-Origin': validOrigin,[m
+     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',[m
+[31m-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID',[m
+[32m+[m[32m    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Request-ID',[m
+     'Access-Control-Allow-Credentials': 'true',[m
+     'Access-Control-Max-Age': '86400',[m
+     'Vary': 'Origin'[m
+   };[m
+[31m-}[m
+[32m+[m[32m};[m
+ [m
+ /**[m
+  * Create a response with CORS headers[m
+[36m@@ -38,71 +37,33 @@[m [mfunction getCorsHeaders(origin) {[m
+  * @param {string} origin - Request origin[m
+  * @returns {object} Response object[m
+  */[m
+[31m-function createCorsResponse(statusCode, body, origin) {[m
+[31m-  const corsHeaders = getCorsHeaders(origin);[m
+[31m-  [m
+[31m-  // If CORS headers are null, return 403[m
+[31m-  if (!corsHeaders) {[m
+[31m-    return {[m
+[31m-      statusCode: 403,[m
+[31m-      body: JSON.stringify({ [m
+[31m-        error: 'Origin not allowed',[m
+[31m-        message: 'This origin is not authorized to access this resource'[m
+[31m-      })[m
+[31m-    };[m
+[31m-  }[m
+[31m-[m
+[32m+[m[32mconst createCorsResponse = (statusCode, body, origin) => {[m
+   return {[m
+     statusCode,[m
+     headers: {[m
+[31m-      'Content-Type': 'application/json',[m
+[31m-      ...corsHeaders[m
+[32m+[m[32m      ...getCorsHeaders(origin),[m
+[32m+[m[32m      'Content-Type': 'application/json'[m
+     },[m
+     body: JSON.stringify(body)[m
+   };[m
+[31m-}[m
+[32m+[m[32m};[m
+ [m
+ /**[m
+  * Handle OPTIONS preflight request[m
+  * @param {object} event - Netlify function event[m
+  * @returns {object} Preflight response[m
+  */[m
+[31m-function handleOptionsRequest(event) {[m
+[32m+[m[32mconst handleCorsPreflightRequest = (event) => {[m
+   const origin = event.headers.origin || event.headers.Origin;[m
+   [m
+[31m-  // Return 403 if no origin[m
+[31m-  if (!origin) {[m
+[31m-    return {[m
+[31m-      statusCode: 403,[m
+[31m-      body: JSON.stringify({ [m
+[31m-        error: 'Origin required',[m
+[31m-        message: 'Origin header is required for this request'[m
+[31m-      })[m
+[31m-    };[m
+[31m-  }[m
+[31m-  [m
+[31m-  const corsHeaders = getCorsHeaders(origin);[m
+[31m-  [m
+[31m-  // If CORS headers are null, return 403[m
+[31m-  if (!corsHeaders) {[m
+[31m-    return {[m
+[31m-      statusCode: 403,[m
+[31m-      body: JSON.stringify({ [m
+[31m-        error: 'Origin not allowed',[m
+[31m-        message: 'This origin is not authorized to access this resource'[m
+[31m-      })[m
+[31m-    };[m
+[31m-  }[m
+[31m-[m
+   return {[m
+     statusCode: 204,[m
+[31m-    headers: corsHeaders,[m
+[31m-    body: ''[m
+[32m+[m[32m    headers: getCorsHeaders(origin)[m
+   };[m
+[31m-}[m
+[32m+[m[32m};[m
+ [m
+ export default {[m
+   getCorsHeaders,[m
+[31m-  createCorsResponse,[m
+[31m-  handleOptionsRequest[m
+[32m+[m[32m  handleCorsPreflightRequest,[m
+[32m+[m[32m  createCorsResponse[m
+ }; [m
+\ No newline at end of file[m
+[1mdiff --git a/server/models/SalaryEntryModel.js b/server/models/SalaryEntryModel.js[m
+[1mindex 8e81f99..b26233a 100644[m
+[1m--- a/server/models/SalaryEntryModel.js[m
+[1m+++ b/server/models/SalaryEntryModel.js[m
+[36m@@ -1,5 +1,7 @@[m
+[31m-require('dotenv').config();[m
+[31m-const pool = require('../db'); // Use the centralized pool configuration[m
+[32m+[m[32mimport dotenv from 'dotenv';[m
+[32m+[m[32mimport pool from '../db.js';[m
+[32m+[m
+[32m+[m[32mdotenv.config();[m
+ [m
+ // Function to create the salary_entries table if it doesn't exist[m
+ async function createSalaryEntriesTable() {[m
+[36m@@ -9,16 +11,22 @@[m [masync function createSalaryEntriesTable() {[m
+       CREATE TABLE IF NOT EXISTS salary_entries ([m
+         id SERIAL PRIMARY KEY,[m
+         user_id INTEGER NOT NULL REFERENCES users(id),[m
+[32m+[m[32m        user_profile_id VARCHAR(50) DEFAULT 'primary',[m
+         company VARCHAR(255) NOT NULL,[m
+         position VARCHAR(255) NOT NULL,[m
+[31m-        salary_amount DECIMAL(15, 2) NOT NULL,[m
+[32m+[m[32m        salary_amount DECIMAL(19,4) NOT NULL,[m
+         date_of_change DATE NOT NULL,[m
+         notes TEXT,[m
+[31m-        bonus_amount DECIMAL(15, 2) DEFAULT 0,[m
+[31m-        commission_amount DECIMAL(15, 2) DEFAULT 0,[m
+[32m+[m[32m        bonus_amount DECIMAL(19,4) DEFAULT 0,[m
+[32m+[m[32m        commission_amount DECIMAL(19,4) DEFAULT 0,[m
+         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,[m
+         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP[m
+       );[m
+[32m+[m
+[32m+[m[32m      -- Create indexes if they don't exist[m
+[32m+[m[32m      CREATE INDEX IF NOT EXISTS idx_salary_entries_user_id ON salary_entries(user_id);[m
+[32m+[m[32m      CREATE INDEX IF NOT EXISTS idx_salary_entries_user_profile ON salary_entries(user_profile_id);[m
+[32m+[m[32m      CREATE INDEX IF NOT EXISTS idx_salary_entries_date ON salary_entries(date_of_change);[m
+     `);[m
+     console.log("Salary entries table created successfully");[m
+   } catch (error) {[m
+[36m@@ -36,15 +44,15 @@[m [mcreateSalaryEntriesTable()[m
+   });[m
+ [m
+ // Function to get all salary entries for a user[m
+[31m-async function getSalaryEntriesForUser(userId) {[m
+[32m+[m[32masync function getSalaryEntriesForUser(userId, userProfileId = 'primary') {[m
+     try {[m
+         const query = `[m
+             SELECT *[m
+             FROM salary_entries[m
+[31m-            WHERE user_id = $1[m
+[32m+[m[32m            WHERE user_id = $1 AND user_profile_id = $2[m
+             ORDER BY date_of_change DESC;[m
+         `;[m
+[31m-        const { rows } = await pool.query(query, [userId]);[m
+[32m+[m[32m        const { rows } = await pool.query(query, [userId, userProfileId]);[m
+         return rows;[m
+     } catch (error) {[m
+         console.error("Error fetching salary entries:", error);[m
+[36m@@ -55,13 +63,44 @@[m [masync function getSalaryEntriesForUser(userId) {[m
+ // Function to create a new salary entry[m
+ async function createSalaryEntry(salaryEntryData) {[m
+     try {[m
+[31m-        const { user_id, company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount } = salaryEntryData;[m
+[32m+[m[32m        const {[m[41m [m
+[32m+[m[32m            user_id,[m[41m [m
+[32m+[m[32m            user_profile_id = 'primary',[m
+[32m+[m[32m            company,[m[41m [m
+[32m+[m[32m            position,[m[41m [m
+[32m+[m[32m            salary_amount,[m[41m [m
+[32m+[m[32m            date_of_change,[m[41m [m
+[32m+[m[32m            notes,[m[41m [m
+[32m+[m[32m            bonus_amount,[m[41m [m
+[32m+[m[32m            commission_amount[m[41m [m
+[32m+[m[32m        } = salaryEntryData;[m
+[32m+[m
+         const query = `[m
+[31m-            INSERT INTO salary_entries (user_id, company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount)[m
+[31m-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)[m
+[32m+[m[32m            INSERT INTO salary_entries ([m
+[32m+[m[32m                user_id,[m[41m [m
+[32m+[m[32m                user_profile_id,[m
+[32m+[m[32m                company,[m[41m [m
+[32m+[m[32m                position,[m[41m [m
+[32m+[m[32m                salary_amount,[m[41m [m
+[32m+[m[32m                date_of_change,[m[41m [m
+[32m+[m[32m                notes,[m[41m [m
+[32m+[m[32m                bonus_amount,[m[41m [m
+[32m+[m[32m                commission_amount[m
+[32m+[m[32m            )[m
+[32m+[m[32m            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)[m
+             RETURNING *;[m
+         `;[m
+[31m-        const values = [user_id, company, position, salary_amount, date_of_change, notes, bonus_amount || 0, commission_amount || 0];[m
+[32m+[m[32m        const values = [[m
+[32m+[m[32m            user_id,[m
+[32m+[m[32m            user_profile_id,[m
+[32m+[m[32m            company,[m
+[32m+[m[32m            position,[m
+[32m+[m[32m            salary_amount,[m
+[32m+[m[32m            date_of_change,[m
+[32m+[m[32m            notes,[m
+[32m+[m[32m            bonus_amount || 0,[m
+[32m+[m[32m            commission_amount || 0[m
+[32m+[m[32m        ];[m
+         const { rows } = await pool.query(query, values);[m
+         return rows[0];[m
+     } catch (error) {[m
+[36m@@ -73,14 +112,46 @@[m [masync function createSalaryEntry(salaryEntryData) {[m
+ // Function to update an existing salary entry[m
+ async function updateSalaryEntry(id, salaryEntryData) {[m
+     try {[m
+[31m-        const { user_id, company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount } = salaryEntryData;[m
+[32m+[m[32m        const {[m[41m [m
+[32m+[m[32m            user_id,[m[41m [m
+[32m+[m[32m            user_profile_id,[m
+[32m+[m[32m            company,[m[41m [m
+[32m+[m[32m            position,[m[41m [m
+[32m+[m[32m            salary_amount,[m[41m [m
+[32m+[m[32m            date_of_change,[m[41m [m
+[32m+[m[32m            notes,[m[41m [m
+[32m+[m[32m            bonus_amount,[m[41m [m
+[32m+[m[32m            commission_amount[m[41m [m
+[32m+[m[32m        } = salaryEntryData;[m
+[32m+[m
+         const query = `[m
+             UPDATE salary_entries[m
+[31m-            SET user_id = $2, company = $3, position = $4, salary_amount = $5, date_of_change = $6, notes = $7, bonus_amount = $8, commission_amount = $9[m
+[32m+[m[32m            SET[m[41m [m
+[32m+[m[32m                user_id = $2,[m
+[32m+[m[32m                user_profile_id = $3,[m
+[32m+[m[32m                company = $4,[m
+[32m+[m[32m                position = $5,[m
+[32m+[m[32m                salary_amount = $6,[m
+[32m+[m[32m                date_of_change = $7,[m
+[32m+[m[32m                notes = $8,[m
+[32m+[m[32m                bonus_amount = $9,[m
+[32m+[m[32m                commission_amount = $10,[m
+[32m+[m[32m                updated_at = CURRENT_TIMESTAMP[m
+             WHERE id = $1[m
+             RETURNING *;[m
+         `;[m
+[31m-        const values = [id, user_id, company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount];[m
+[32m+[m[32m        const values = [[m
+[32m+[m[32m            id,[m
+[32m+[m[32m            user_id,[m
+[32m+[m[32m            user_profile_id || 'primary',[m
+[32m+[m[32m            company,[m
+[32m+[m[32m            position,[m
+[32m+[m[32m            salary_amount,[m
+[32m+[m[32m            date_of_change,[m
+[32m+[m[32m            notes,[m
+[32m+[m[32m            bonus_amount || 0,[m
+[32m+[m[32m            commission_amount || 0[m
+[32m+[m[32m        ];[m
+         const { rows } = await pool.query(query, values);[m
+         return rows[0];[m
+     } catch (error) {[m
+[36m@@ -94,18 +165,20 @@[m [masync function deleteSalaryEntry(id) {[m
+     try {[m
+         const query = `[m
+             DELETE FROM salary_entries[m
+[31m-            WHERE id = $1;[m
+[32m+[m[32m            WHERE id = $1[m
+[32m+[m[32m            RETURNING *;[m
+         `;[m
+[31m-        await pool.query(query, [id]);[m
+[32m+[m[32m        const { rows } = await pool.query(query, [id]);[m
+[32m+[m[32m        return rows[0];[m
+     } catch (error) {[m
+         console.error("Error deleting salary entry:", error);[m
+         throw error;[m
+     }[m
+ }[m
+ [m
+[31m-module.exports = {[m
+[32m+[m[32mexport {[m
+     getSalaryEntriesForUser,[m
+     createSalaryEntry,[m
+     updateSalaryEntry,[m
+[31m-    deleteSalaryEntry,[m
+[32m+[m[32m    deleteSalaryEntry[m
+ };[m
+\ No newline at end of file[m
+[1mdiff --git a/src/Components/FinancialCharts.js b/src/Components/FinancialCharts.js[m
+[1mindex f9d2822..cd04591 100644[m
+[1m--- a/src/Components/FinancialCharts.js[m
+[1m+++ b/src/Components/FinancialCharts.js[m
+[36m@@ -21,6 +21,7 @@[m [mimport { log, logError } from '../utils/logger';[m
+ import LoadingSpinner from './ui/LoadingSpinner';[m
+ import * as ReCharts from 'recharts';[m
+ import { formatCurrency } from '../utils/formatters';[m
+[32m+[m[32mimport { Link } from 'react-router-dom';[m
+ [m
+ // Register ChartJS components[m
+ ChartJS.register([m
+[36m@@ -81,6 +82,7 @@[m [mconst FinancialCharts = () => {[m
+   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);[m
+   const [touchPosition, setTouchPosition] = useState(null);[m
+   const chartRef = useRef(null);[m
+[32m+[m[32m  const [showManualAccountModal, setShowManualAccountModal] = useState(false);[m
+   const [analyticsData, setAnalyticsData] = useState({[m
+     summary: {[m
+       totalSpending: 0,[m
+[36m@@ -93,6 +95,24 @@[m [mconst FinancialCharts = () => {[m
+     monthlyTrends: [],[m
+     topMerchants: [][m
+   });[m
+[32m+[m[32m  const [hasConnectedAccounts, setHasConnectedAccounts] = useState(false);[m
+[32m+[m
+[32m+[m[32m  // Check if user has connected accounts[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    const checkConnectedAccounts = async () => {[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        const response = await apiService.getPlaidAccounts();[m
+[32m+[m[32m        setHasConnectedAccounts(response.accounts && response.accounts.length > 0);[m
+[32m+[m[32m      } catch (err) {[m
+[32m+[m[32m        console.error('Error checking connected accounts:', err);[m
+[32m+[m[32m        setHasConnectedAccounts(false);[m
+[32m+[m[32m      }[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    if (currentUser) {[m
+[32m+[m[32m      checkConnectedAccounts();[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }, [currentUser]);[m
+ [m
+   // Handle window resize for responsive charts[m
+   useEffect(() => {[m
+[36m@@ -546,6 +566,43 @@[m [mconst FinancialCharts = () => {[m
+ [m
+   // Render the appropriate chart based on activeChart[m
+   const renderChart = () => {[m
+[32m+[m[32m    if (!currentUser) {[m
+[32m+[m[32m      return ([m
+[32m+[m[32m        <div className="flex justify-center items-center h-64 bg-gray-50 rounded-lg">[m
+[32m+[m[32m          <div className="text-center">[m
+[32m+[m[32m            <p className="text-gray-500 mb-4">Please sign in to view your financial charts</p>[m
+[32m+[m[

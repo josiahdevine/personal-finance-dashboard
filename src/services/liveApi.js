@@ -15,11 +15,11 @@ const getBaseURL = () => {
 
 // Create an axios instance with a base URL
 const isDevelopment = process.env.NODE_ENV === 'development';
-const API_BASE_URL = getBaseURL();
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || getBaseURL();
 
-log('API', `Initializing API with base URL: ${API_BASE_URL}`, { 
+log('API', `Client initialized with:`, { 
+  baseURL: API_BASE_URL,
   environment: process.env.NODE_ENV,
-  isDevelopment,
   hostname: window.location.hostname
 });
 

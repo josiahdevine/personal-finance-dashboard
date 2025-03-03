@@ -3,7 +3,7 @@
  * Syncs Firebase users to our database
  */
 
-import { dbConnector } from './db-connector.js';
+import dbConnector from './db-connector.js';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('user-sync');
@@ -21,14 +21,14 @@ export async function syncUser(user) {
 
   try {
     // Check if user exists
-    const existingUser = await pool.query(
+    const existingUser = await dbConnector.query(
       'SELECT * FROM users WHERE firebase_uid = $1',
       [user.uid]
     );
 
     if (existingUser.rows.length > 0) {
       // Update existing user
-      const result = await pool.query(
+      const result = await dbConnector.query(
         `UPDATE users 
          SET email = $1, 
              email_verified = $2, 
@@ -48,7 +48,7 @@ export async function syncUser(user) {
       return result.rows[0];
     } else {
       // Create new user
-      const result = await pool.query(
+      const result = await dbConnector.query(
         `INSERT INTO users (
           firebase_uid,
           email,
@@ -91,7 +91,7 @@ export async function getUserByFirebaseUid(firebaseUid) {
   }
 
   try {
-    const result = await pool.query(
+    const result = await dbConnector.query(
       'SELECT * FROM users WHERE firebase_uid = $1',
       [firebaseUid]
     );

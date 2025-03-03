@@ -264,17 +264,17 @@ const apiService = {
   
   // Salary Entries
   getSalaryEntries: async (params) => {
-    const response = await api.get('/salary-entries', { params });
+    const response = await api.get('/api/salary-journal', { params });
     return response.data;
   },
   
   createSalaryEntry: async (salaryData) => {
-    const response = await api.post('/salary-entries', salaryData);
+    const response = await api.post('/api/salary-journal', salaryData);
     return response.data;
   },
   
   updateSalaryEntry: async (id, salaryData) => {
-    const response = await api.put(`/salary-entries/${id}`, salaryData);
+    const response = await api.put(`/api/salary-journal/${id}`, salaryData);
     return response.data;
   },
   

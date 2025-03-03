@@ -29,17 +29,24 @@ export const GeminiProvider = ({ children }) => {
             setError(null);
             
             // Add user message to chat
-            setMessages(prev => [...prev, { role: 'user', content: message }]);
+            const userMessage = { role: 'user', content: message };
+            setMessages(prev => [...prev, userMessage]);
             
             // Get the current user's token
             const token = await currentUser.getIdToken();
+            
+            // Format history for Gemini API
+            const formattedHistory = messages.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.content }]
+            }));
             
             // Call Gemini API
             const response = await axios.post(
                 '/.netlify/functions/gemini',
                 {
                     prompt: message,
-                    history: messages
+                    history: formattedHistory
                 },
                 {
                     headers: {
@@ -50,10 +57,11 @@ export const GeminiProvider = ({ children }) => {
             );
 
             // Add AI response to chat
-            setMessages(prev => [...prev, { 
+            const assistantMessage = { 
                 role: 'assistant', 
                 content: response.data.text
-            }]);
+            };
+            setMessages(prev => [...prev, assistantMessage]);
             
         } catch (error) {
             console.error('Error sending message:', error);

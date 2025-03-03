@@ -3,11 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { toast } from 'react-toastify';
 import SalaryJournal from '../SalaryJournal';
 import { useAuth } from '../../contexts/AuthContext';
-import apiService from '../../services/liveApi';
+import axios from 'axios';
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
-jest.mock('../../services/liveApi');
 jest.mock('react-toastify', () => ({
   toast: {
     success: jest.fn(),
@@ -50,11 +49,13 @@ describe('SalaryJournal', () => {
       currentUser: mockUser
     });
 
-    // Mock API service
-    apiService.get.mockResolvedValue({ data: [mockSalaryEntry] });
-    apiService.post.mockResolvedValue({ data: mockSalaryEntry });
-    apiService.put.mockResolvedValue({ data: mockSalaryEntry });
-    apiService.delete.mockResolvedValue({ data: { success: true } });
+    // Mock axios instance
+    const mockAxiosInstance = axios.create();
+    mockAxiosInstance.get = jest.fn().mockResolvedValue({ data: [mockSalaryEntry] });
+    mockAxiosInstance.post = jest.fn().mockResolvedValue({ data: mockSalaryEntry });
+    mockAxiosInstance.put = jest.fn().mockResolvedValue({ data: mockSalaryEntry });
+    mockAxiosInstance.delete = jest.fn().mockResolvedValue({ data: { success: true } });
+    axios.create.mockReturnValue(mockAxiosInstance);
   });
 
   it('renders without crashing', () => {
@@ -67,7 +68,7 @@ describe('SalaryJournal', () => {
     
     // Wait for the mock data to be loaded
     await waitFor(() => {
-      expect(apiService.get).toHaveBeenCalledWith('/api/salary-journal', {
+      expect(axios.create().get).toHaveBeenCalledWith('/api/salary-journal', {
         params: { userProfileId: 'primary' }
       });
     });
@@ -97,7 +98,7 @@ describe('SalaryJournal', () => {
     
     // Verify API call
     await waitFor(() => {
-      expect(apiService.post).toHaveBeenCalledWith('/api/salary-journal', expect.any(Object));
+      expect(axios.create().post).toHaveBeenCalledWith('/api/salary-journal', expect.any(Object));
     });
   });
 
@@ -106,7 +107,7 @@ describe('SalaryJournal', () => {
     
     // Wait for the mock data to be loaded
     await waitFor(() => {
-      expect(apiService.get).toHaveBeenCalledWith('/api/salary-journal', {
+      expect(axios.create().get).toHaveBeenCalledWith('/api/salary-journal', {
         params: { userProfileId: 'primary' }
       });
     });
@@ -124,7 +125,7 @@ describe('SalaryJournal', () => {
     
     // Verify API call
     await waitFor(() => {
-      expect(apiService.put).toHaveBeenCalledWith(`/api/salary-journal/${mockSalaryEntry.id}`, expect.any(Object));
+      expect(axios.create().put).toHaveBeenCalledWith(`/api/salary-journal/${mockSalaryEntry.id}`, expect.any(Object));
     });
   });
 
@@ -133,7 +134,7 @@ describe('SalaryJournal', () => {
     
     // Wait for the mock data to be loaded
     await waitFor(() => {
-      expect(apiService.get).toHaveBeenCalledWith('/api/salary-journal', {
+      expect(axios.create().get).toHaveBeenCalledWith('/api/salary-journal', {
         params: { userProfileId: 'primary' }
       });
     });
@@ -148,7 +149,7 @@ describe('SalaryJournal', () => {
     
     // Verify API call
     await waitFor(() => {
-      expect(apiService.delete).toHaveBeenCalledWith(`/api/salary-journal/${mockSalaryEntry.id}`);
+      expect(axios.create().delete).toHaveBeenCalledWith(`/api/salary-journal/${mockSalaryEntry.id}`);
     });
   });
 
@@ -157,7 +158,7 @@ describe('SalaryJournal', () => {
     
     // Wait for the mock data to be loaded
     await waitFor(() => {
-      expect(apiService.get).toHaveBeenCalledWith('/api/salary-journal', {
+      expect(axios.create().get).toHaveBeenCalledWith('/api/salary-journal', {
         params: { userProfileId: 'primary' }
       });
     });
@@ -184,6 +185,6 @@ describe('SalaryJournal', () => {
     expect(screen.getByText(/Salary amount is required/i)).toBeInTheDocument();
     
     // Verify no API call was made
-    expect(apiService.post).not.toHaveBeenCalled();
+    expect(axios.create().post).not.toHaveBeenCalled();
   });
 }); 

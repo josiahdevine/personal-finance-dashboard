@@ -8,6 +8,7 @@ module.exports = {
         targets: {
           node: 'current',
         },
+        modules: 'auto'
       }],
       ['@babel/preset-react', {
         runtime: 'automatic',
@@ -17,6 +18,8 @@ module.exports = {
     plugins: [
       ['@babel/plugin-transform-runtime', {
         regenerator: true,
+        helpers: true,
+        useESModules: true
       }],
       '@babel/plugin-transform-modules-commonjs',
       ['@babel/plugin-proposal-class-properties', { loose: true }],
@@ -26,6 +29,14 @@ module.exports = {
     env: {
       development: {
         plugins: ['react-refresh/babel']
+      },
+      production: {
+        plugins: [
+          ['@babel/plugin-transform-modules-commonjs', {
+            strict: true,
+            noInterop: false
+          }]
+        ]
       }
     }
   },
@@ -86,6 +97,17 @@ module.exports = {
           path.resolve(paths.appNodeModules, '@babel/runtime')
         ])
       );
+
+      // Update module resolution
+      webpackConfig.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs'];
+      webpackConfig.resolve.mainFields = ['browser', 'module', 'main'];
+      
+      // Add support for .mjs files
+      webpackConfig.module.rules.unshift({
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto'
+      });
 
       // Fix for the date-fns conflicting star exports issue
       webpackConfig.resolve.alias = {
@@ -177,7 +199,15 @@ module.exports = {
         );
       }
       
+      // Enable source maps for production build
+      webpackConfig.devtool = 'source-map';
+      
       return webpackConfig;
+    }
+  },
+  style: {
+    postcss: {
+      plugins: [require('tailwindcss'), require('autoprefixer')]
     }
   }
 }; 

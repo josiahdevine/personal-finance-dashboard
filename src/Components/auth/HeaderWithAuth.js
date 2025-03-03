@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { HiMenu, HiX } from 'react-icons/hi';
+import { HiMenu, HiX } from '../../utils/iconMapping';
 import { log, logError } from '../../utils/logger';
 import { useSidebar } from '../../App';
 

@@ -14,7 +14,7 @@ import {
   UserIcon 
 } from '@heroicons/react/24/outline';
 import { log, logError } from '../../utils/logger';
-import { HiMenu, HiX, HiOutlineLogout, HiOutlineHome, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineLink, HiOutlineChartBar } from 'react-icons/hi';
+import { HiMenu, HiX, HiOutlineLogout, HiOutlineHome, HiOutlineCurrencyDollar, HiOutlineDocumentText, HiOutlineLink, HiOutlineChartBar } from '../../utils/iconMapping';
 
 const AuthenticatedHeader = ({ toggleSidebar }) => {
   const [isOpen, setIsOpen] = useState(false);

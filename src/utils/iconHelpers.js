@@ -5,16 +5,27 @@
  */
 
 // These imports are guaranteed to work with react-icons v5+
-import { HiOutlineRefresh } from 'react-icons/hi';
 import { 
-  HiOutlineCreditCard, 
+  HiOutlineRefresh,
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
+  HiOutlineCreditCard,
   HiOutlinePlusCircle,
   HiOutlineExclamationCircle,
-  HiOutlineChevronRight,
   HiOutlineBanknotes,
   HiOutlineArrowsRightLeft,
-  HiOutlineShieldCheck
-} from 'react-icons/hi2';
+  HiOutlineCurrencyDollar,
+  HiOutlineCog,
+  HiOutlineLogout,
+  HiOutlineBell,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineUserCircle,
+  HiOutlinePaperAirplane,
+  HiOutlineDocumentDownload,
+  HiOutlineChartPie,
+  HiOutlineCash,
+  HiOutlineHome
+} from './iconMapping';
 
 // Export renamed versions to avoid name collisions
 export const IconRefresh = HiOutlineRefresh;
@@ -24,7 +35,17 @@ export const IconExclamationCircle = HiOutlineExclamationCircle;
 export const IconChevronRight = HiOutlineChevronRight;
 export const IconBanknotes = HiOutlineBanknotes;
 export const IconArrowsRightLeft = HiOutlineArrowsRightLeft;
-export const IconShieldCheck = HiOutlineShieldCheck;
+export const IconCurrencyDollar = HiOutlineCurrencyDollar;
+export const IconCog = HiOutlineCog;
+export const IconLogout = HiOutlineLogout;
+export const IconBell = HiOutlineBell;
+export const IconQuestionMarkCircle = HiOutlineQuestionMarkCircle;
+export const IconUserCircle = HiOutlineUserCircle;
+export const IconPaperAirplane = HiOutlinePaperAirplane;
+export const IconDocumentDownload = HiOutlineDocumentDownload;
+export const IconChartPie = HiOutlineChartPie;
+export const IconCash = HiOutlineCash;
+export const IconHome = HiOutlineHome;
 
 /**
  * Returns the appropriate icon component based on account type
@@ -40,7 +61,7 @@ export const getAccountIcon = (type, subtype, className = "h-5 w-5") => {
   } else if (type === 'investment') {
     return <IconArrowsRightLeft className={`${className} text-green-500`} />;
   } else if (type === 'loan') {
-    return <IconShieldCheck className={`${className} text-red-500`} />;
+    return <IconCash className={`${className} text-red-500`} />;
   } else {
     return <IconBanknotes className={`${className} text-gray-500`} />;
   }
@@ -54,6 +75,16 @@ export default {
   IconChevronRight,
   IconBanknotes,
   IconArrowsRightLeft,
-  IconShieldCheck,
+  IconCurrencyDollar,
+  IconCog,
+  IconLogout,
+  IconBell,
+  IconQuestionMarkCircle,
+  IconUserCircle,
+  IconPaperAirplane,
+  IconDocumentDownload,
+  IconChartPie,
+  IconCash,
+  IconHome,
   getAccountIcon,
 }; 

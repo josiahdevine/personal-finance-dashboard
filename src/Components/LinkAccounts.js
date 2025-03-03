@@ -4,14 +4,8 @@ import apiService from '../services/liveApi';
 import { usePlaid } from '../contexts/PlaidContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaidLink } from '../contexts/PlaidLinkContext';
-import { 
-  HiOutlineRefresh, 
-  HiOutlineCreditCard, 
-  HiOutlinePlusCircle,
-  HiOutlineExclamationCircle,
-  HiOutlineInformationCircle,
-  HiOutlineChartBar
-} from 'react-icons/hi';
+import { HiOutlineRefresh, HiOutlineCreditCard, HiOutlinePlusCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle, HiOutlineChartBar } from '../utils/iconMapping';
+import { useNavigate } from 'react-router-dom';
 
 const LinkAccounts = () => {
   const { currentUser } = useAuth();

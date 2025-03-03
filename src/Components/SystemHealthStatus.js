@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FiCheckCircle, FiAlertTriangle, FiXCircle, FiRefreshCw, FiInfo } from 'react-icons/fi';
+import { 
+  HiOutlineCheckCircle,
+  HiOutlineExclamationCircle,
+  HiOutlineXCircle,
+  HiOutlineRefresh,
+  HiOutlineInformationCircle
+} from '../utils/iconMapping';
 import axios from 'axios';
 
 const SystemHealthStatus = () => {
@@ -77,15 +83,15 @@ const SystemHealthStatus = () => {
     return date.toLocaleString();
   };
 
-  const StatusIndicator = ({ status }) => {
-    if (status === 'healthy' || status === 'operational' || status === true) {
-      return <FiCheckCircle className="text-green-500 text-xl" />;
+  const StatusIcon = ({ status }) => {
+    if (status === 'operational' || status === true) {
+      return <HiOutlineCheckCircle className="text-green-500 text-xl" />;
     } else if (status === 'degraded' || status === 'minor' || status === 'major') {
-      return <FiAlertTriangle className="text-yellow-500 text-xl" />;
+      return <HiOutlineExclamationCircle className="text-yellow-500 text-xl" />;
     } else if (status === 'critical') {
-      return <FiXCircle className="text-red-500 text-xl" />;
+      return <HiOutlineXCircle className="text-red-500 text-xl" />;
     } else {
-      return <FiXCircle className="text-red-500 text-xl" />;
+      return <HiOutlineXCircle className="text-red-500 text-xl" />;
     }
   };
 
@@ -113,7 +119,7 @@ const SystemHealthStatus = () => {
     return (
       <div className="bg-white shadow rounded-lg p-4 my-4">
         <div className="flex items-center justify-center">
-          <FiRefreshCw className="animate-spin text-blue-500 text-xl mr-2" />
+          <HiOutlineRefresh className="animate-spin text-blue-500 text-xl mr-2" />
           <p>Loading system health information...</p>
         </div>
       </div>
@@ -124,14 +130,14 @@ const SystemHealthStatus = () => {
     return (
       <div className="bg-white shadow rounded-lg p-4 my-4">
         <div className="flex items-center">
-          <FiXCircle className="text-red-500 text-xl mr-2" />
+          <HiOutlineXCircle className="text-red-500 text-xl mr-2" />
           <p className="text-red-500">{error}</p>
         </div>
         <button 
           onClick={fetchHealthStatus}
           className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center"
         >
-          <FiRefreshCw className="mr-2" /> Retry
+          <HiOutlineRefresh className="mr-2" /> Retry
         </button>
       </div>
     );
@@ -150,7 +156,7 @@ const SystemHealthStatus = () => {
             className="p-1 rounded hover:bg-gray-100"
             title="Refresh health status"
           >
-            <FiRefreshCw className="text-blue-500" />
+            <HiOutlineRefresh className="text-blue-500" />
           </button>
         </div>
       </div>
@@ -159,7 +165,7 @@ const SystemHealthStatus = () => {
         <div className="space-y-4">
           {/* Overall Status */}
           <div className="flex items-center">
-            <StatusIndicator status={healthData.status} />
+            <StatusIcon status={healthData.status} />
             <div className="ml-3">
               <h3 className="font-medium">Overall Status</h3>
               <p className="text-sm text-gray-500 capitalize">{healthData.status}</p>
@@ -168,7 +174,7 @@ const SystemHealthStatus = () => {
 
           {/* API Status */}
           <div className="flex items-center">
-            <StatusIndicator status={healthData.api.status} />
+            <StatusIcon status={healthData.api.status} />
             <div className="ml-3">
               <h3 className="font-medium">API</h3>
               <p className="text-sm text-gray-500 capitalize">
@@ -179,7 +185,7 @@ const SystemHealthStatus = () => {
 
           {/* Database Status */}
           <div className="flex items-center">
-            <StatusIndicator status={healthData.database.connected} />
+            <StatusIcon status={healthData.database.connected} />
             <div className="ml-3">
               <h3 className="font-medium">Database</h3>
               <p className="text-sm text-gray-500">
@@ -191,11 +197,10 @@ const SystemHealthStatus = () => {
 
           {/* Environment Variables */}
           <div className="flex items-center">
-            <StatusIndicator 
+            <StatusIcon 
               status={
                 healthData.environment.has_firebase_config && 
-                healthData.environment.has_plaid_config && 
-                healthData.environment.has_db_config
+                healthData.environment.has_plaid_config
               } 
             />
             <div className="ml-3">
@@ -213,7 +218,7 @@ const SystemHealthStatus = () => {
               onClick={() => setShowKnownIssues(!showKnownIssues)}
             >
               <div className="flex items-center">
-                <FiInfo className="text-blue-500 text-xl mr-2" />
+                <HiOutlineInformationCircle className="text-blue-500 text-xl mr-2" />
                 <h3 className="font-medium">Known Issues ({knownIssues.length})</h3>
               </div>
               <button className="text-sm text-blue-500 hover:text-blue-700">

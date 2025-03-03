@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -9,13 +9,23 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import { HiOutlineExclamationCircle, HiUpload, HiPlus, HiTrash, HiPencil, HiX, HiLink } from 'react-icons/hi';
-import apiService from '../services/liveApi';
-import { toast } from 'react-toastify';
-import { log, logError } from '../utils/logger';
-import { parse } from 'papaparse';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaid } from '../contexts/PlaidContext';
+import { useFinanceData } from '../contexts/FinanceDataContext';
+import { toast } from 'react-toastify';
+import { formatCurrency } from '../utils/formatters';
+import { log, logError } from '../utils/logger';
+import apiService from '../services/api';
+import {
+    HiOutlineExclamationCircle,
+    HiUpload,
+    HiPlus,
+    HiTrash,
+    HiPencil,
+    HiX,
+    HiLink
+} from '../utils/iconMapping';
+import { parse } from 'papaparse';
 import { usePlaidLink } from '../contexts/PlaidLinkContext';
 
 // Register ChartJS components

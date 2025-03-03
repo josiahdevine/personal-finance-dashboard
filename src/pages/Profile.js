@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { HiOutlineUser, HiOutlineMail, HiOutlineLockClosed, HiOutlineCalendar } from 'react-icons/hi';
+import {
+  HiOutlineUser,
+  HiOutlineMail,
+  HiOutlineLockClosed,
+  HiOutlineCalendar
+} from '../utils/iconMapping';
 
 const Profile = () => {
   const { currentUser, updateUserProfile, updateEmail, updatePassword } = useAuth();

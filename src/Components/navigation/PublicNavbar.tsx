@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { HiMenu, HiX } from 'react-icons/hi';
+import { HiMenu, HiX } from '../../utils/iconMapping';
 
 const PublicNavbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

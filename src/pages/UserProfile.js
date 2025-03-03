@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FiUser, FiMail, FiCalendar, FiCreditCard, FiTarget, FiDollarSign, FiActivity, FiEdit, FiAlertCircle } from 'react-icons/fi';
+import { 
+  HiOutlineUser,
+  HiOutlineMail,
+  HiOutlineLockClosed,
+  HiOutlineCalendar,
+  HiOutlinePhone,
+  HiOutlineLocationMarker,
+  HiOutlineGlobe,
+  HiOutlineOfficeBuilding,
+  HiOutlineAcademicCap,
+  HiOutlineBriefcase,
+  HiOutlineChartBar
+} from '../utils/iconMapping';
 import axios from 'axios';
 
 const UserProfile = () => {
@@ -146,7 +158,7 @@ const UserProfile = () => {
       {error && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
           <div className="flex items-center">
-            <FiAlertCircle className="mr-2" />
+            <HiOutlineGlobe className="mr-2" />
             <p>{error}</p>
           </div>
         </div>
@@ -162,13 +174,13 @@ const UserProfile = () => {
                 onClick={() => setIsEditing(!isEditing)}
                 className="text-blue-500 hover:text-blue-700"
               >
-                <FiEdit />
+                <HiOutlineLockClosed />
               </button>
             </div>
 
             <div className="flex items-center mb-4">
               <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <FiUser className="text-blue-500 text-xl" />
+                <HiOutlineUser />
               </div>
               {isEditing ? (
                 <div className="flex-1">
@@ -193,7 +205,7 @@ const UserProfile = () => {
 
             <div className="flex items-center mb-4">
               <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <FiMail className="text-blue-500 text-xl" />
+                <HiOutlineMail />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Email Address</p>
@@ -203,7 +215,7 @@ const UserProfile = () => {
 
             <div className="flex items-center mb-4">
               <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <FiCalendar className="text-blue-500 text-xl" />
+                <HiOutlineCalendar />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Member Since</p>
@@ -213,7 +225,7 @@ const UserProfile = () => {
 
             <div className="flex items-center">
               <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <FiActivity className="text-blue-500 text-xl" />
+                <HiOutlineGlobe />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Last Login</p>
@@ -279,7 +291,7 @@ const UserProfile = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="flex items-center">
                 <div className="bg-green-100 p-3 rounded-full mr-4">
-                  <FiCreditCard className="text-green-500 text-xl" />
+                  <HiOutlineOfficeBuilding />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Financial Accounts Connected</p>
@@ -291,7 +303,7 @@ const UserProfile = () => {
 
               <div className="flex items-center">
                 <div className="bg-purple-100 p-3 rounded-full mr-4">
-                  <FiTarget className="text-purple-500 text-xl" />
+                  <HiOutlineAcademicCap />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Financial Goals Created</p>
@@ -303,7 +315,7 @@ const UserProfile = () => {
 
               <div className="flex items-center">
                 <div className="bg-blue-100 p-3 rounded-full mr-4">
-                  <FiDollarSign className="text-blue-500 text-xl" />
+                  <HiOutlinePhone />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Salary Entries Recorded</p>
@@ -315,7 +327,7 @@ const UserProfile = () => {
 
               <div className="flex items-center">
                 <div className="bg-yellow-100 p-3 rounded-full mr-4">
-                  <FiActivity className="text-yellow-500 text-xl" />
+                  <HiOutlineGlobe />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Transactions Imported</p>
@@ -334,25 +346,25 @@ const UserProfile = () => {
                 onClick={() => navigate('/connect-accounts')}
                 className="bg-blue-500 text-white px-4 py-3 rounded hover:bg-blue-600 transition-colors flex items-center justify-center"
               >
-                <FiCreditCard className="mr-2" /> Connect Account
+                <HiOutlineOfficeBuilding /> Connect Account
               </button>
               <button
                 onClick={() => navigate('/goals/new')}
                 className="bg-green-500 text-white px-4 py-3 rounded hover:bg-green-600 transition-colors flex items-center justify-center"
               >
-                <FiTarget className="mr-2" /> Create New Goal
+                <HiOutlineAcademicCap /> Create New Goal
               </button>
               <button
                 onClick={() => navigate('/salary/new')}
                 className="bg-purple-500 text-white px-4 py-3 rounded hover:bg-purple-600 transition-colors flex items-center justify-center"
               >
-                <FiDollarSign className="mr-2" /> Add Salary Entry
+                <HiOutlinePhone /> Add Salary Entry
               </button>
               <button
                 onClick={() => navigate('/dashboard')}
                 className="bg-gray-700 text-white px-4 py-3 rounded hover:bg-gray-800 transition-colors flex items-center justify-center"
               >
-                <FiActivity className="mr-2" /> View Dashboard
+                <HiOutlineChartBar className="mr-2" /> View Dashboard
               </button>
             </div>
           </div>

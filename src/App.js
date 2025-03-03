@@ -1,4 +1,4 @@
-import React, { useEffect, createContext, useState, useContext } from 'react';
+import React, { useEffect, createContext, useState, useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
@@ -21,27 +21,27 @@ import initDeploymentDebug from './utils/deploymentDebug';
 import runFirebaseTest from './utils/firebaseTest';
 // Import migration utilities
 import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
 import { Elements } from '@stripe/react-stripe-js';
 
 // Import page components
-import Dashboard from './pages/Dashboard';
-import SalaryJournal from './Components/SalaryJournal';
-import BillsAnalysis from './Components/BillsAnalysis';
-import Goals from './Components/Goals.tsx';
-import LinkAccounts from './Components/LinkAccounts';
-import Transactions from './Components/Transactions.tsx';
-import AskAI from './Components/AskAI';
-import SubscriptionPlans from './Components/SubscriptionPlans';
-import UIComponentDemo from './Components/examples/UIComponentDemo';
-import Profile from './pages/Profile';
-import Subscription from './pages/Subscription.tsx';
-import ForgotPassword from './pages/ForgotPassword.tsx';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const SalaryJournal = lazy(() => import('./Components/SalaryJournal'));
+const BillsAnalysis = lazy(() => import('./Components/BillsAnalysis'));
+const Goals = lazy(() => import('./Components/Goals.tsx'));
+const LinkAccounts = lazy(() => import('./Components/LinkAccounts'));
+const Transactions = lazy(() => import('./Components/Transactions.tsx'));
+const AskAI = lazy(() => import('./Components/AskAI'));
+const SubscriptionPlans = lazy(() => import('./Components/SubscriptionPlans'));
+const UIComponentDemo = lazy(() => import('./Components/examples/UIComponentDemo'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Subscription = lazy(() => import('./pages/Subscription.tsx'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.tsx'));
 
 // Import mobile versions of components
-import AccountConnectionsMobile from './mobile/AccountConnectionsMobile';
-import SubscriptionPlansMobile from './mobile/SubscriptionPlansMobile';
+const AccountConnectionsMobile = lazy(() => import('./mobile/AccountConnectionsMobile'));
+const SubscriptionPlansMobile = lazy(() => import('./mobile/SubscriptionPlansMobile'));
 
 // Import Stripe context provider
 import { Elements as StripeElements } from '@stripe/react-stripe-js';
@@ -140,7 +140,7 @@ const PrivateRoute = ({ children }) => {
       <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
           <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <HiOutlineExclamationCircle className="w-8 h-8" />
+            <ExclamationCircleIcon className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-semibold text-red-700 mb-2">Authentication Error</h2>
           <p className="text-gray-600 mb-4">{authError.message || 'Please try logging in again.'}</p>
@@ -169,6 +169,17 @@ const useMobileComponentFor = (path) => {
   
   return components[path];
 };
+
+// Add loading fallback component
+const LoadingFallback = () => (
+  <div className="flex justify-center items-center h-screen">
+    <div 
+      className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"
+      role="status"
+      aria-label="Loading"
+    />
+  </div>
+);
 
 // AuthenticatedLayout that handles the responsive layout
 const AuthenticatedLayout = ({ children }) => {
@@ -229,7 +240,9 @@ const AuthenticatedLayout = ({ children }) => {
     <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
       <ResponsiveWrapper desktopLayout={DesktopLayout}>
         <ErrorBoundary componentName={`Route-${location.pathname}`}>
-          {children}
+          <Suspense fallback={<LoadingFallback />}>
+            {children}
+          </Suspense>
         </ErrorBoundary>
       </ResponsiveWrapper>
     </SidebarContext.Provider>

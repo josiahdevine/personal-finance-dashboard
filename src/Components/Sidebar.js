@@ -1,22 +1,31 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  HiOutlineChartBar, 
-  HiOutlineCash, 
-  HiOutlineDocumentText, 
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useSidebar } from '../App';
+import { log, logError } from '../utils/logger';
+import {
+  FaHome,
+  FaTachometerAlt,
+  FaWallet,
+  FaExchangeAlt,
+  FaMoneyBillWave,
+  FaCog,
+  FaSignOutAlt,
+  FaBell,
+  FaQuestion,
+  FaUserCircle,
+  HiOutlineChartBar,
+  HiOutlineCash,
+  HiOutlineDocumentText,
   HiOutlineHome,
   HiOutlineQuestionMarkCircle,
-  HiOutlineCreditCard,
-  HiOutlineCog,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
   HiOutlineLogout,
   HiOutlineLink
-} from 'react-icons/hi';
-import { FaHome, FaTachometerAlt, FaWallet, FaExchangeAlt, FaMoneyBillWave, FaCog, FaSignOutAlt, FaBell, FaQuestion, FaUserCircle } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
-import { useSidebar } from '../App';
-import { log, logError } from '../utils/logger';
+} from '../utils/iconMapping';
 
 function Sidebar() {
   const { logout } = useAuth();
@@ -76,7 +85,7 @@ function Sidebar() {
     {
       name: 'Goals',
       path: '/goals',
-      icon: <HiOutlineCog className="w-6 h-6" />
+      icon: <HiOutlineQuestionMarkCircle className="w-6 h-6" />
     },
     {
       name: 'Ask AI',
@@ -86,7 +95,7 @@ function Sidebar() {
     {
       name: 'Subscription',
       path: '/subscription',
-      icon: <HiOutlineCreditCard className="w-6 h-6" />
+      icon: <HiOutlineQuestionMarkCircle className="w-6 h-6" />
     },
     {
       name: 'Profile',

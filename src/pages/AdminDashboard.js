@@ -2,7 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SystemHealthStatus from '../Components/SystemHealthStatus';
-import { FiUsers, FiDatabase, FiCreditCard, FiSettings, FiClipboard, FiRefreshCw } from 'react-icons/fi';
+import { 
+  HiOutlineUserGroup,
+  HiOutlineDatabase,
+  HiOutlineCog,
+  HiOutlineChartBar,
+  HiOutlineDocumentReport,
+  HiOutlineRefresh
+} from '../utils/iconMapping';
 import axios from 'axios';
 
 const AdminDashboard = () => {
@@ -137,7 +144,7 @@ const AdminDashboard = () => {
             <h3 className="text-gray-500 text-sm">{title}</h3>
             {loading ? (
               <div className="flex items-center mt-1">
-                <FiRefreshCw className="animate-spin text-blue-500 mr-2" />
+                <HiOutlineRefresh className="animate-spin text-blue-500 mr-2" />
                 <span>Loading...</span>
               </div>
             ) : error ? (
@@ -175,35 +182,35 @@ const AdminDashboard = () => {
           count={stats.users.count} 
           loading={stats.users.loading} 
           error={stats.users.error} 
-          icon={<FiUsers className="text-blue-500 text-xl" />} 
+          icon={<HiOutlineUserGroup className="text-blue-500 text-xl" />} 
         />
         <StatCard 
           title="Plaid Connections" 
           count={stats.plaidConnections.count} 
           loading={stats.plaidConnections.loading} 
           error={stats.plaidConnections.error} 
-          icon={<FiCreditCard className="text-blue-500 text-xl" />} 
+          icon={<HiOutlineDatabase className="text-blue-500 text-xl" />} 
         />
         <StatCard 
           title="Transactions" 
           count={stats.transactions.count} 
           loading={stats.transactions.loading} 
           error={stats.transactions.error} 
-          icon={<FiClipboard className="text-blue-500 text-xl" />} 
+          icon={<HiOutlineDocumentReport className="text-blue-500 text-xl" />} 
         />
         <StatCard 
           title="Salary Entries" 
           count={stats.salaryEntries.count} 
           loading={stats.salaryEntries.loading} 
           error={stats.salaryEntries.error} 
-          icon={<FiDatabase className="text-blue-500 text-xl" />} 
+          icon={<HiOutlineDatabase className="text-blue-500 text-xl" />} 
         />
         <StatCard 
           title="Financial Goals" 
           count={stats.goals.count} 
           loading={stats.goals.loading} 
           error={stats.goals.error} 
-          icon={<FiSettings className="text-blue-500 text-xl" />} 
+          icon={<HiOutlineCog className="text-blue-500 text-xl" />} 
         />
       </div>
 

@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
+  HiMenu, 
+  HiOutlineX,
   HiOutlineHome, 
   HiOutlineCash, 
   HiOutlineDocumentText, 
   HiOutlineChartBar,
   HiOutlineLink,
   HiOutlineCog,
-  HiOutlineMenu,
-  HiOutlineX,
   HiOutlineUserCircle,
   HiOutlineLogout,
   HiOutlineBell,
   HiOutlinePlus
-} from 'react-icons/hi';
+} from '../utils/iconMapping';
 
 /**
  * Mobile-optimized layout component for Android and iOS devices
@@ -112,7 +112,7 @@ const MobileLayout = ({ children }) => {
             {isMenuOpen ? (
               <HiOutlineX className="h-6 w-6" />
             ) : (
-              <HiOutlineMenu className="h-6 w-6" />
+              <HiMenu className="h-6 w-6" />
             )}
           </button>
           

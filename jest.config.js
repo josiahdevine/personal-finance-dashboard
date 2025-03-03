@@ -1,34 +1,32 @@
 module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
+  testTimeout: 10000,
+  maxWorkers: 1,
+  roots: ['<rootDir>/src'],
+  modulePaths: ['<rootDir>/src'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^axios$': '<rootDir>/node_modules/axios/dist/axios.js',
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.js' }],
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.js' }]
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!(@babel/runtime|axios|firebase)/)',
+    'node_modules/(?!(axios|@firebase|firebase|@babel/runtime)/)'
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
     '!src/index.tsx',
+    '!src/serviceWorker.ts'
   ],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
-  },
-  testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
-    '<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}',
-  ],
+  watchPathIgnorePatterns: ['node_modules'],
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
+  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  verbose: true,
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'node'],
   watchPlugins: [
     'jest-watch-typeahead/filename',

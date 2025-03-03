@@ -51,6 +51,9 @@
   REACT_APP_GEMINI_API_KEY = "AIzaSyCdMReYKk_kcogFTc5g56EzFMxKDNrKcW0"
   REACT_APP_GEMINI_PROJECT_ID = "copper-cider-452023-n6"
   REACT_APP_GEMINI_LOCATION = "us-central1"
+  PLAID_ENV = "sandbox"
+  PLAID_CLIENT_ID = "67b3ec330ef070001f1e8ff7"
+  PLAID_SECRET = "2f9d731a9ec51e7f536cbae5658300"
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
@@ -70,44 +73,19 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/api-404"
-  status = 404
-  force = true
-  conditions = {Host = ["api.trypersonalfinance.com"], Path = ["/", "/index.html", "/static/*", "/assets/*", "/dashboard/*", "/settings/*"]}
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-  conditions = {Host = ["api.trypersonalfinance.com"]}
-
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/:splat"
-  status = 204
-  force = true
-  conditions = {Host = ["api.trypersonalfinance.com"], Methods = ["OPTIONS"]}
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Host = ["trypersonalfinance.com"]}
 
 [[headers]]
   for = "/*"
   [headers.values]
-    Access-Control-Allow-Origin = "https://trypersonalfinance.com"
+    Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID"
     Access-Control-Allow-Credentials = "true"
-    Access-Control-Max-Age = "86400" 
+    Access-Control-Max-Age = "86400"
+    Content-Security-Policy = "default-src 'self' https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://*.googleapis.com wss://*.firebaseio.com; frame-src 'self' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com;" 

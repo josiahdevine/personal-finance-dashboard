@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGemini } from '../contexts/GeminiContext';
 import { ChatMessage } from '../types/gemini';
-import { HiPaperAirplane, HiOutlineRefresh } from 'react-icons/hi';
-import IconWrapper from './IconWrapper';
 
 const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
@@ -61,7 +59,20 @@ const ChatInterface: React.FC = () => {
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           title="Clear chat"
         >
-          <IconWrapper icon={HiOutlineRefresh} className="w-5 h-5 dark:text-white" />
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="w-5 h-5 dark:text-white" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+            />
+          </svg>
         </button>
       </div>
 
@@ -91,7 +102,20 @@ const ChatInterface: React.FC = () => {
                 : 'bg-blue-600 hover:bg-blue-700'
             } text-white transition-colors`}
           >
-            <IconWrapper icon={HiPaperAirplane} className="w-5 h-5 transform rotate-90" />
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="w-5 h-5 transform rotate-90" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+              />
+            </svg>
           </button>
         </div>
       </form>

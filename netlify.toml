@@ -32,7 +32,8 @@
   GENERATE_SOURCEMAP = "false"
   REACT_APP_ENV = "production"
   REACT_APP_DOMAIN = "trypersonalfinance.com"
-  REACT_APP_API_URL = "https://api.trypersonalfinance.com"
+  REACT_APP_API_URL = "https://trypersonalfinance.com/.netlify/functions"
+  REACT_APP_API_BASE_URL = "https://trypersonalfinance.com/.netlify/functions"
   REACT_APP_DEPLOY_PLATFORM = "netlify"
   SKIP_PREFLIGHT_CHECK = "true"
   DISABLE_ESLINT_PLUGIN = "false"
@@ -93,9 +94,10 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Origin = "https://trypersonalfinance.com"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID"
     Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"
-    Content-Security-Policy = "default-src 'self' https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://*.googleapis.com wss://*.firebaseio.com; frame-src 'self' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com;" 
+    Vary = "Origin"
+    Content-Security-Policy = "default-src 'self' https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://trypersonalfinance.com https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://*.googleapis.com wss://*.firebaseio.com; frame-src 'self' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com;" 

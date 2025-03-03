@@ -6,8 +6,8 @@ interface IconWrapperProps {
   className?: string;
 }
 
-const IconWrapper: React.FC<IconWrapperProps> = ({ icon: Icon, className }) => {
-  return <Icon className={className} />;
+const IconWrapper: React.FC<IconWrapperProps> = ({ icon, className }) => {
+  return React.createElement(icon, { className });
 };
 
 export default IconWrapper; 

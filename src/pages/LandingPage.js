@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'chart.js';
 import AuthMenu from '../Components/AuthMenu.tsx';
+import { Link } from 'react-router-dom';
 
 console.log('LandingPage.js: Initializing LandingPage component');
 
@@ -95,8 +96,35 @@ const LandingPage = () => {
       {/* AuthMenu - Now positioned relative to viewport */}
       <div className={`fixed inset-0 z-50 flex items-center justify-center ${isAuthMenuOpen ? '' : 'hidden'}`}>
         <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsAuthMenuOpen(false)}></div>
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full m-4">
-          <AuthMenu isOpen={isAuthMenuOpen} onClose={() => setIsAuthMenuOpen(false)} />
+        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full m-4 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Get Started</h2>
+            <button
+              onClick={() => setIsAuthMenuOpen(false)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <span className="sr-only">Close</span>
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="space-y-4">
+            <Link
+              to="/login"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={() => setIsAuthMenuOpen(false)}
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={() => setIsAuthMenuOpen(false)}
+            >
+              Create Account
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -119,11 +119,12 @@ const PrivateRoute = ({ children }) => {
   // Show loading state while auth is initializing
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
+      <div className="flex justify-center items-center h-screen">
+        <div 
+          className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"
+          role="status"
+          aria-label="Loading"
+        />
       </div>
     );
   }
@@ -252,28 +253,26 @@ const RootRouteHandler = () => {
 
 // Component to handle anonymous auth for users who aren't logged in
 const AnonymousAuthHandler = () => {
-  const { currentUser, loading, signInAnonymously } = useAuth();
+  const { currentUser, loading, signInAsGuest } = useAuth();
   const [authAttempted, setAuthAttempted] = useState(false);
   
-  // Try anonymous sign-in if no user and not already attempted
+  // Try anonymous sign-in if no user and not loading
   useEffect(() => {
     const attemptAnonymousAuth = async () => {
-      try {
-        // Only try if we aren't already loading auth and haven't tried yet
-        if (!loading && !currentUser && !authAttempted) {
-          log('App', 'Attempting anonymous sign-in');
-          setAuthAttempted(true);
-          await signInAnonymously();
+      if (!currentUser && !loading && !authAttempted) {
+        setAuthAttempted(true);
+        log('App', 'No user detected, attempting anonymous sign-in');
+        try {
+          await signInAsGuest();
           log('App', 'Anonymous sign-in successful');
+        } catch (error) {
+          logError('App', 'Anonymous sign-in failed, continuing as guest', error);
         }
-      } catch (error) {
-        logError('App', 'Anonymous sign-in failed, continuing as guest', error);
-        // Continue without authentication
       }
     };
     
     attemptAnonymousAuth();
-  }, [currentUser, loading, signInAnonymously, authAttempted]);
+  }, [currentUser, loading, signInAsGuest, authAttempted]);
   
   return null; // This component doesn't render anything
 };

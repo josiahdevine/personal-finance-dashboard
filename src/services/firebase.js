@@ -428,10 +428,11 @@ export {
   logoutUser,
   onAuthStateChange,
   signInWithGoogle,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
+  // Remove these as they're already being exported individually
+  // createUserWithEmailAndPassword,
+  // signInWithEmailAndPassword,
+  // signOut,
+  // onAuthStateChanged
 };
 
 // Added for Google Authentication

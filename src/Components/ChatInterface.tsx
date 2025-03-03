@@ -60,7 +60,7 @@ const ChatInterface: React.FC = () => {
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           title="Clear chat"
         >
-          <HiOutlineRefresh className="w-5 h-5 dark:text-white" />
+          {React.createElement(HiOutlineRefresh, { className: "w-5 h-5 dark:text-white" })}
         </button>
       </div>
 
@@ -90,7 +90,7 @@ const ChatInterface: React.FC = () => {
                 : 'bg-blue-600 hover:bg-blue-700'
             } text-white transition-colors`}
           >
-            <HiPaperAirplane className="w-5 h-5 transform rotate-90" />
+            {React.createElement(HiPaperAirplane, { className: "w-5 h-5 transform rotate-90" })}
           </button>
         </div>
       </form>

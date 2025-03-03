@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import api from '../../services/api';
-import apiService from '../../services/apiService';
+import apiService from '../../services/liveApi';
 import { HiOutlineExclamationCircle, HiOutlineRefresh, HiOutlineDocumentDownload, HiOutlineCalendar, HiOutlineChartPie } from 'react-icons/hi';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import {

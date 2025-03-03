@@ -12,7 +12,7 @@ import {
     Legend
 } from 'chart.js';
 import 'react-toastify/dist/ReactToastify.css';
-import api from '../services/api';
+import apiService from '../services/liveApi';
 import { useAuth } from '../contexts/AuthContext';
 import { log, logError } from '../utils/logger';
 
@@ -787,7 +787,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     const fetchSalaryEntries = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/api/salary-journal', {
+            const response = await apiService.get('/api/salary-journal', {
                 params: {
                     userProfileId: activeUserId
                 }
@@ -908,7 +908,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             
             if (editingEntryId) {
                 console.log('Updating existing entry:', editingEntryId);
-                response = await api.put(`/api/salary-journal/${editingEntryId}`, salaryEntry);
+                response = await apiService.put(`/api/salary-journal/${editingEntryId}`, salaryEntry);
                 
                 if (response.status === 200) {
                     toast.success('Salary entry updated successfully!');
@@ -930,7 +930,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 }
             } else {
                 console.log('Creating new salary entry:', salaryEntry);
-                response = await api.post('/api/salary-journal', salaryEntry);
+                response = await apiService.post('/api/salary-journal', salaryEntry);
                 
                 if (response.status === 200 || response.status === 201) {
                     toast.success('Salary entry created successfully!');
@@ -1320,7 +1320,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             
             // Then try to save to API
             try {
-                const response = await api.post('/api/salary/save', newEntry);
+                const response = await apiService.post('/api/salary/save', newEntry);
                 if (response.status === 200 || response.status === 201) {
                     toast.success('Paycheck saved successfully');
                     

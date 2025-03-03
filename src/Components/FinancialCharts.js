@@ -20,7 +20,7 @@ import { currencyFormatter } from '../utils/formatters';
 import { log, logError } from '../utils/logger';
 import LoadingSpinner from './ui/LoadingSpinner';
 import * as ReCharts from 'recharts';
-import api from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 
 // Register ChartJS components
 ChartJS.register(

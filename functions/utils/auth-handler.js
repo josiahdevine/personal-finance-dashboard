@@ -64,7 +64,14 @@ async function verifyAuthToken(event) {
     // Extract token from request
     const token = extractToken(event);
     if (!token) {
+      console.error('No token provided in request');
       return null;
+    }
+    
+    // Check if Firebase service account is configured
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      console.error('Firebase service account not configured');
+      throw new Error('Firebase service account not configured');
     }
     
     // Initialize Firebase if needed
@@ -82,7 +89,11 @@ async function verifyAuthToken(event) {
     
     return decodedToken;
   } catch (error) {
-    console.error('Token verification failed:', error);
+    console.error('Token verification failed:', {
+      error: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     return null;
   }
 }

@@ -70,15 +70,15 @@ plaidApi.interceptors.response.use(
 );
 
 const PLAID_API_ENDPOINTS = {
-  createLinkToken: '/api/plaid/create-link-token',
-  exchangePublicToken: '/api/plaid/exchange-public-token',
-  getAccounts: '/api/plaid/accounts',
-  getTransactions: '/api/plaid/transactions',
-  getBalance: '/api/plaid/balance-history',
-  syncTransactions: '/api/plaid/transactions-sync',
-  getInstitution: '/api/plaid/institution',
-  removeAccount: '/api/plaid/accounts/remove',
-  updateAccount: '/api/plaid/accounts/update',
+  createLinkToken: '/plaid/link-token',
+  exchangePublicToken: '/plaid/exchange-public-token',
+  getAccounts: '/plaid/accounts',
+  getTransactions: '/plaid/transactions',
+  getBalance: '/plaid/balance-history',
+  syncTransactions: '/plaid/transactions-sync',
+  getInstitution: '/plaid/institution',
+  removeAccount: '/plaid/accounts/remove',
+  updateAccount: '/plaid/accounts/update',
 };
 
 /**
@@ -127,27 +127,15 @@ const plaidService = {
    */
   createLinkToken: async (userData) => {
     try {
-      const response = await fetch(PLAID_API_ENDPOINTS.createLinkToken, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userData.token}`,
-          'X-Request-ID': `req_${Date.now()}`,
-        },
-        body: JSON.stringify(userData),
-        credentials: 'include'
+      const response = await plaidApi.post('/plaid/link-token', {
+        user_id: userData.user_id
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (!data || !data.link_token) {
+      if (!response.data || !response.data.link_token) {
         throw new Error('Invalid response: Missing link token');
       }
       
-      return data.link_token;
+      return response.data.link_token;
     } catch (error) {
       throw handleApiError(error);
     }
@@ -162,24 +150,16 @@ const plaidService = {
    */
   exchangePublicToken: async (publicToken, metadata = {}) => {
     try {
-      const response = await fetch(PLAID_API_ENDPOINTS.exchangePublicToken, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Request-ID': `req_${Date.now()}`,
-        },
-        body: JSON.stringify({ 
-          public_token: publicToken,
-          institution: metadata.institution,
-        }),
-        credentials: 'include'
+      const response = await plaidApi.post('/plaid/exchange-public-token', { 
+        public_token: publicToken,
+        institution: metadata.institution,
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.data) {
+        throw new Error('Invalid response from server');
       }
       
-      return response.json();
+      return response.data;
     } catch (error) {
       throw handleApiError(error);
     }
@@ -192,19 +172,13 @@ const plaidService = {
    */
   getAccounts: async () => {
     try {
-      const response = await fetch(PLAID_API_ENDPOINTS.getAccounts, {
-        method: 'GET',
-        headers: {
-          'X-Request-ID': `req_${Date.now()}`,
-        },
-        credentials: 'include'
-      });
+      const response = await plaidApi.get('/plaid/accounts');
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.data) {
+        throw new Error('Invalid response from server');
       }
       
-      return response.json();
+      return response.data;
     } catch (error) {
       throw handleApiError(error);
     }

@@ -30,7 +30,8 @@ const LinkAccounts = () => {
     name: '',
     type: 'checking',
     balance: '',
-    institution: ''
+    institution: '',
+    additional_details: {}
   });
 
   // Initialize component and fetch data
@@ -113,11 +114,24 @@ const LinkAccounts = () => {
 
   // Handle manual account input changes
   const handleManualInputChange = (e) => {
-    const { name, value } = e.target;
-    setManualAccount({
-      ...manualAccount,
-      [name]: name === 'balance' ? parseFloat(value) || '' : value
-    });
+    const { name, value, type: inputType } = e.target;
+    if (name.startsWith('additional_details.')) {
+      const detailField = name.split('.')[1];
+      setManualAccount(prev => ({
+        ...prev,
+        additional_details: {
+          ...prev.additional_details,
+          [detailField]: inputType === 'number' ? parseFloat(value) || 0 : value
+        }
+      }));
+    } else {
+      setManualAccount(prev => ({
+        ...prev,
+        [name]: name === 'balance' ? parseFloat(value) || '' : value,
+        // Reset additional details when account type changes
+        additional_details: name === 'type' ? {} : prev.additional_details
+      }));
+    }
   };
 
   // Add manual account
@@ -140,7 +154,8 @@ const LinkAccounts = () => {
           name: '',
           type: 'checking',
           balance: '',
-          institution: ''
+          institution: '',
+          additional_details: {}
         });
         setShowAddManual(false);
       }
@@ -310,9 +325,10 @@ const LinkAccounts = () => {
                 <option value="checking">Checking</option>
                 <option value="savings">Savings</option>
                 <option value="credit">Credit Card</option>
-                <option value="investment">Investment</option>
-                <option value="loan">Loan</option>
                 <option value="mortgage">Mortgage</option>
+                <option value="vehicle_loan">Vehicle Loan</option>
+                <option value="retirement">Retirement</option>
+                <option value="investment">Investment</option>
                 <option value="other">Other</option>
               </select>
             </div>
@@ -336,6 +352,7 @@ const LinkAccounts = () => {
               </div>
             </div>
           </div>
+          {renderTypeSpecificFields()}
           <div className="mt-5 flex justify-end space-x-3">
             <button
               type="button"
@@ -354,6 +371,248 @@ const LinkAccounts = () => {
         </form>
       </div>
     );
+  };
+
+  // Render type-specific fields based on account type
+  const renderTypeSpecificFields = () => {
+    switch (manualAccount.type) {
+      case 'mortgage':
+        return (
+          <>
+            <div className="col-span-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Mortgage Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="additional_details.original_loan_amount" className="block text-sm font-medium text-gray-700">Original Loan Amount</label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="additional_details.original_loan_amount"
+                      id="additional_details.original_loan_amount"
+                      value={manualAccount.additional_details.original_loan_amount || ''}
+                      onChange={handleManualInputChange}
+                      className="block w-full pl-7 pr-12 border border-gray-300 rounded-md shadow-sm py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="additional_details.interest_rate" className="block text-sm font-medium text-gray-700">Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    name="additional_details.interest_rate"
+                    id="additional_details.interest_rate"
+                    value={manualAccount.additional_details.interest_rate || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="3.5"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="additional_details.term_years" className="block text-sm font-medium text-gray-700">Term (Years)</label>
+                  <input
+                    type="number"
+                    name="additional_details.term_years"
+                    id="additional_details.term_years"
+                    value={manualAccount.additional_details.term_years || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="30"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="additional_details.start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
+                  <input
+                    type="date"
+                    name="additional_details.start_date"
+                    id="additional_details.start_date"
+                    value={manualAccount.additional_details.start_date || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 'vehicle_loan':
+        return (
+          <>
+            <div className="col-span-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Vehicle Loan Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="additional_details.vehicle_value" className="block text-sm font-medium text-gray-700">Vehicle Value</label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="additional_details.vehicle_value"
+                      id="additional_details.vehicle_value"
+                      value={manualAccount.additional_details.vehicle_value || ''}
+                      onChange={handleManualInputChange}
+                      className="block w-full pl-7 pr-12 border border-gray-300 rounded-md shadow-sm py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="additional_details.interest_rate" className="block text-sm font-medium text-gray-700">Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    name="additional_details.interest_rate"
+                    id="additional_details.interest_rate"
+                    value={manualAccount.additional_details.interest_rate || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="4.5"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="additional_details.term_months" className="block text-sm font-medium text-gray-700">Term (Months)</label>
+                  <input
+                    type="number"
+                    name="additional_details.term_months"
+                    id="additional_details.term_months"
+                    value={manualAccount.additional_details.term_months || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="60"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="additional_details.start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
+                  <input
+                    type="date"
+                    name="additional_details.start_date"
+                    id="additional_details.start_date"
+                    value={manualAccount.additional_details.start_date || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 'retirement':
+        return (
+          <>
+            <div className="col-span-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Retirement Account Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="additional_details.account_subtype" className="block text-sm font-medium text-gray-700">Account Type</label>
+                  <select
+                    name="additional_details.account_subtype"
+                    id="additional_details.account_subtype"
+                    value={manualAccount.additional_details.account_subtype || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="401k">401(k)</option>
+                    <option value="403b">403(b)</option>
+                    <option value="457b">457(b)</option>
+                    <option value="ira">Traditional IRA</option>
+                    <option value="roth_ira">Roth IRA</option>
+                    <option value="sep_ira">SEP IRA</option>
+                    <option value="simple_ira">SIMPLE IRA</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="additional_details.employer_match" className="block text-sm font-medium text-gray-700">Employer Match (%)</label>
+                  <input
+                    type="number"
+                    name="additional_details.employer_match"
+                    id="additional_details.employer_match"
+                    value={manualAccount.additional_details.employer_match || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="3"
+                    step="0.1"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="additional_details.contribution_ytd" className="block text-sm font-medium text-gray-700">YTD Contributions</label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="additional_details.contribution_ytd"
+                      id="additional_details.contribution_ytd"
+                      value={manualAccount.additional_details.contribution_ytd || ''}
+                      onChange={handleManualInputChange}
+                      className="block w-full pl-7 pr-12 border border-gray-300 rounded-md shadow-sm py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 'investment':
+        return (
+          <>
+            <div className="col-span-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Investment Account Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="additional_details.account_subtype" className="block text-sm font-medium text-gray-700">Account Type</label>
+                  <select
+                    name="additional_details.account_subtype"
+                    id="additional_details.account_subtype"
+                    value={manualAccount.additional_details.account_subtype || ''}
+                    onChange={handleManualInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="brokerage">Brokerage</option>
+                    <option value="mutual_fund">Mutual Fund</option>
+                    <option value="bonds">Bonds</option>
+                    <option value="stocks">Stocks</option>
+                    <option value="etf">ETF</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="additional_details.cost_basis" className="block text-sm font-medium text-gray-700">Cost Basis</label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="additional_details.cost_basis"
+                      id="additional_details.cost_basis"
+                      value={manualAccount.additional_details.cost_basis || ''}
+                      onChange={handleManualInputChange}
+                      className="block w-full pl-7 pr-12 border border-gray-300 rounded-md shadow-sm py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      default:
+        return null;
+    }
   };
 
   // Add this function to handle removing accounts

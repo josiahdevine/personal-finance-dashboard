@@ -784,42 +784,32 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     }, [basePay, payType, payFrequency, hoursPerWeek, overtime, bonus, commission, 
         preTaxDeductions, postTaxDeductions, selectedState, selectedCity]);
 
-    const fetchSalaryEntries = useCallback(async () => {
-        setLoading(true);
+    const fetchSalaryEntries = async () => {
         try {
-            // First try to load from localStorage as a fallback
-            const storedEntries = localStorage.getItem(`salary_entries_${activeUserId}`);
-            if (storedEntries) {
-                const parsedEntries = JSON.parse(storedEntries);
-                console.log('Loaded salary entries from localStorage:', parsedEntries);
-                setSalaryEntries(parsedEntries);
-            }
+            setLoading(true);
+            const response = await api.get('/api/salary-journal', {
+                params: {
+                    userProfileId: activeUserId
+                }
+            });
             
-            // Then try the API with proper authentication
-            try {
-                console.log('Fetching salary data for user:', activeUserId);
-                
-                // Use our api service which handles authentication and has fallback mock data
-                const response = await api.get(`/salary-entries?userProfileId=${activeUserId}`);
-                
-                const data = response.data;
-                console.log('Loaded salary entries from API:', data);
-                setSalaryEntries(data);
-                
-                // Update localStorage with the latest data
-                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(data));
-                toast.success('Salary data loaded from database');
-            } catch (apiError) {
-                console.error('API Error fetching salary entries:', apiError);
-                toast.warning('Using locally stored salary data - API connection error');
+            if (response.data) {
+                setSalaryEntries(response.data);
+                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(response.data));
             }
         } catch (error) {
-            console.error('Error in fetchSalaryEntries:', error);
-            toast.error('An error occurred while loading salary data');
+            console.error('Error fetching salary entries:', error);
+            toast.error('Failed to fetch salary entries');
+            
+            // Try to load from localStorage as fallback
+            const storedEntries = localStorage.getItem(`salary_entries_${activeUserId}`);
+            if (storedEntries) {
+                setSalaryEntries(JSON.parse(storedEntries));
+            }
         } finally {
             setLoading(false);
         }
-    }, [activeUserId]);
+    };
 
     // Now use the functions in useEffect hooks
     useEffect(() => {
@@ -894,25 +884,18 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
         setLoading(true);
 
         try {
-            // Calculate the actual bonus amount based on the type
-            const finalBonusAmount = bonusIsPercentage 
-                ? (parseFloat(salaryAmount) * parseFloat(bonusAmount) / 100) 
-                : parseFloat(bonusAmount) || 0;
-            
-            // Prepare data for the API
             const salaryEntry = {
                 company,
                 position,
-                user_profile_id: activeUserId,
                 salary_amount: parseFloat(salaryAmount),
+                date_of_change: dateOfChange,
+                notes,
+                bonus_amount: parseFloat(bonusAmount) || 0,
+                commission_amount: parseFloat(commissionAmount) || 0,
+                user_profile_id: activeUserId,
                 pay_type: payType,
                 pay_frequency: payFrequency,
-                hours_per_week: payType === 'hourly' ? parseFloat(hoursPerWeek) : null,
-                date_of_change: dateOfChange || new Date().toISOString().split('T')[0],
-                notes,
-                bonus_amount: finalBonusAmount,
-                bonus_is_percentage: bonusIsPercentage,
-                commission_amount: parseFloat(commissionAmount) || 0,
+                hours_per_week: parseFloat(hoursPerWeek),
                 health_insurance: parseFloat(healthInsurance) || 0,
                 dental_insurance: parseFloat(dentalInsurance) || 0,
                 vision_insurance: parseFloat(visionInsurance) || 0,
@@ -921,13 +904,11 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 city: selectedCity
             };
 
-            // If we're editing, add the ID and use PUT, otherwise use POST
             let response;
             
             if (editingEntryId) {
                 console.log('Updating existing entry:', editingEntryId);
-                salaryEntry.id = editingEntryId;
-                response = await api.put(`/api/salary/${editingEntryId}`, salaryEntry);
+                response = await api.put(`/api/salary-journal/${editingEntryId}`, salaryEntry);
                 
                 if (response.status === 200) {
                     toast.success('Salary entry updated successfully!');
@@ -949,7 +930,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 }
             } else {
                 console.log('Creating new salary entry:', salaryEntry);
-                response = await api.post('/api/salary', salaryEntry);
+                response = await api.post('/api/salary-journal', salaryEntry);
                 
                 if (response.status === 200 || response.status === 201) {
                     toast.success('Salary entry created successfully!');
@@ -973,64 +954,8 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             
             fetchSalaryEntries(); // Refresh the list
         } catch (error) {
-            console.error('Error saving salary entry:', error);
-            toast.error('Error saving salary entry: ' + (error.message || 'Unknown error'));
-            
-            // Fall back to local storage for network errors
-            try {
-                const finalBonusAmount = bonusIsPercentage 
-                    ? (parseFloat(salaryAmount) * parseFloat(bonusAmount) / 100) 
-                    : parseFloat(bonusAmount) || 0;
-                
-                const salaryEntry = {
-                    company,
-                    position,
-                    user_profile_id: activeUserId,
-                    salary_amount: parseFloat(salaryAmount),
-                    pay_type: payType,
-                    pay_frequency: payFrequency,
-                    hours_per_week: payType === 'hourly' ? parseFloat(hoursPerWeek) : null,
-                    date_of_change: dateOfChange || new Date().toISOString().split('T')[0],
-                    notes,
-                    bonus_amount: finalBonusAmount,
-                    bonus_is_percentage: bonusIsPercentage,
-                    commission_amount: parseFloat(commissionAmount) || 0,
-                    health_insurance: parseFloat(healthInsurance) || 0,
-                    dental_insurance: parseFloat(dentalInsurance) || 0,
-                    vision_insurance: parseFloat(visionInsurance) || 0,
-                    retirement_401k: parseFloat(retirement401k) || 0,
-                    state: selectedState,
-                    city: selectedCity
-                };
-                
-                // Handle both create and update in localStorage
-                let updatedEntries;
-                
-                if (editingEntryId) {
-                    // Update existing entry
-                    updatedEntries = salaryEntries.map(entry => 
-                        entry.id === editingEntryId ? { ...salaryEntry, id: editingEntryId } : entry
-                    );
-                    toast.warning('Updated in local storage (network error)');
-                } else {
-                    // Create new entry
-                    const entryWithId = {
-                        ...salaryEntry,
-                        id: `local_${Date.now()}`,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    updatedEntries = [entryWithId, ...salaryEntries];
-                    toast.warning('Saved to local storage (network error)');
-                }
-                
-                localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
-                setSalaryEntries(updatedEntries);
-                resetForm();
-                setEditingEntryId(null);
-            } catch (storageError) {
-                console.error('Failed to save to local storage:', storageError);
-            }
+            console.error('Error submitting salary entry:', error);
+            toast.error('Failed to save salary entry. Please try again.');
         } finally {
             setLoading(false);
         }

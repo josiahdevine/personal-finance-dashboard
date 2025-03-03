@@ -7,8 +7,8 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import LandingPage from './pages/LandingPage';
-import PublicNavbar from './components/navigation/PublicNavbar';
-import Footer from './components/Footer';
+import PublicNavbar from './Components/navigation/PublicNavbar';
+import Footer from './Components/Footer';
 
 // Define PrivateRoute component locally
 interface PrivateRouteProps {

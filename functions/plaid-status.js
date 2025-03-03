@@ -31,7 +31,6 @@ export const handler = async function(event, context) {
     return corsHandler.handleCorsPreflightRequest(event);
   }
 
-  // For non-OPTIONS requests, proceed with standard flow and authentication
   try {
     // Only allow GET requests
     if (event.httpMethod !== "GET") {

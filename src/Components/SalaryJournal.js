@@ -784,7 +784,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
     }, [basePay, payType, payFrequency, hoursPerWeek, overtime, bonus, commission, 
         preTaxDeductions, postTaxDeductions, selectedState, selectedCity]);
 
-    const fetchSalaryEntries = async () => {
+    const fetchSalaryEntries = useCallback(async () => {
         try {
             setLoading(true);
             const response = await apiService.get('/api/salary-journal', {
@@ -809,7 +809,7 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [activeUserId]); // Only depend on activeUserId
 
     // Now use the functions in useEffect hooks
     useEffect(() => {
@@ -907,15 +907,14 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
             let response;
             
             if (editingEntryId) {
-                console.log('Updating existing entry:', editingEntryId);
-                response = await apiService.put(`/api/salary-journal/${editingEntryId}`, salaryEntry);
+                response = await apiService.updateSalaryEntry(editingEntryId, salaryEntry);
                 
-                if (response.status === 200) {
+                if (response) {
                     toast.success('Salary entry updated successfully!');
                     
                     // Update the entry in the local state
                     const updatedEntries = salaryEntries.map(entry => 
-                        entry.id === editingEntryId ? { ...salaryEntry, id: editingEntryId } : entry
+                        entry.id === editingEntryId ? { ...response, id: editingEntryId } : entry
                     );
                     setSalaryEntries(updatedEntries);
                     
@@ -923,20 +922,19 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                     localStorage.setItem(`salary_entries_${activeUserId}`, JSON.stringify(updatedEntries));
                     
                     // Call the parent callback if provided
-                    if (onSalaryUpdated) onSalaryUpdated(salaryEntry);
+                    if (onSalaryUpdated) onSalaryUpdated(response);
                     
                     resetForm();
                     setEditingEntryId(null);
                 }
             } else {
-                console.log('Creating new salary entry:', salaryEntry);
-                response = await apiService.post('/api/salary-journal', salaryEntry);
+                response = await apiService.createSalaryEntry(salaryEntry);
                 
-                if (response.status === 200 || response.status === 201) {
+                if (response) {
                     toast.success('Salary entry created successfully!');
                     
                     // Get the ID from the response
-                    const newEntryWithId = response.data.data || { ...salaryEntry, id: `local_${Date.now()}` };
+                    const newEntryWithId = response;
                     
                     // Update the entries list
                     const updatedEntries = [newEntryWithId, ...salaryEntries];
@@ -952,10 +950,16 @@ const SalaryJournal = ({ onSalaryAdded, onSalaryUpdated, onSalaryDeleted }) => {
                 }
             }
             
-            fetchSalaryEntries(); // Refresh the list
+            // Refresh the list
+            await fetchSalaryEntries();
         } catch (error) {
             console.error('Error submitting salary entry:', error);
-            toast.error('Failed to save salary entry. Please try again.');
+            toast.error(error.message || 'Failed to save salary entry. Please try again.');
+            
+            // Show more detailed error message if available
+            if (error.details) {
+                toast.error(error.details, { autoClose: 5000 });
+            }
         } finally {
             setLoading(false);
         }

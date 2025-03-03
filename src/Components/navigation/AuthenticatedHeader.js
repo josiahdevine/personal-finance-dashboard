@@ -46,8 +46,9 @@ const AuthenticatedHeader = ({ toggleSidebar }) => {
         <div className="flex justify-between h-16">
           <div className="flex">
             <button
-              onClick={toggleSidebar}
               className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
+              aria-label="Open mobile menu"
+              onClick={() => setIsOpen(!isOpen)}
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
@@ -89,14 +90,26 @@ const AuthenticatedHeader = ({ toggleSidebar }) => {
           {/* Mobile menu button */}
           <div className="flex items-center md:hidden">
             <button
-              onClick={() => setIsOpen(!isOpen)}
+              aria-label="Toggle mobile menu"
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              onClick={() => setIsOpen(!isOpen)}
             >
-              {isOpen ? (
-                <XMarkIcon className="h-6 w-6" />
-              ) : (
-                <Bars3Icon className="h-6 w-6" />
-              )}
+              <svg
+                aria-hidden="true"
+                className="h-6 w-6"
+                data-slot="icon"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
         </div>

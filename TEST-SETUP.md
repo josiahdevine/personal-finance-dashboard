@@ -376,4 +376,64 @@ jest.mock('react-router-dom');
    - Regular updates of test dependencies
    - Review and update snapshots
    - Monitor test performance
-   - Document complex test setups 
+   - Document complex test setups
+
+## Router Testing Guidelines
+
+### Common Pitfalls
+
+1. **Nested Routers**
+   - Never wrap components in multiple `BrowserRouter` components
+   - The `BrowserRouter` should only be present once at the root level
+   - For testing, use `MemoryRouter` instead of `BrowserRouter`
+
+2. **Router Context**
+   - Components using router hooks (`useNavigate`, `useLocation`) must be wrapped in a router
+   - Use `MemoryRouter` for testing components that need router context
+   - Set initial entries for `MemoryRouter` to test specific routes
+
+### Example Test Setup
+
+```javascript
+import { MemoryRouter } from 'react-router-dom';
+
+const renderWithRouter = (component, { route = '/' } = {}) => {
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <ThemeProvider>
+        <AuthProvider>
+          {component}
+        </AuthProvider>
+      </ThemeProvider>
+    </MemoryRouter>
+  );
+};
+
+// Usage in tests
+it('should render protected route when authenticated', () => {
+  renderWithRouter(<PrivateRoute><ProtectedComponent /></PrivateRoute>, {
+    route: '/dashboard'
+  });
+  // Test assertions
+});
+```
+
+### Best Practices
+
+1. **Router Testing**
+   - Use `MemoryRouter` for testing
+   - Set initial routes to test specific scenarios
+   - Mock navigation functions when needed
+   - Test both authenticated and unauthenticated states
+
+2. **Component Testing**
+   - Test components in isolation
+   - Mock router hooks when necessary
+   - Test navigation behavior
+   - Verify route protection
+
+3. **Integration Testing**
+   - Test complete navigation flows
+   - Verify route changes
+   - Test authentication redirects
+   - Check protected route access 

@@ -317,23 +317,59 @@ const apiService = {
   
   // Salary Entries
   getSalaryEntries: async (params) => {
-    const response = await api.get('/api/salary-journal', { params });
-    return response.data;
+    try {
+      const response = await api.get('/api/salary-journal', { params });
+      return response.data;
+    } catch (error) {
+      logError('API', 'Error fetching salary entries', error);
+      throw {
+        message: 'Failed to fetch salary entries',
+        details: error.response?.data?.message || error.message,
+        code: error.response?.status || 'UNKNOWN_ERROR'
+      };
+    }
   },
   
   createSalaryEntry: async (salaryData) => {
-    const response = await api.post('/api/salary-journal', salaryData);
-    return response.data;
+    try {
+      const response = await api.post('/api/salary-journal', salaryData);
+      return response.data;
+    } catch (error) {
+      logError('API', 'Error creating salary entry', error);
+      throw {
+        message: 'Failed to create salary entry',
+        details: error.response?.data?.message || error.message,
+        code: error.response?.status || 'UNKNOWN_ERROR'
+      };
+    }
   },
   
   updateSalaryEntry: async (id, salaryData) => {
-    const response = await api.put(`/api/salary-journal/${id}`, salaryData);
-    return response.data;
+    try {
+      const response = await api.put(`/api/salary-journal/${id}`, salaryData);
+      return response.data;
+    } catch (error) {
+      logError('API', 'Error updating salary entry', error);
+      throw {
+        message: 'Failed to update salary entry',
+        details: error.response?.data?.message || error.message,
+        code: error.response?.status || 'UNKNOWN_ERROR'
+      };
+    }
   },
   
   deleteSalaryEntry: async (id) => {
-    const response = await api.delete(`/salary-entries/${id}`);
-    return response.data;
+    try {
+      const response = await api.delete(`/api/salary-journal/${id}`);
+      return response.data;
+    } catch (error) {
+      logError('API', 'Error deleting salary entry', error);
+      throw {
+        message: 'Failed to delete salary entry',
+        details: error.response?.data?.message || error.message,
+        code: error.response?.status || 'UNKNOWN_ERROR'
+      };
+    }
   },
   
   // Financial Goals

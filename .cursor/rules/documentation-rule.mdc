@@ -24,3 +24,5 @@ When asked to implement any new feature, fix common errors, or anyting of the li
 [GEMINI_INTEGRATION.md](mdc:docs/GEMINI_INTEGRATION.md)
 [plaid-updated-guide.md](mdc:documentation/plaid-updated-guide.md)
 
+Be sure, before pushing to git to test everything possible. We want to make this as error free as possible
+

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import AuthenticatedHeader from '../AuthenticatedHeader';
 
@@ -12,24 +12,25 @@ jest.mock('../../../utils/logger', () => ({
 }));
 
 describe('AuthenticatedHeader', () => {
-  const mockUseAuth = useAuth;
-  const mockToggleSidebar = jest.fn();
+  const mockLogout = jest.fn();
+  const mockUser = {
+    uid: '1',
+    email: 'test@example.com',
+    displayName: 'Test User'
+  };
 
   beforeEach(() => {
-    mockUseAuth.mockClear();
-    mockToggleSidebar.mockClear();
+    useAuth.mockReturnValue({
+      currentUser: mockUser,
+      logout: mockLogout
+    });
   });
 
-  const renderHeader = (currentUser = { id: '1' }) => {
-    mockUseAuth.mockReturnValue({
-      currentUser,
-      logout: jest.fn().mockResolvedValue(undefined)
-    });
-
+  const renderHeader = () => {
     return render(
-      <MemoryRouter>
-        <AuthenticatedHeader toggleSidebar={mockToggleSidebar} />
-      </MemoryRouter>
+      <BrowserRouter>
+        <AuthenticatedHeader />
+      </BrowserRouter>
     );
   };
 
@@ -38,48 +39,42 @@ describe('AuthenticatedHeader', () => {
     expect(screen.getByText(/FinanceFlow/i)).toBeInTheDocument();
   });
 
-  it('renders all navigation menu items', () => {
+  it('renders navigation links', () => {
     renderHeader();
-    expect(screen.getByText(/Dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/Transactions/i)).toBeInTheDocument();
-    expect(screen.getByText(/Goals/i)).toBeInTheDocument();
-    expect(screen.getByText(/Reports/i)).toBeInTheDocument();
-    expect(screen.getByText(/Profile/i)).toBeInTheDocument();
-  });
-
-  it('handles sidebar toggle', () => {
-    renderHeader();
-    const toggleButton = screen.getByRole('button', { name: /toggle sidebar/i });
-    fireEvent.click(toggleButton);
-    expect(mockToggleSidebar).toHaveBeenCalled();
+    
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Goals')).toBeInTheDocument();
+    expect(screen.getByText('Reports')).toBeInTheDocument();
+    expect(screen.getByText('Profile')).toBeInTheDocument();
   });
 
   it('handles mobile menu toggle', () => {
     renderHeader();
-    const menuButton = screen.getByRole('button', { name: /menu/i });
+    
+    // Get the mobile menu button by its aria-label
+    const menuButton = screen.getByRole('button', { name: 'Toggle mobile menu' });
     
     // Menu should be closed initially
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     
-    // Open menu
+    // Open mobile menu
     fireEvent.click(menuButton);
+    
+    // Menu should be open
     expect(screen.getByRole('navigation')).toBeInTheDocument();
     
-    // Close menu
+    // Close mobile menu
     fireEvent.click(menuButton);
+    
+    // Menu should be closed
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
-  it('handles logout action', async () => {
-    const mockLogout = jest.fn().mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({
-      currentUser: { id: '1' },
-      logout: mockLogout
-    });
-
+  it('handles logout action', () => {
     renderHeader();
+    const logoutButton = screen.getByText('Logout');
     
-    const logoutButton = screen.getByText(/Logout/i);
     fireEvent.click(logoutButton);
     
     expect(mockLogout).toHaveBeenCalled();
@@ -87,20 +82,29 @@ describe('AuthenticatedHeader', () => {
 
   it('displays correct active link styles', () => {
     renderHeader();
-    const dashboardLink = screen.getByText(/Dashboard/i).closest('a');
+    const dashboardLink = screen.getByText('Dashboard').closest('a');
+    
+    // Set the current location to /dashboard
+    window.history.pushState({}, '', '/dashboard');
+    
+    // Force a re-render to update active styles
+    renderHeader();
+    
     expect(dashboardLink).toHaveClass('text-indigo-600');
   });
 
   it('closes mobile menu when clicking a navigation link', () => {
     renderHeader();
     
+    // Get the mobile menu button by its aria-label
+    const menuButton = screen.getByRole('button', { name: 'Toggle mobile menu' });
+    
     // Open mobile menu
-    const menuButton = screen.getByRole('button', { name: /menu/i });
     fireEvent.click(menuButton);
     
     // Click a navigation link
-    const dashboardLink = screen.getByText(/Dashboard/i);
-    fireEvent.click(dashboardLink);
+    const transactionsLink = screen.getByText('Transactions').closest('a');
+    fireEvent.click(transactionsLink);
     
     // Menu should be closed
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();

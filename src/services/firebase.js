@@ -168,7 +168,7 @@ const initFirebase = async () => {
             const testTenantId = auth.tenantId;
             console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
           } catch (testError) {
-            
+            console.warn('Firebase auth verification failed:', testError);
           }
         }
         
@@ -201,51 +201,45 @@ initFirebase().catch(error => {
       time: new Date().toISOString()
     }));
   } catch (e) {
-    
+    console.error('Failed to store Firebase init error:', e);
   }
 });
 
 // Use a more robust check for auth initialization in all exported functions
-export const ensureAuth = () => {
-  try {
-    // If auth is not initialized, try to initialize it
-    if (!auth && app) {
-      
-      auth = getAuth(app);
-    }
-    
-    // If app is not initialized, initialize it
-    if (!app) {
-      
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-    }
-
-    // Verify auth is working
-    if (auth) {
-      // Test a safe property access
-      const testTenantId = auth.tenantId;
-      console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
-      return auth;
-    }
-
-    
-    const error = new Error('Firebase authentication is not initialized');
-    error.code = 'auth/service-unavailable';
-    error.details = {
-      initRetryCount,
-      environment: {
-        isProduction,
-        isNetlify,
-        isTryPersonalFinance,
-        hostname: window.location.hostname
-      }
-    };
-    throw error;
-  } catch (error) {
-    
-    throw error;
+const ensureAuth = () => {
+  // If auth is not initialized, try to initialize it
+  if (!auth && app) {
+    console.log('Firebase: Initializing auth from existing app');
+    auth = getAuth(app);
   }
+  
+  // If app is not initialized, initialize it
+  if (!app) {
+    console.log('Firebase: Initializing new app');
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+  }
+
+  // Verify auth is working
+  if (auth) {
+    // Test a safe property access
+    const testTenantId = auth.tenantId;
+    console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
+    return auth;
+  }
+
+  const error = new Error('Firebase authentication is not initialized');
+  error.code = 'auth/service-unavailable';
+  error.details = {
+    initRetryCount,
+    environment: {
+      isProduction,
+      isNetlify,
+      isTryPersonalFinance,
+      hostname: window.location.hostname
+    }
+  };
+  throw error;
 };
 
 // Updated login function with more robust auth initialization check
@@ -491,7 +485,7 @@ const setupAuthStateListener = (callback) => {
     try {
       callback(null);
     } catch (cbError) {
-      
+      console.error('Error in auth state change callback handler:', cbError);
     }
   });
 };

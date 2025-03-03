@@ -83,7 +83,7 @@ const LandingPage = () => {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setIsAuthMenuOpen(true)} onKeyDown={() => setIsAuthMenuOpen(true)} role="button" tabIndex={0}
+                onClick={() => setIsAuthMenuOpen(true)} onKeyDown={() => setIsAuthMenuOpen(true)} tabIndex={0}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 Get Started
@@ -95,12 +95,12 @@ const LandingPage = () => {
 
       {/* AuthMenu - Now positioned relative to viewport */}
       <div className={`fixed inset-0 z-50 flex items-center justify-center ${isAuthMenuOpen ? '' : 'hidden'}`}>
-        <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} role="button" tabIndex={0}></div>
+        <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} tabIndex={0}></div>
         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full m-4 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Get Started</h2>
             <button
-              onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} role="button" tabIndex={0}
+              onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} tabIndex={0}
               className="text-gray-400 hover:text-gray-500"
             >
               <span className="sr-only">Close</span>
@@ -113,14 +113,14 @@ const LandingPage = () => {
             <Link
               to="/login"
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} role="button" tabIndex={0}
+              onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} tabIndex={0}
             >
               Login
             </Link>
             <Link
               to="/register"
               className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} role="button" tabIndex={0}
+              onClick={() => setIsAuthMenuOpen(false)} onKeyDown={() => setIsAuthMenuOpen(false)} tabIndex={0}
             >
               Create Account
             </Link>
@@ -144,7 +144,7 @@ const LandingPage = () => {
                 Track your net worth, investments, and spending all in one place. Get personalized insights to help you grow your wealth.
               </p>
               <button
-                onClick={() => setIsAuthMenuOpen(true)} onKeyDown={() => setIsAuthMenuOpen(true)} role="button" tabIndex={0}
+                onClick={() => setIsAuthMenuOpen(true)} onKeyDown={() => setIsAuthMenuOpen(true)} tabIndex={0}
                 className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 Start Your Journey
@@ -192,7 +192,7 @@ const LandingPage = () => {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white mb-8">Ready to Transform Your Financial Life?</h2>
           <button
-            onClick={() => setIsAuthMenuOpen(true)} onKeyDown={() => setIsAuthMenuOpen(true)} role="button" tabIndex={0}
+            onClick={() => setIsAuthMenuOpen(true)} onKeyDown={() => setIsAuthMenuOpen(true)} tabIndex={0}
             className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
           >
             Get Started Now

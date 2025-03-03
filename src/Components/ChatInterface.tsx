@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useGemini } from '../contexts/GeminiContext';
 import { ChatMessage } from '../types/gemini';
 import { HiPaperAirplane, HiOutlineRefresh } from 'react-icons/hi';
+import IconWrapper from './IconWrapper';
 
 const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
@@ -60,7 +61,7 @@ const ChatInterface: React.FC = () => {
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
           title="Clear chat"
         >
-          {React.createElement(HiOutlineRefresh, { className: "w-5 h-5 dark:text-white" })}
+          <IconWrapper icon={HiOutlineRefresh} className="w-5 h-5 dark:text-white" />
         </button>
       </div>
 
@@ -90,7 +91,7 @@ const ChatInterface: React.FC = () => {
                 : 'bg-blue-600 hover:bg-blue-700'
             } text-white transition-colors`}
           >
-            {React.createElement(HiPaperAirplane, { className: "w-5 h-5 transform rotate-90" })}
+            <IconWrapper icon={HiPaperAirplane} className="w-5 h-5 transform rotate-90" />
           </button>
         </div>
       </form>

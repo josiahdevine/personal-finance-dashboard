@@ -359,7 +359,26 @@ const plaidService = {
     };
     
     return errorMessages[errorCode] || 'An unknown error occurred. Please try again later.';
-  }
+  },
+
+  /**
+   * Checks the Plaid connection status
+   * 
+   * @returns {Promise<Object>} Connection status
+   */
+  getPlaidStatus: async () => {
+    try {
+      const response = await plaidApi.get('/plaid-status');
+      
+      if (!response.data) {
+        throw new Error('Invalid response from server');
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
 };
 
 export default plaidService; 

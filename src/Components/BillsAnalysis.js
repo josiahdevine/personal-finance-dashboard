@@ -10,7 +10,7 @@ import {
     Legend,
 } from 'chart.js';
 import { HiOutlineExclamationCircle, HiUpload, HiPlus, HiTrash, HiPencil, HiX, HiLink } from 'react-icons/hi';
-import api from '../services/api';
+import apiService from '../services/liveApi';
 import { toast } from 'react-toastify';
 import { log, logError } from '../utils/logger';
 import { parse } from 'papaparse';

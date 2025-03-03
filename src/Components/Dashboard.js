@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import api from '../services/api';
+import apiService from '../services/liveApi';
 import {
   Chart as ChartJS,
   CategoryScale,

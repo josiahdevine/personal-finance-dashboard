@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { usePlaid } from './PlaidContext';
 import { useAuth } from './AuthContext';
-import api from '../services/api';
+import apiService from '../services/liveApi';
 import { toast } from 'react-toastify';
 
 // Create context
@@ -35,7 +35,7 @@ export const PlaidLinkProvider = ({ children }) => {
     setIsLoading(true);
     try {
       // Request a link token from your server
-      const response = await api.post('/api/plaid/create-link-token', {
+      const response = await apiService.post('/api/plaid/create-link-token', {
         user_id: currentUser.uid
       });
 
@@ -78,7 +78,7 @@ export const PlaidLinkProvider = ({ children }) => {
     setIsLoading(true);
     try {
       // Exchange public token for access token on your server
-      const response = await api.post('/api/plaid/exchange-public-token', {
+      const response = await apiService.post('/api/plaid/exchange-public-token', {
         public_token: publicToken,
         metadata: metadata,
         user_id: currentUser.uid

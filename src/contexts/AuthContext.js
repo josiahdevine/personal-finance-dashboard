@@ -11,7 +11,7 @@ import {
 // Import Firebase initialization
 import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth, loginUser, registerUser } from '../services/firebase';
 import { toast } from 'react-toastify';
-import apiService from '../services/api';
+import apiService from '../services/liveApi';
 import { useNavigate } from 'react-router-dom';
 import { log, logError, logRender, timeOperation } from '../utils/logger';
 import ErrorBoundary from '../Components/ErrorBoundary';

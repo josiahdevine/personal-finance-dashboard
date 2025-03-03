@@ -69,7 +69,7 @@ function Button({
       type={type}
       className={buttonClasses}
       disabled={isDisabled || isLoading}
-      onClick={onClick}
+      onClick={onClick} onKeyDown={onClick} role="button" tabIndex={0}
       {...props}
     >
       {children}

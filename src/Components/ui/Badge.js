@@ -73,7 +73,7 @@ const Badge = ({
           rounded-full
           ${className}
         `}
-        onClick={onClick}
+        onClick={onClick} onKeyDown={onClick} role="button" tabIndex={0}
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
       />
@@ -83,7 +83,7 @@ const Badge = ({
   return (
     <span
       className={badgeClasses}
-      onClick={onClick}
+      onClick={onClick} onKeyDown={onClick} role="button" tabIndex={0}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >

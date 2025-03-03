@@ -70,15 +70,15 @@ plaidApi.interceptors.response.use(
 );
 
 const PLAID_API_ENDPOINTS = {
-  createLinkToken: '/plaid/link-token',
-  exchangePublicToken: '/plaid/exchange-public-token',
-  getAccounts: '/plaid/accounts',
-  getTransactions: '/plaid/transactions',
-  getBalance: '/plaid/balance-history',
-  syncTransactions: '/plaid/transactions-sync',
-  getInstitution: '/plaid/institution',
-  removeAccount: '/plaid/accounts/remove',
-  updateAccount: '/plaid/accounts/update',
+  createLinkToken: '/plaid-link-token',
+  exchangePublicToken: '/plaid-exchange-token',
+  getAccounts: '/plaid-accounts',
+  getTransactions: '/plaid-transactions',
+  getBalance: '/plaid-balance-history',
+  syncTransactions: '/plaid-transactions-sync',
+  getInstitution: '/plaid-status',
+  removeAccount: '/plaid-accounts/remove',
+  updateAccount: '/plaid-accounts/update',
 };
 
 /**
@@ -127,7 +127,7 @@ const plaidService = {
    */
   createLinkToken: async (userData) => {
     try {
-      const response = await plaidApi.post('/plaid/link-token', {
+      const response = await plaidApi.post('/plaid-link-token', {
         user_id: userData.user_id
       });
       
@@ -150,7 +150,7 @@ const plaidService = {
    */
   exchangePublicToken: async (publicToken, metadata = {}) => {
     try {
-      const response = await plaidApi.post('/plaid/exchange-public-token', { 
+      const response = await plaidApi.post('/plaid-exchange-token', { 
         public_token: publicToken,
         institution: metadata.institution,
       });
@@ -172,7 +172,7 @@ const plaidService = {
    */
   getAccounts: async () => {
     try {
-      const response = await plaidApi.get('/plaid/accounts');
+      const response = await plaidApi.get('/plaid-accounts');
       
       if (!response.data) {
         throw new Error('Invalid response from server');
@@ -198,7 +198,7 @@ const plaidService = {
    */
   getTransactions: async (startDate, endDate) => {
     try {
-      const response = await plaidApi.get('/plaid/transactions', {
+      const response = await plaidApi.get('/plaid-transactions', {
         params: { start_date: startDate, end_date: endDate }
       });
       return response.data;
@@ -217,7 +217,7 @@ const plaidService = {
    */
   syncTransactions: async (userId, cursor = null) => {
     try {
-      const response = await plaidApi.post('/plaid/transactions/sync', {
+      const response = await plaidApi.post('/plaid-transactions-sync', {
         userId,
         cursor
       });
@@ -236,7 +236,7 @@ const plaidService = {
    */
   getBalances: async (userId, accountIds = []) => {
     try {
-      const response = await plaidApi.get('/plaid/balance', {
+      const response = await plaidApi.get('/plaid-balance', {
         params: {
           userId,
           accountIds: accountIds.join(',')

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '../../components/ui';
+import { Card } from '../../Components/ui';
 import { useNavigate } from 'react-router-dom';
 
 /**

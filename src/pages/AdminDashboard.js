@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import SystemHealthStatus from '../components/SystemHealthStatus';
+import SystemHealthStatus from '../Components/SystemHealthStatus';
 import { FiUsers, FiDatabase, FiCreditCard, FiSettings, FiClipboard, FiRefreshCw } from 'react-icons/fi';
 import axios from 'axios';
 

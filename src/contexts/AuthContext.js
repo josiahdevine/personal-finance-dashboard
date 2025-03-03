@@ -61,6 +61,8 @@ export const AuthProvider = ({ children }) => {
         // Try to get the auth instance
         const authInstance = ensureAuth();
         if (authInstance) {
+          // Set persistence to local
+          await setPersistence(authInstance, browserLocalPersistence);
           setFirebaseInitialized(true);
           return true;
         }

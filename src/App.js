@@ -251,7 +251,16 @@ const AuthenticatedLayout = ({ children }) => {
 
 // Define RootRouteHandler component to properly handle the redirect based on auth state
 const RootRouteHandler = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading } = useAuth();
+  
+  // Don't redirect while auth is initializing
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
   
   return (
     <ErrorBoundary componentName="RootPath">

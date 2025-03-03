@@ -1,23 +1,48 @@
 import { Handler } from '@netlify/functions';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createLogger } from './utils/logger.js';
+import corsHandler from './utils/cors-handler.js';
+import authHandler from './utils/auth-handler.js';
 
-const handler: Handler = async (event, context) => {
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+const logger = createLogger('gemini');
+
+export const handler: Handler = async (event, context) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const origin = event.headers.origin || event.headers.Origin || '*';
+
+  logger.info('Received Gemini request:', {
+    requestId,
+    httpMethod: event.httpMethod,
+    path: event.path,
+    origin
+  });
+
+  // Always handle OPTIONS requests first, before any auth checks
+  if (event.httpMethod === "OPTIONS") {
+    logger.info('Handling OPTIONS preflight for Gemini', { requestId });
+    return corsHandler.handleCorsPreflightRequest(event);
   }
 
   try {
-    // Verify authentication
-    const authHeader = event.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Unauthorized' }),
-      };
+    // Only allow POST requests
+    if (event.httpMethod !== 'POST') {
+      return corsHandler.createCorsResponse(405, {
+        error: 'Method not allowed',
+        requestId
+      }, origin);
+    }
+
+    // Get user from request (with modified auth handling)
+    const user = await authHandler.getUserFromRequest(event);
+    
+    // Since we're handling auth ourselves, check if user is authenticated
+    if (!user.isAuthenticated) {
+      logger.warn('Unauthorized request', { requestId, userId: user.uid });
+      return corsHandler.createCorsResponse(401, {
+        error: "Unauthorized",
+        message: "Authentication required for this endpoint",
+        requestId
+      }, origin);
     }
 
     // Parse request body
@@ -25,10 +50,10 @@ const handler: Handler = async (event, context) => {
     const { prompt, history } = body;
 
     if (!prompt) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Prompt is required' }),
-      };
+      return corsHandler.createCorsResponse(400, {
+        error: 'Prompt is required',
+        requestId
+      }, origin);
     }
 
     // Initialize Gemini
@@ -54,27 +79,26 @@ const handler: Handler = async (event, context) => {
     const result = await response.response;
     const text = result.text();
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        text,
-        usage: {
-          promptTokens: 0, // Actual token counts will be available in the response
-          completionTokens: 0,
-          totalTokens: 0,
-        },
-      }),
-    };
+    return corsHandler.createCorsResponse(200, {
+      text,
+      usage: {
+        promptTokens: 0, // Actual token counts will be available in the response
+        completionTokens: 0,
+        totalTokens: 0,
+      },
+      requestId
+    }, origin);
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'Failed to process request',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }),
-    };
+    logger.error('Gemini API Error:', {
+      error: error.message,
+      stack: error.stack,
+      requestId
+    });
+    
+    return corsHandler.createCorsResponse(500, {
+      error: 'Failed to process request',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      requestId
+    }, origin);
   }
-};
-
-export { handler }; 
+}; 

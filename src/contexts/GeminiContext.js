@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from './AuthContext';
 
 const GeminiContext = createContext();
 
@@ -12,17 +13,26 @@ export const useGemini = () => {
 };
 
 export const GeminiProvider = ({ children }) => {
+    const { currentUser } = useAuth();
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const sendMessage = async (message) => {
+        if (!currentUser) {
+            setError('You must be logged in to use the AI assistant');
+            return;
+        }
+
         try {
             setIsLoading(true);
             setError(null);
             
             // Add user message to chat
             setMessages(prev => [...prev, { role: 'user', content: message }]);
+            
+            // Get the current user's token
+            const token = await currentUser.getIdToken();
             
             // Call Gemini API
             const response = await axios.post(
@@ -33,7 +43,8 @@ export const GeminiProvider = ({ children }) => {
                 },
                 {
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     }
                 }
             );
@@ -46,7 +57,11 @@ export const GeminiProvider = ({ children }) => {
             
         } catch (error) {
             console.error('Error sending message:', error);
-            setError(error.message || 'Failed to send message');
+            if (error.response?.status === 401) {
+                setError('Your session has expired. Please log in again.');
+            } else {
+                setError(error.response?.data?.message || 'Failed to send message');
+            }
             throw error;
         } finally {
             setIsLoading(false);
@@ -63,7 +78,8 @@ export const GeminiProvider = ({ children }) => {
         sendMessage,
         clearChat,
         isLoading,
-        error
+        error,
+        isAuthenticated: !!currentUser
     };
 
     return (

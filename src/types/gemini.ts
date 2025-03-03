@@ -17,6 +17,11 @@ export interface ChatMessage {
   loading?: boolean;
 }
 
+export interface GeminiMessage {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
 export interface GeminiContextType {
   messages: ChatMessage[];
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;

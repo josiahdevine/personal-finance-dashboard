@@ -1,4 +1,5 @@
 const path = require('path');
+const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
 
 module.exports = {
   babel: {
@@ -72,6 +73,19 @@ module.exports = {
       console.log('Current NODE_ENV:', process.env.NODE_ENV);
       console.log('Is Development:', isEnvDevelopment);
       console.log('Is Production:', isEnvProduction);
+
+      // Allow imports from outside src directory, specifically @babel/runtime
+      webpackConfig.resolve.plugins = webpackConfig.resolve.plugins.filter(
+        plugin => !(plugin instanceof ModuleScopePlugin)
+      );
+      
+      // Add back ModuleScopePlugin but with @babel/runtime allowed
+      webpackConfig.resolve.plugins.push(
+        new ModuleScopePlugin(paths.appSrc, [
+          paths.appPackageJson,
+          path.resolve(paths.appNodeModules, '@babel/runtime')
+        ])
+      );
 
       // Fix for the date-fns conflicting star exports issue
       webpackConfig.resolve.alias = {

@@ -10,9 +10,12 @@
  */
 function getCorsHeaders(origin) {
   // Allow specific origins in production, any in development
-  const allowedOrigin = process.env.NODE_ENV === 'production'
-    ? 'https://trypersonalfinance.com'
-    : origin || '*';
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://trypersonalfinance.com']
+    : [origin || '*'];
+
+  // Check if origin is allowed
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
@@ -20,6 +23,7 @@ function getCorsHeaders(origin) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin'
   };
 }
 
@@ -47,7 +51,15 @@ function createCorsResponse(statusCode, body, origin) {
  * @returns {object} Preflight response
  */
 function handleOptionsRequest(event) {
-  const origin = event.headers.origin || event.headers.Origin || '*';
+  const origin = event.headers.origin || event.headers.Origin;
+  
+  // Return 403 if no origin
+  if (!origin) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ error: 'Origin required' })
+    };
+  }
   
   return {
     statusCode: 204,

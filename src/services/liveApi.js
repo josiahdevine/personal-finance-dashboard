@@ -2,11 +2,20 @@ import axios from 'axios';
 import { getToken } from './auth';
 import { log, logError } from '../utils/logger';
 
+const getBaseURL = () => {
+  const hostname = window.location.hostname;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction) {
+    return `https://${hostname}/.netlify/functions`;
+  }
+  
+  return 'http://localhost:8888/.netlify/functions';
+};
+
 // Create an axios instance with a base URL
 const isDevelopment = process.env.NODE_ENV === 'development';
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8888/.netlify/functions'
-  : '/.netlify/functions';
+const API_BASE_URL = getBaseURL();
 
 log('API', `Initializing API with base URL: ${API_BASE_URL}`, { 
   environment: process.env.NODE_ENV,
@@ -207,28 +216,44 @@ api.interceptors.response.use(
   }
 );
 
+const AUTH_ENDPOINTS = {
+  login: '/.netlify/functions/auth-login',
+  logout: '/.netlify/functions/auth-logout',
+  verify: '/.netlify/functions/auth-verify'
+};
+
 // API function definitions
 const apiService = {
   // Authentication
-  login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+  login: async (email, password) => {
+    try {
+      const response = await api.post(AUTH_ENDPOINTS.login, { email, password });
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   },
   
   logout: async () => {
-    const response = await api.post('/auth/logout');
+    const response = await api.post(AUTH_ENDPOINTS.logout);
     return response.data;
   },
   
   // Plaid API
-  getPlaidLinkToken: async (redirectUri) => {
-    const response = await api.post('/plaid-link-token', { redirectUri });
+  getPlaidLinkToken: async (userId) => {
+    const response = await api.post('/plaid-link-token', { user_id: userId });
     return response.data;
   },
   
-  exchangePlaidPublicToken: async (publicToken) => {
+  exchangePlaidPublicToken: async (publicToken, userId) => {
     const response = await api.post('/plaid-exchange-token', { 
-      publicToken,
+      public_token: publicToken,
+      user_id: userId,
       metadata: {
         environment: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
@@ -242,23 +267,13 @@ const apiService = {
     return response.data;
   },
   
-  getPlaidTransactions: async (params) => {
-    const response = await api.get('/plaid-transactions', { 
-      params: {
-        ...params,
-        environment: process.env.NODE_ENV
-      }
-    });
+  getTransactionsAnalytics: async (params) => {
+    const response = await api.get('/transactions-analytics', { params });
     return response.data;
   },
   
-  getPlaidStatus: async () => {
-    const response = await api.get('/plaid/status', {
-      params: {
-        environment: process.env.NODE_ENV,
-        timestamp: new Date().toISOString()
-      }
-    });
+  getBalanceHistory: async (params) => {
+    const response = await api.get('/plaid-balance-history', { params });
     return response.data;
   },
   
@@ -302,18 +317,6 @@ const apiService = {
   deleteGoal: async (id) => {
     const response = await api.delete(`/goals/${id}`);
     return response.data;
-  },
-  
-  // Transactions Analytics
-  getTransactionsAnalytics: async (params) => {
-    try {
-      log('API', 'Fetching transactions analytics', { params });
-      const response = await api.get('/transactions-analytics', { params });
-      return response.data;
-    } catch (error) {
-      logError('API', 'Error fetching transactions analytics', error);
-      throw error;
-    }
   },
   
   // Health check

@@ -1,26 +1,43 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const dns = require('dns');
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import dns from 'dns';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import morgan from 'morgan';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import compression from 'compression';
+import { authenticateToken } from './middleware/auth.js';
+import SalaryJournalController from './controller/SalaryJournalController.js';
+import plaidRoutes from './routes/plaidRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import salaryRoutes from './routes/salaryRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import goalRoutes from './routes/goalRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import investmentRoutes from './routes/investmentRoutes.js';
+import loanRoutes from './routes/loanRoutes.js';
+import manualAccountRoutes from './routes/manualAccountRoutes.js';
+import stockRoutes from './routes/stockRoutes.js';
+import config from './config/index.js';
+import pool from './db.js';
+
 dotenv.config();
 
-const config = require(`./config/${process.env.NODE_ENV === 'production' ? 'production' : 'development'}.js`);
-const pool = require('./db');
-const authRoutes = require('./routes/authRoutes');
-const plaidRoutes = require('./routes/plaidRoutes');
-const salaryRoutes = require('./routes/salaryRoutes');
-const manualAccountRoutes = require('./routes/manualAccountRoutes');
-const stockRoutes = require('./routes/stockRoutes');
-const transactionRoutes = require('./routes/transactionRoutes');
-const goalRoutes = require('./routes/goalRoutes');
-const { authenticateToken } = require('./middleware/auth');
-const SalaryJournalController = require('./controller/SalaryJournalController');
-const loanRoutes = require('./routes/loanRoutes');
-const investmentRoutes = require('./routes/investmentRoutes');
-
 const app = express();
+
+// Configure CORS
+const corsConfig = {
+  origin: ['http://localhost:3000', 'https://trypersonalfinance.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsConfig));
 
 // Improved error handling for serverless environment
 let dbConnection = null;
@@ -76,38 +93,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS configuration with improved error handling
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl requests, or same-origin requests)
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        const allowedOrigins = [
-            'https://trypersonalfinance.com',
-            'https://www.trypersonalfinance.com',
-            'http://localhost:3000'
-        ];
-
-        // Check if origin exactly matches our allowed domains or is a Netlify preview
-        if (allowedOrigins.includes(origin) || origin.includes('netlify.app')) {
-            // Use the actual requesting origin as the allowed origin in the response
-            callback(null, origin);
-        } else {
-            console.error('CORS error: Origin not allowed:', origin);
-            callback(new Error('Not allowed by CORS policy'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-    exposedHeaders: ['Authorization'],
-    maxAge: 86400,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-};
-
 // Middleware with error handling
 app.use(async (req, res, next) => {
     try {
@@ -145,7 +130,7 @@ app.options('*', (req, res) => {
 });
 
 // Apply CORS middleware
-app.use(cors(corsOptions));
+app.use(cors(corsConfig));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

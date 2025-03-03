@@ -1,17 +1,18 @@
-const SalaryEntryModel = require('../models/SalaryEntryModel');
-const pool = require('../db');
+import SalaryEntryModel from '../models/SalaryEntryModel.js';
+import pool from '../db.js';
 
 const createSalaryEntry = async (req, res) => {
   try {
     console.log('Request body:', req.body);
     console.log('User from token:', req.user);
 
-    const { company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount } = req.body;
+    const { company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount, user_profile_id } = req.body;
     const user_id = req.user.userId;
 
     // Log the extracted values
     console.log('Extracted values:', {
       user_id,
+      user_profile_id,
       company,
       position,
       salary_amount,
@@ -62,13 +63,24 @@ const createSalaryEntry = async (req, res) => {
     }
 
     const query = `
-      INSERT INTO salary_entries (user_id, company, position, salary_amount, date_of_change, notes, bonus_amount, commission_amount)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO salary_entries (
+        user_id, 
+        user_profile_id,
+        company, 
+        position, 
+        salary_amount, 
+        date_of_change, 
+        notes, 
+        bonus_amount, 
+        commission_amount
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *;
     `;
     
     const values = [
-      user_id, 
+      user_id,
+      user_profile_id || 'primary',
       company, 
       position, 
       numericFields.salary_amount,
@@ -113,13 +125,16 @@ const createSalaryEntry = async (req, res) => {
 const getSalaryJournal = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const userProfileId = req.query.userProfileId || 'primary';
+    
     const query = `
       SELECT *
       FROM salary_entries
-      WHERE user_id = $1
+      WHERE user_id = $1 AND user_profile_id = $2
       ORDER BY date_of_change DESC;
     `;
-    const { rows } = await pool.query(query, [userId]);
+    
+    const { rows } = await pool.query(query, [userId, userProfileId]);
     res.status(200).json(rows);
   } catch (error) {
     console.error("Error fetching salary entries:", error);
@@ -198,7 +213,7 @@ const deleteSalaryEntry = async (req, res) => {
   }
 };
 
-module.exports = {
+export default {
   createSalaryEntry,
   getSalaryJournal,
   updateSalaryEntry,

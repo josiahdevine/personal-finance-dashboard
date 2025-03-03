@@ -384,7 +384,7 @@ function App() {
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
-                        <Route path="/" element={<RootRouteHandler />} />
+                        <Route path="/" element={<LandingPage />} />
                         
                         {/* Protected routes */}
                         <Route 

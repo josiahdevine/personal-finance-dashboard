@@ -1,5 +1,8 @@
 const path = require('path');
 const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
+const webpack = require('webpack');
+const process = require('process');
+const buffer = require('buffer');
 
 module.exports = {
   babel: {
@@ -98,13 +101,34 @@ module.exports = {
         ])
       );
 
+      // Add fallback for 'exports' and other Node.js globals
+      webpackConfig.resolve.fallback = {
+        ...webpackConfig.resolve.fallback,
+        module: false,
+        exports: false,
+        process: require.resolve('process/browser'),
+        buffer: require.resolve('buffer/'),
+      };
+
+      // Add process and buffer as provider plugins
+      webpackConfig.plugins = [
+        ...webpackConfig.plugins,
+        new webpack.ProvidePlugin({
+          process: 'process/browser',
+          Buffer: ['buffer', 'Buffer'],
+        }),
+      ];
+
       // Update module resolution
       webpackConfig.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.mjs'];
       webpackConfig.resolve.mainFields = ['browser', 'module', 'main'];
       
       // Add support for .mjs files
       webpackConfig.module.rules.unshift({
-        test: /\.mjs$/,
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false
+        },
         include: /node_modules/,
         type: 'javascript/auto'
       });

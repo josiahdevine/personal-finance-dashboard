@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePlaidLink } from 'react-plaid-link';
+import { usePlaidLink } from '../contexts/PlaidLinkContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlaid } from '../contexts/PlaidContext';
 

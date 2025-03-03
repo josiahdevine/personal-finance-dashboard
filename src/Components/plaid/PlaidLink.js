@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { usePlaidLink } from 'react-plaid-link';
+import { usePlaidLink } from '../../contexts/PlaidLinkContext';
 import { Button, Card, Modal, Badge } from '../ui';
 import plaidService from '../../services/plaidService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -164,7 +164,13 @@ const PlaidLink = ({
       if (isUpdateMode && accessToken) {
         token = await plaidService.createUpdateLinkToken(userId, accessToken);
       } else {
-        token = await plaidService.createLinkToken({ userId });
+        token = await plaidService.createLinkToken({ 
+          userId,
+          clientName: 'Personal Finance Dashboard',
+          products: ['auth', 'transactions'],
+          countryCodes: ['US'],
+          language: 'en'
+        });
       }
       
       if (!token) {

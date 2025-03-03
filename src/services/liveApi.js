@@ -222,12 +222,12 @@ const apiService = {
   
   // Plaid API
   getPlaidLinkToken: async (redirectUri) => {
-    const response = await api.post('/plaid/link-token', { redirectUri });
+    const response = await api.post('/plaid-link-token', { redirectUri });
     return response.data;
   },
   
   exchangePlaidPublicToken: async (publicToken) => {
-    const response = await api.post('/plaid/exchange-token', { 
+    const response = await api.post('/plaid-exchange-token', { 
       publicToken,
       metadata: {
         environment: process.env.NODE_ENV,
@@ -238,12 +238,12 @@ const apiService = {
   },
   
   getPlaidAccounts: async () => {
-    const response = await api.get('/plaid/accounts');
+    const response = await api.get('/plaid-accounts');
     return response.data;
   },
   
   getPlaidTransactions: async (params) => {
-    const response = await api.get('/plaid/transactions', { 
+    const response = await api.get('/plaid-transactions', { 
       params: {
         ...params,
         environment: process.env.NODE_ENV

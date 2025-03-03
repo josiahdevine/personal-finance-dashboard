@@ -2,12 +2,13 @@
 
 /**
  * Special build script for Netlify deployment
- * This script handles the build process while safely managing the patch-package issue
+ * This script handles the build setup while safely managing the patch-package issue
+ * and addressing the Babel runtime import issue
  */
 
-import { execSync } from 'child_process';
-import { existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+const { execSync } = require('child_process');
+const { existsSync, mkdirSync, symlinkSync } = require('fs');
+const { join } = require('path');
 
 // Check if we're running in a Linux/Unix environment and ensure script is executable
 if (process.platform !== 'win32') {
@@ -26,15 +27,24 @@ if (!existsSync(patchesDir)) {
   mkdirSync(patchesDir, { recursive: true });
 }
 
-console.log('Starting Netlify build process...');
+console.log('Starting Netlify pre-build setup...');
 
-// Ensure all dependencies are installed
-console.log('Installing dependencies...');
-execSync('npm install', { stdio: 'inherit' });
+// Fix for Babel runtime import issue
+console.log('Creating symlink for @babel/runtime in src directory...');
+const srcBabelRuntimeDir = join(__dirname, 'src', '@babel');
+const nodeBabelRuntimeDir = join(__dirname, 'node_modules', '@babel', 'runtime');
 
-// Run the production build
-console.log('Building production bundle...');
-execSync('npm run build:prod', { stdio: 'inherit' });
+if (!existsSync(srcBabelRuntimeDir)) {
+  mkdirSync(srcBabelRuntimeDir, { recursive: true });
+}
+
+try {
+  symlinkSync(nodeBabelRuntimeDir, join(srcBabelRuntimeDir, 'runtime'), 'dir');
+  console.log('Successfully created symlink for @babel/runtime');
+} catch (error) {
+  console.error('Failed to create symlink:', error.message);
+  console.log('Will attempt to continue build process...');
+}
 
 // Create Netlify functions directory if it doesn't exist
 if (!existsSync('./functions')) {
@@ -42,4 +52,4 @@ if (!existsSync('./functions')) {
   mkdirSync('./functions');
 }
 
-console.log('Build process completed successfully!'); 
+console.log('Pre-build setup completed. Build process will continue...'); 

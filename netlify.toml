@@ -63,11 +63,18 @@
   
   [plugins.inputs]
     output_path = "lighthouse-report"
-    fail_deploy_on_score = false
+    audit_url = "https://trypersonalfinance.com"
     
-    [plugins.inputs.performance_budget]
-      speed_index = 5
-      total_blocking_time = 500
+    [plugins.inputs.thresholds]
+      performance = 0.7
+      accessibility = 0.9
+      best-practices = 0.8
+      seo = 0.9
+      pwa = 0.5
+    
+    [plugins.inputs.settings]
+      preset = "desktop"
+      chromeFlags = ["--no-sandbox", "--headless"]
 
 [[redirects]]
   from = "/api/*"

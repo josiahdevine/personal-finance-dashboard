@@ -4,18 +4,14 @@
  */
 
 import admin from 'firebase-admin';
+import serviceAccount from '../firebase-config.json' assert { type: 'json' };
 
 // Initialize Firebase Admin SDK if not already initialized
 let firebaseApp;
 function initializeFirebaseAdmin() {
-  if (!firebaseApp && process.env.FIREBASE_SERVICE_ACCOUNT) {
+  if (!firebaseApp) {
     try {
-      // Parse the service account JSON
-      const serviceAccount = JSON.parse(
-        Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString('utf8')
-      );
-      
-      // Initialize the app
+      // Initialize the app with service account from JSON file
       firebaseApp = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
       });
@@ -163,12 +159,22 @@ async function getUserFromRequest(event) {
  * @returns {object} - CORS headers
  */
 function getAuthCorsHeaders(origin) {
+  // Allow only our domains
+  const allowedOrigins = [
+    'https://trypersonalfinance.com',
+    'http://localhost:3000',
+    'http://localhost:8888'
+  ];
+  
+  const validOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  
   return {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Origin': validOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID',
-    'Access-Control-Allow-Credentials': 'true'
+    'Access-Control-Allow-Credentials': 'true',
+    'Vary': 'Origin'
   };
 }
 
@@ -210,17 +216,44 @@ function requireAuth(handler) {
     
     // If user is not authenticated
     if (!user) {
-      return createAuthErrorResponse(401, {
-        error: "Unauthorized",
-        message: "Authentication required for this endpoint"
-      }, origin);
+      return {
+        statusCode: 401,
+        headers: getAuthCorsHeaders(origin),
+        body: JSON.stringify({
+          error: "Authentication required",
+          code: "UNAUTHORIZED"
+        })
+      };
     }
     
     // Add user to event object
     event.user = user;
     
-    // Call the original handler with the authenticated user
-    return handler(event, context);
+    try {
+      // Call the original handler with the authenticated user
+      const response = await handler(event, context);
+      
+      // Ensure CORS headers are added to the response
+      return {
+        ...response,
+        headers: {
+          ...getAuthCorsHeaders(origin),
+          ...(response.headers || {})
+        }
+      };
+    } catch (error) {
+      console.error('Handler error:', error);
+      
+      return {
+        statusCode: 500,
+        headers: getAuthCorsHeaders(origin),
+        body: JSON.stringify({
+          error: "Internal server error",
+          code: "SERVER_ERROR",
+          message: error.message
+        })
+      };
+    }
   };
 }
 

@@ -21,6 +21,7 @@ import { log, logError } from '../utils/logger';
 import LoadingSpinner from './ui/LoadingSpinner';
 import * as ReCharts from 'recharts';
 import { formatCurrency } from '../utils/formatters';
+import { Link } from 'react-router-dom';
 
 // Register ChartJS components
 ChartJS.register(
@@ -81,6 +82,7 @@ const FinancialCharts = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [touchPosition, setTouchPosition] = useState(null);
   const chartRef = useRef(null);
+  const [showManualAccountModal, setShowManualAccountModal] = useState(false);
   const [analyticsData, setAnalyticsData] = useState({
     summary: {
       totalSpending: 0,
@@ -93,6 +95,24 @@ const FinancialCharts = () => {
     monthlyTrends: [],
     topMerchants: []
   });
+  const [hasConnectedAccounts, setHasConnectedAccounts] = useState(false);
+
+  // Check if user has connected accounts
+  useEffect(() => {
+    const checkConnectedAccounts = async () => {
+      try {
+        const response = await apiService.getPlaidAccounts();
+        setHasConnectedAccounts(response.accounts && response.accounts.length > 0);
+      } catch (err) {
+        console.error('Error checking connected accounts:', err);
+        setHasConnectedAccounts(false);
+      }
+    };
+
+    if (currentUser) {
+      checkConnectedAccounts();
+    }
+  }, [currentUser]);
 
   // Handle window resize for responsive charts
   useEffect(() => {
@@ -546,6 +566,43 @@ const FinancialCharts = () => {
 
   // Render the appropriate chart based on activeChart
   const renderChart = () => {
+    if (!currentUser) {
+      return (
+        <div className="flex justify-center items-center h-64 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <p className="text-gray-500 mb-4">Please sign in to view your financial charts</p>
+            <Link to="/login" className="text-blue-600 hover:text-blue-800">
+              Sign In
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    if (!hasConnectedAccounts) {
+      return (
+        <div className="flex justify-center items-center h-64 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <p className="text-gray-500 mb-4">Connect your accounts to view financial charts</p>
+            <div className="space-x-4">
+              <Link 
+                to="/link-accounts" 
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Connect Bank Account
+              </Link>
+              <button
+                onClick={() => setShowManualAccountModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Add Manual Account
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (loading) {
       return (
         <div className="flex justify-center items-center h-64">
@@ -561,7 +618,8 @@ const FinancialCharts = () => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="font-medium">{error}</p>
+            <p className="font-medium">{error.message}</p>
+            <p className="text-sm mt-1">{error.details}</p>
             <button 
               onClick={() => {
                 setLoading(true);

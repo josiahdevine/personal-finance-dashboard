@@ -4,16 +4,19 @@
  */
 
 import admin from 'firebase-admin';
-import serviceAccount from '../firebase-config.json' assert { type: 'json' };
 
 // Initialize Firebase Admin SDK if not already initialized
 let firebaseApp;
 function initializeFirebaseAdmin() {
   if (!firebaseApp) {
     try {
-      // Initialize the app with service account from JSON file
+      // Initialize the app with service account from environment variables
       firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+        })
       });
       
       console.log('Firebase Admin SDK initialized successfully');

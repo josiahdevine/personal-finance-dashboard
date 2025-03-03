@@ -70,15 +70,15 @@ plaidApi.interceptors.response.use(
 );
 
 const PLAID_API_ENDPOINTS = {
-  createLinkToken: '/plaid-link-token',
-  exchangePublicToken: '/plaid-exchange-token',
-  getAccounts: '/plaid-accounts',
-  getTransactions: '/plaid-transactions',
-  getBalance: '/plaid-balance-history',
-  syncTransactions: '/plaid-transactions-sync',
-  getInstitution: '/plaid-status',
-  removeAccount: '/plaid-accounts/remove',
-  updateAccount: '/plaid-accounts/update',
+  createLinkToken: '/api/plaid/create-link-token',
+  exchangePublicToken: '/api/plaid/exchange-public-token',
+  getAccounts: '/api/plaid/accounts',
+  getTransactions: '/api/plaid/transactions',
+  getBalance: '/api/plaid/balance-history',
+  syncTransactions: '/api/plaid/transactions-sync',
+  getInstitution: '/api/plaid/institution',
+  removeAccount: '/api/plaid/accounts/remove',
+  updateAccount: '/api/plaid/accounts/update',
 };
 
 /**
@@ -94,31 +94,26 @@ export class PlaidServiceError extends Error {
 }
 
 /**
- * Handles API errors and formats them consistently
- * 
- * @param {Error} error - The caught error
- * @returns {PlaidServiceError} Formatted error object
+ * Handle API errors consistently
  */
-const handleApiError = (error) => {
-  console.error('Plaid API Error:', error);
+function handleApiError(error) {
+  console.error('[Plaid] API Error:', error);
   
-  // Handle axios errors
+  let message = 'An unknown error occurred';
+  let code = 'UNKNOWN_ERROR';
+  
   if (error.response) {
-    // The request was made and the server responded with a status code
-    // that falls out of the range of 2xx
-    const plaidError = error.response.data.error || null;
-    const errorMessage = plaidError?.error_message || error.response.data.message || 'Server error';
-    const errorCode = error.response.status;
-    
-    return new PlaidServiceError(errorMessage, errorCode, plaidError);
+    // Server responded with error
+    message = error.response.data?.message || error.response.data?.error || error.message;
+    code = error.response.data?.code || error.response.status;
   } else if (error.request) {
-    // The request was made but no response was received
-    return new PlaidServiceError('No response from server. Please check your connection.', 'NETWORK_ERROR');
-  } else {
-    // Something happened in setting up the request that triggered an Error
-    return new PlaidServiceError(error.message || 'Unknown error occurred', 'UNKNOWN_ERROR');
+    // Request made but no response
+    message = 'No response from server';
+    code = 'NETWORK_ERROR';
   }
-};
+  
+  throw new PlaidServiceError(message, code, error);
+}
 
 /**
  * Plaid Service - Handles all interactions with Plaid API
@@ -132,14 +127,29 @@ const plaidService = {
    */
   createLinkToken: async (userData) => {
     try {
-      const response = await plaidApi.post(PLAID_API_ENDPOINTS.createLinkToken, userData);
-      if (!response.data || !response.data.link_token) {
+      const response = await fetch(PLAID_API_ENDPOINTS.createLinkToken, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData.token}`,
+          'X-Request-ID': `req_${Date.now()}`,
+        },
+        body: JSON.stringify(userData),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (!data || !data.link_token) {
         throw new Error('Invalid response: Missing link token');
       }
-      return response.data.link_token;
+      
+      return data.link_token;
     } catch (error) {
-      console.error('[Plaid] Error creating link token:', error);
-      throw error;
+      throw handleApiError(error);
     }
   },
   
@@ -150,29 +160,53 @@ const plaidService = {
    * @param {Object} metadata - Metadata about the institution
    * @returns {Promise<Object>} Access token and account information
    */
-  exchangePublicToken: async (publicToken) => {
+  exchangePublicToken: async (publicToken, metadata = {}) => {
     try {
-      const response = await plaidApi.post('/plaid/exchange-token', { public_token: publicToken });
-      return response.data;
+      const response = await fetch(PLAID_API_ENDPOINTS.exchangePublicToken, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': `req_${Date.now()}`,
+        },
+        body: JSON.stringify({ 
+          public_token: publicToken,
+          institution: metadata.institution,
+        }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
     } catch (error) {
-      console.error('[Plaid] Error exchanging public token:', error);
-      throw error;
+      throw handleApiError(error);
     }
   },
   
   /**
    * Fetches accounts for the user
    * 
-   * @param {string} userId - User ID
    * @returns {Promise<Array>} List of accounts
    */
   getAccounts: async () => {
     try {
-      const response = await plaidApi.get('/plaid/accounts');
-      return response.data;
+      const response = await fetch(PLAID_API_ENDPOINTS.getAccounts, {
+        method: 'GET',
+        headers: {
+          'X-Request-ID': `req_${Date.now()}`,
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
     } catch (error) {
-      console.error('[Plaid] Error getting accounts:', error);
-      throw error;
+      throw handleApiError(error);
     }
   },
   
@@ -248,10 +282,20 @@ const plaidService = {
    */
   getInstitution: async (institutionId) => {
     try {
-      const response = await plaidApi.get('/plaid/institution', {
-        params: { institutionId }
+      const response = await fetch(`${PLAID_API_ENDPOINTS.getInstitution}/${institutionId}`, {
+        method: 'GET',
+        headers: {
+          'X-Request-ID': `req_${Date.now()}`,
+        },
+        credentials: 'include'
       });
-      return response.data.institution;
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.institution;
     } catch (error) {
       throw handleApiError(error);
     }
@@ -260,16 +304,26 @@ const plaidService = {
   /**
    * Removes an account connection
    * 
-   * @param {string} userId - User ID
    * @param {string} accountId - Account ID to remove
    * @returns {Promise<Object>} Result of the operation
    */
-  removeAccount: async (userId, accountId) => {
+  removeAccount: async (accountId) => {
     try {
-      const response = await plaidApi.delete('/plaid/accounts/remove', {
-        data: { userId, accountId }
+      const response = await fetch(PLAID_API_ENDPOINTS.removeAccount, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': `req_${Date.now()}`,
+        },
+        body: JSON.stringify({ accountId }),
+        credentials: 'include'
       });
-      return response.data;
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
     } catch (error) {
       throw handleApiError(error);
     }
@@ -278,17 +332,31 @@ const plaidService = {
   /**
    * Updates an account connection via the update mode of Plaid Link
    * 
-   * @param {string} userId - User ID
    * @param {string} accessToken - Access token for the account
    * @returns {Promise<string>} Link token for update mode
    */
-  createUpdateLinkToken: async (userId, accessToken) => {
+  createUpdateLinkToken: async (accessToken) => {
     try {
-      const response = await plaidApi.post('/plaid/accounts/update', {
-        userId,
-        accessToken
+      const response = await fetch(PLAID_API_ENDPOINTS.updateAccount, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': `req_${Date.now()}`,
+        },
+        body: JSON.stringify({ accessToken }),
+        credentials: 'include'
       });
-      return response.data.link_token;
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (!data || !data.link_token) {
+        throw new Error('Invalid response: Missing link token');
+      }
+      
+      return data.link_token;
     } catch (error) {
       throw handleApiError(error);
     }

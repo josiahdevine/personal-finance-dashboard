@@ -4,6 +4,7 @@
  */
 
 import admin from 'firebase-admin';
+import { syncUser } from './user-sync.js';
 
 // Initialize Firebase Admin SDK if not already initialized
 let firebaseApp;
@@ -67,17 +68,19 @@ async function verifyAuthToken(event) {
       return null;
     }
     
-    // Check if Firebase service account is configured
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-      console.error('Firebase service account not configured');
-      throw new Error('Firebase service account not configured');
-    }
-    
     // Initialize Firebase if needed
     initializeFirebaseAdmin();
     
     // Verify the token
     const decodedToken = await admin.auth().verifyIdToken(token);
+    
+    // Sync user to database
+    try {
+      await syncUser(decodedToken);
+    } catch (syncError) {
+      console.error('Error syncing user to database:', syncError);
+      // Don't fail auth if sync fails, just log it
+    }
     
     // Log successful verification
     console.log('Token verified successfully:', {

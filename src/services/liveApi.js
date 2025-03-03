@@ -267,14 +267,52 @@ const apiService = {
     return response.data;
   },
   
+  getPlaidStatus: async () => {
+    try {
+      const response = await api.get('/plaid-status');
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw {
+          message: 'Access denied',
+          details: 'You need to connect your accounts to view analytics.',
+          code: 'ACCOUNTS_NOT_CONNECTED'
+        };
+      }
+      throw error;
+    }
+  },
+  
   getTransactionsAnalytics: async (params) => {
-    const response = await api.get('/transactions-analytics', { params });
-    return response.data;
+    try {
+      const response = await api.get('/transactions-analytics', { params });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw {
+          message: 'Access denied',
+          details: 'You need to connect your accounts to view analytics.',
+          code: 'ACCOUNTS_NOT_CONNECTED'
+        };
+      }
+      throw error;
+    }
   },
   
   getBalanceHistory: async (params) => {
-    const response = await api.get('/plaid-balance-history', { params });
-    return response.data;
+    try {
+      const response = await api.get('/plaid-balance-history', { params });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw {
+          message: 'Access denied',
+          details: 'You need to connect your accounts to view balance history.',
+          code: 'ACCOUNTS_NOT_CONNECTED'
+        };
+      }
+      throw error;
+    }
   },
   
   // Salary Entries

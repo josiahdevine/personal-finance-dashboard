@@ -1,5 +1,8 @@
 import React, { useEffect, createContext, useState, useContext, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Elements as StripeElements } from '@stripe/react-stripe-js';
+import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { ToastContainer } from 'react-toastify';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PlaidProvider } from './contexts/PlaidContext';
 import { PlaidLinkProvider } from './contexts/PlaidLinkContext';
@@ -14,16 +17,12 @@ import AuthenticatedHeader from './Components/navigation/AuthenticatedHeader';
 import ErrorBoundary from './Components/ErrorBoundary';
 import ResponsiveWrapper from './Components/ResponsiveWrapper';
 import { log, logError, logRender } from './utils/logger';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import './App.css';
+import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
+import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
 import initDeploymentDebug from './utils/deploymentDebug';
 import runFirebaseTest from './utils/firebaseTest';
-// Import migration utilities
-import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
-import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import { initializeStripe, isStripeAvailable } from './utils/stripeUtils';
-import { Elements } from '@stripe/react-stripe-js';
+import 'react-toastify/dist/ReactToastify.css';
+import './App.css';
 
 // Import page components
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -43,9 +42,6 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword.tsx'));
 const AccountConnectionsMobile = lazy(() => import('./mobile/AccountConnectionsMobile'));
 const SubscriptionPlansMobile = lazy(() => import('./mobile/SubscriptionPlansMobile'));
 
-// Import Stripe context provider
-import { Elements as StripeElements } from '@stripe/react-stripe-js';
-
 log('App', 'Initializing App component');
 
 // Store the current domain for deployment tracking
@@ -55,14 +51,11 @@ localStorage.setItem('last_domain', window.location.hostname);
 if (process.env.NODE_ENV === 'production') {
   runFirebaseTest()
     .then(results => {
-      console.log('Firebase test results:', results);
-      if (!results.success) {
-        console.error('Firebase tests failed. Please check the console for more details.');
-      }
+            if (!results.success) {
+              }
     })
     .catch(error => {
-      console.error('Error running Firebase tests:', error);
-    });
+          });
 }
 
 // Initialize deployment debugging in production
@@ -145,7 +138,7 @@ const PrivateRoute = ({ children }) => {
           <h2 className="text-xl font-semibold text-red-700 mb-2">Authentication Error</h2>
           <p className="text-gray-600 mb-4">{authError.message || 'Please try logging in again.'}</p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login')} onKeyDown={() => navigate('/login')} role="button" tabIndex={0}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
           >
             Go to Login
@@ -349,8 +342,7 @@ function App() {
   ];
 
   if (requiredComponents.some(comp => !comp)) {
-    console.error('Some required components are not available');
-  }
+      }
 
   // Conditional wrapper for Elements to handle when Stripe isn't available
   const StripeWrapper = ({ children }) => {

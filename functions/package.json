@@ -1,0 +1,17 @@
+{
+  "name": "personal-finance-dashboard-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for Personal Finance Dashboard",
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^11.11.1",
+    "ioredis": "^5.5.0",
+    "pg": "^8.11.0",
+    "plaid": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

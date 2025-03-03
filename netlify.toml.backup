@@ -1,0 +1,129 @@
+[build]
+  command = "node netlify-build.js && npm run build:prod"
+  publish = "build"
+  functions = "functions"
+
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["plaid"]
+  included_files = [
+    "functions/utils/**",
+    "functions/firebase-config.json"
+  ]
+
+[dev]
+  targetPort = 3001
+  port = 8888
+  framework = "#custom"
+  command = "npm run start"
+  autoLaunch = true
+
+[dev.environment]
+  NODE_ENV = "development"
+  PLAID_ENV = "sandbox"
+  PLAID_CLIENT_ID = "67b3ec330ef070001f1e8ff7"
+  PLAID_SECRET = "2f9d731a9ec51e7f536cbae5658300"
+  REACT_APP_API_BASE_URL = "http://localhost:8888/.netlify/functions"
+
+[build.environment]
+  CI = "false"
+  NODE_ENV = "production"
+  GENERATE_SOURCEMAP = "false"
+  REACT_APP_ENV = "production"
+  REACT_APP_DOMAIN = "trypersonalfinance.com"
+  REACT_APP_API_URL = "https://trypersonalfinance.com/.netlify/functions"
+  REACT_APP_API_BASE_URL = "https://trypersonalfinance.com/.netlify/functions"
+  REACT_APP_DEPLOY_PLATFORM = "netlify"
+  SKIP_PREFLIGHT_CHECK = "true"
+  DISABLE_ESLINT_PLUGIN = "false"
+  BABEL_ENV = "production"
+  EXTEND_ESLINT = "true"
+  REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"
+  REACT_APP_FIREBASE_PROJECT_ID = "personal-finance-dashboa-f76f6"
+  REACT_APP_FIREBASE_API_KEY = "AIzaSyAbJqW0WWecpkmSM-kezJBovnT501-h44U"
+  REACT_APP_FIREBASE_STORAGE_BUCKET = "personal-finance-dashboa-f76f6.firebasestorage.app"
+  REACT_APP_FIREBASE_MESSAGING_SENDER_ID = "772716663750"
+  REACT_APP_FIREBASE_APP_ID = "1:772716663750:web:f0bf14ba121524684118c7"
+  REACT_APP_FIREBASE_MEASUREMENT_ID = "G-6RVP8YZH3S"
+  REACT_APP_STRIPE_PUBLISHABLE_KEY = "pk_test_51QwajpLXbA9CvuQqDcsqbe51BmTwisBvFbiZ7ALFIbUbGyB1eBK1iOfzFAZ1BeDa2VEGcj3mIo1XUzUtZmcZ1Dou00RHC5pM9A"
+  DATABASE_URL = "postgres://neondb_owner:npg_iPQEB3OzW6at@ep-floral-block-a8gbgi8v-pooler.eastus2.azure.neon.tech/neondb?sslmode=require"
+  NPM_FLAGS = "--no-audit --silent"
+  GEMINI_API_KEY = "AIzaSyCdMReYKk_kcogFTc5g56EzFMxKDNrKcW0"
+  MAX_TOKENS = "1000"
+  TEMPERATURE = "0.7"
+  REACT_APP_GEMINI_API_KEY = "AIzaSyCdMReYKk_kcogFTc5g56EzFMxKDNrKcW0"
+  REACT_APP_GEMINI_PROJECT_ID = "copper-cider-452023-n6"
+  REACT_APP_GEMINI_LOCATION = "us-central1"
+  PLAID_ENV = "sandbox"
+  PLAID_CLIENT_ID = "67b3ec330ef070001f1e8ff7"
+  PLAID_SECRET = "2f9d731a9ec51e7f536cbae5658300"
+
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+  
+  [plugins.inputs]
+    output_path = "lighthouse-report"
+    audit_url = "/"
+    fail_deploy_on_score_thresholds = false
+    
+    [plugins.inputs.settings]
+      chromeFlags = ["--no-sandbox", "--headless"]
+      maxWaitForLoad = 180000
+      preset = "desktop"
+      skipAudits = [
+        "uses-http2",
+        "redirects-http",
+        "uses-long-cache-ttl",
+        "offline-start-url",
+        "service-worker",
+        "works-offline",
+        "installable-manifest",
+        "apple-touch-icon",
+        "maskable-icon",
+        "splash-screen"
+      ]
+      onlyCategories = [
+        "performance",
+        "accessibility",
+        "best-practices",
+        "seo"
+      ]
+
+    [plugins.inputs.settings.throttling]
+      cpuSlowdownMultiplier = 1
+      networkQuietThresholdMs = 15000
+      rttMs = 40
+      throughputKbps = 10240
+      requestLatencyMs = 0
+
+    [plugins.inputs.thresholds]
+      performance = 0.6
+      accessibility = 0.8
+      "best-practices" = 0.8
+      seo = 0.8
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://trypersonalfinance.com"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With, X-Environment, X-Request-ID"
+    Access-Control-Allow-Credentials = "true"
+    Access-Control-Max-Age = "86400"
+    Vary = "Origin"
+    Content-Security-Policy = "default-src 'self' https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://trypersonalfinance.com https://*.trypersonalfinance.com https://*.plaid.com https://*.stripe.com https://*.firebaseio.com https://*.firebaseapp.com https://firestore.googleapis.com https://*.googleapis.com wss://*.firebaseio.com; frame-src 'self' https://*.plaid.com https://*.stripe.com https://*.firebaseapp.com;" 

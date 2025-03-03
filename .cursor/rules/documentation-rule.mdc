@@ -1,0 +1,28 @@
+---
+description: When asked to implement any new feature, fix common errors, or anyting of the like reference documentation, all ending in md
+globs: .md
+alwaysApply: true
+---
+When asked to implement any new feature, fix common errors, or anyting of the like reference documentation, all ending in md
+
+[competitive-analysis.md](mdc:docs/competitive-analysis.md)
+[COMPONENTS.md](mdc:docs/frontend/COMPONENTS.md)
+[README.md](mdc:README.md)
+[api-docs.md](mdc:documentation/api-docs.md)
+[TEST-PLAN.md](mdc:TEST-PLAN.md)
+[COMPONENTS.md](mdc:docs/frontend/COMPONENTS.md)
+[DEPLOYMENT.md](mdc:DEPLOYMENT.md)
+[NEXT_STEPS.md](mdc:NEXT_STEPS.md)
+[TEST-SETUP.md](mdc:TEST-SETUP.md)
+[CODE-QUALITY.md](mdc:CODE-QUALITY.md)
+[MANUAL_SETUP.md](mdc:docs/MANUAL_SETUP.md)
+[plaid-testing.md](mdc:documentation/plaid-testing.md)
+[MOBILE-ROADMAP.md](mdc:MOBILE-ROADMAP.md)
+[project-status.md](mdc:documentation/project-status.md)
+[SECURITY_GUIDE.md](mdc:docs/security/SECURITY_GUIDE.md)
+[DATABASE-SCHEMA.md](mdc:DATABASE-SCHEMA.md)
+[GEMINI_INTEGRATION.md](mdc:docs/GEMINI_INTEGRATION.md)
+[plaid-updated-guide.md](mdc:documentation/plaid-updated-guide.md)
+
+Be sure, before pushing to git to test everything possible. We want to make this as error free as possible
+

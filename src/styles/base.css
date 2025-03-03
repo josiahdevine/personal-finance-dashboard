@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background-light-DEFAULT dark:bg-background-dark-DEFAULT text-gray-900 dark:text-gray-100;
+  }
+
+  /* Improve default focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  /* Smooth scrolling if the browser supports it */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+}
+
+@layer components {
+  /* Button base styles */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-500 text-white hover:bg-secondary-600;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary-500 text-primary-500 hover:bg-primary-50;
+  }
+
+  /* Card base styles */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow transition-shadow hover:shadow-md;
+  }
+
+  /* Form field base styles */
+  .form-input {
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500;
+  }
+
+  /* Loading skeleton base styles */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
+  }
+
+  /* Transition base styles */
+  .page-transition-enter {
+    @apply opacity-0;
+  }
+
+  .page-transition-enter-active {
+    @apply opacity-100 transition-opacity duration-300;
+  }
+
+  .page-transition-exit {
+    @apply opacity-100;
+  }
+
+  .page-transition-exit-active {
+    @apply opacity-0 transition-opacity duration-300;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+
+  /* Glass effect utility */
+  .glass {
+    @apply bg-white bg-opacity-70 dark:bg-gray-800 dark:bg-opacity-70 backdrop-blur-sm;
+  }
+
+  /* Text balance utility */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Grid auto-fit utility */
+  .grid-auto-fit {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+} 

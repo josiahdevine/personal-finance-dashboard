@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, InputContent } from '@google/generative-ai';
 import { createLogger } from './utils/logger.js';
 import corsHandler from './utils/cors-handler.js';
 import authHandler from './utils/auth-handler.js';
@@ -61,10 +61,16 @@ export const handler: Handler = async (event, context) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     let response;
-    if (history) {
+    if (history && Array.isArray(history)) {
+      // Ensure history is properly formatted
+      const formattedHistory: InputContent[] = history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content || '' }]
+      }));
+
       // Use chat for conversations with history
       const chat = model.startChat({
-        history,
+        history: formattedHistory,
         generationConfig: {
           maxOutputTokens: Number(process.env.MAX_TOKENS) || 1000,
           temperature: Number(process.env.TEMPERATURE) || 0.7,

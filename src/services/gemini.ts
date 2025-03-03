@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GeminiConfig, GeminiResponse, GeminiError } from '../types/gemini';
+import { GeminiConfig, GeminiMessage } from '../types/gemini';
 
 class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -10,39 +10,40 @@ class GeminiService {
     this.genAI = new GoogleGenerativeAI(config.apiKey);
   }
 
-  private async handleError(error: any): Promise<never> {
-    const geminiError: GeminiError = new Error(error.message);
-    geminiError.code = error.code;
-    geminiError.details = error.details;
-    geminiError.response = error.response;
-    throw geminiError;
+  private handleError(error: any): never {
+    console.error('Gemini API Error:', error);
+    throw new Error(error.message || 'Failed to communicate with Gemini API');
   }
 
-  async generateResponse(prompt: string): Promise<GeminiResponse> {
+  async generateContent(prompt: string): Promise<any> {
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
       const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      return {
-        text,
-        usage: {
-          promptTokens: 0, // Actual token counts will be available in the response
-          completionTokens: 0,
-          totalTokens: 0,
-        },
-      };
+      return result.response;
     } catch (error) {
       return this.handleError(error);
     }
   }
 
-  async startChat(history: { role: string; content: string }[] = []) {
+  async generateResponse(prompt: string): Promise<any> {
+    try {
+      const response = await this.generateContent(prompt);
+      return response;
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
+  async startChat(history: { role: string; content: string }[] = []): Promise<any> {
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+      const formattedHistory: GeminiMessage[] = history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
+
       const chat = model.startChat({
-        history,
+        history: formattedHistory,
         generationConfig: {
           maxOutputTokens: this.config.maxTokens,
           temperature: this.config.temperature,

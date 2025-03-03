@@ -87,160 +87,81 @@ const MAX_INIT_RETRIES = 3;
 const initializeFirebaseWithRetry = async () => {
   try {
     if (initRetryCount > 0) {
-      console.log(`[Firebase] Retry attempt ${initRetryCount} of ${MAX_INIT_RETRIES}`);
+      log('Firebase', `Retry attempt ${initRetryCount} of ${MAX_INIT_RETRIES}`);
     }
     
     // Initialize the Firebase app if not already initialized
     if (!app) {
-      console.log('[Firebase] Initializing Firebase app...');
+      log('Firebase', 'Initializing Firebase app...');
       app = initializeApp(firebaseConfig);
-      console.log('[Firebase] Firebase app initialized successfully');
+      log('Firebase', 'Firebase app initialized successfully');
     }
     
     // Initialize Auth if not already initialized
     if (!auth) {
-      console.log('[Firebase] Initializing Firebase auth...');
+      log('Firebase', 'Initializing Firebase auth...');
       auth = getAuth(app);
-      console.log('[Firebase] Firebase auth initialized successfully');
+      log('Firebase', 'Firebase auth initialized successfully');
     }
     
-    // Always ensure auth domain is correctly set
-    if (auth) {
-      const originalAuthDomain = auth.config.authDomain;
-      
-      // Use the current hostname as auth domain for production custom domains
-      if (!isLocalhost && !isNetlify) {
-        auth.config.authDomain = window.location.hostname;
-        console.log('[Firebase] Updated auth domain for custom domain:', window.location.hostname);
-      }
-      
-      if (originalAuthDomain !== auth.config.authDomain) {
-        console.log('[Firebase] Auth domain updated:', {
-          from: originalAuthDomain,
-          to: auth.config.authDomain
-        });
-      }
-      
-      // Set persistence to LOCAL
+    // Set persistence to LOCAL
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      log('Firebase', 'Successfully set persistence to LOCAL');
+      return true;
+    } catch (persistenceError) {
+      logError('Firebase', 'Error setting LOCAL persistence:', persistenceError);
+      // Fall back to session persistence as last resort
       try {
-        await setPersistence(auth, browserLocalPersistence);
-        console.log('[Firebase] Successfully set persistence to LOCAL');
-        
-        // Store deployment info for version tracking
-        localStorage.setItem('deployment_platform', isNetlify ? 'netlify' : (isTryPersonalFinance ? 'custom-domain' : 'other'));
-        localStorage.setItem('app_version', '2.0.1');
-        localStorage.setItem('auth_init_timestamp', Date.now().toString());
-        localStorage.setItem('auth_domain', auth.config.authDomain);
-        
+        await setPersistence(auth, browserSessionPersistence);
+        log('Firebase', 'Successfully set fallback persistence to SESSION');
         return true;
-      } catch (persistenceError) {
-        console.error('[Firebase] Error setting LOCAL persistence:', persistenceError);
-        // Fall back to session persistence as last resort
-        try {
-          await setPersistence(auth, browserSessionPersistence);
-          console.log('[Firebase] Successfully set fallback persistence to SESSION');
-          return true;
-        } catch (sessionError) {
-          console.error('[Firebase] Critical: Failed to set any persistence:', sessionError);
-          throw sessionError;
-        }
+      } catch (sessionError) {
+        logError('Firebase', 'Critical: Failed to set any persistence:', sessionError);
+        throw sessionError;
       }
     }
-    
-    throw new Error('Failed to initialize Firebase auth');
   } catch (error) {
-    console.error('[Firebase] Initialization error:', error);
+    logError('Firebase', 'Initialization error:', error);
     throw error;
   }
 };
 
-const initFirebase = async () => {
-  while (initRetryCount < MAX_INIT_RETRIES) {
-    try {
-      const success = await initializeFirebaseWithRetry();
-      if (success) {
-        
-        
-        // Test auth functionality
-        if (auth) {
-          try {
-            // Use a safe property access to verify auth is working
-            const testTenantId = auth.tenantId;
-            console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
-          } catch (testError) {
-            console.warn('Firebase auth verification failed:', testError);
-          }
-        }
-        
-        break; // Exit loop on success
-      }
-      initRetryCount++;
-    } catch (error) {
-      initRetryCount++;
-      if (initRetryCount >= MAX_INIT_RETRIES) {
-        
-        logError('Firebase', 'Firebase initialization failed after retries', error);
-        break;
-      }
-      // Wait before retrying (exponential backoff)
-      const delay = Math.min(1000 * (2 ** initRetryCount), 8000);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-};
-
-// Start initialization immediately
-initFirebase().catch(error => {
-  
-  // Record the error for diagnostics
-  try {
-    localStorage.setItem('firebase_init_error', JSON.stringify({
-      message: error.message,
-      code: error.code,
-      time: new Date().toISOString()
-    }));
-  } catch (e) {
-    console.error('Failed to store Firebase init error:', e);
-  }
-});
-
 // Use a more robust check for auth initialization in all exported functions
-const ensureAuth = () => {
-  // If auth is not initialized, try to initialize it
-  if (!auth && app) {
-    console.log('Firebase: Initializing auth from existing app');
-    auth = getAuth(app);
-  }
-  
-  // If app is not initialized, initialize it
-  if (!app) {
-    console.log('Firebase: Initializing new app');
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-  }
-
-  // Verify auth is working
+const ensureAuth = async () => {
+  // If auth is already initialized and working, return it
   if (auth) {
-    // Test a safe property access
-    const testTenantId = auth.tenantId;
-    console.log('Firebase auth verification:', testTenantId ? 'Has tenant ID' : 'No tenant ID');
     return auth;
   }
 
-  const error = new Error('Firebase authentication is not initialized');
-  error.code = 'auth/service-unavailable';
-  error.details = {
-    initRetryCount,
-    environment: {
-      isProduction,
-      isNetlify,
-      isTryPersonalFinance,
-      hostname: window.location.hostname
-    }
-  };
-  throw error;
+  // If app is not initialized, initialize it
+  if (!app) {
+    await initializeFirebaseWithRetry();
+  }
+
+  // If auth is still not initialized after retry, throw error
+  if (!auth) {
+    const error = new Error('Firebase authentication is not initialized');
+    error.code = 'auth/service-unavailable';
+    error.details = {
+      initRetryCount,
+      environment: {
+        isProduction,
+        isNetlify,
+        isTryPersonalFinance,
+        hostname: window.location.hostname
+      }
+    };
+    throw error;
+  }
+
+  return auth;
 };
+
+// Start initialization immediately
+initializeFirebaseWithRetry().catch(error => {
+  logError('Firebase', 'Failed to initialize Firebase service', error);
+});
 
 // Updated login function with more robust auth initialization check
 export const loginUser = async (email, password) => {
@@ -250,7 +171,7 @@ export const loginUser = async (email, password) => {
     
     try {
       // Use the ensureAuth function to verify auth is initialized
-      const currentAuth = ensureAuth();
+      const currentAuth = await ensureAuth();
       
       // First set persistence to LOCAL for this specific login attempt
       await setPersistence(currentAuth, browserLocalPersistence);
@@ -336,7 +257,7 @@ export const registerUser = async (email, password) => {
     log('Firebase', 'Attempting to register user with email', { email });
     
     try {
-      const currentAuth = ensureAuth();
+      const currentAuth = await ensureAuth();
       
       // Ensure LOCAL persistence before registration
       await setPersistence(currentAuth, browserLocalPersistence);
@@ -390,7 +311,7 @@ export const logoutUser = async () => {
     log('Firebase', 'Attempting to logout user...');
     
     try {
-      const currentAuth = ensureAuth();
+      const currentAuth = await ensureAuth();
       await signOut(currentAuth);
       log('Firebase', 'User logout successful');
       
@@ -497,13 +418,20 @@ log('Firebase', 'Exporting Firebase auth module', {
   authFunctionsExported: true
 });
 
-// Export module
-export { 
-  auth, 
-  onAuthStateChanged,
+// Export all necessary functions and variables
+export {
+  auth,
+  app,
+  ensureAuth,
+  loginUser,
+  registerUser,
+  logoutUser,
+  onAuthStateChange,
+  signInWithGoogle,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  onAuthStateChanged
 };
 
 // Added for Google Authentication
@@ -517,7 +445,7 @@ export const signInWithGoogle = async () => {
     
     try {
       // Use the ensureAuth function to verify auth is initialized
-      const currentAuth = ensureAuth();
+      const currentAuth = await ensureAuth();
       
       // Configure Google Auth Provider
       googleProvider.setCustomParameters({

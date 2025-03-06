@@ -1,0 +1,3335 @@
+# Personal Finance Dashboard: Master Plan for Development & Feature Implementation
+
+After analyzing the provided documentation, I'll develop a comprehensive master plan to streamline development flows, safeguard against accidental data deletion, and create a structured approach for implementing new features. This plan integrates architectural improvements, safety measures, and a roadmap for future development.
+
+## 1. Architecture Refactoring & System Hardening
+
+### 1.1 Core Architecture Improvements
+
+#### 1.1.1 Directory Structure Standardization
+```
+/src
+├── components/                # Shared UI components
+│   ├── common/                # Generic UI components (Button, Card, etc.)
+│   ├── features/              # Feature-specific components
+│   │   ├── accounts/          # Account management components
+│   │   ├── transactions/      # Transaction-related components
+│   │   ├── goals/             # Financial goals components
+│   │   ├── plaid/             # Plaid integration components
+│   │   └── analytics/         # Data visualization components
+│   └── layout/                # Layout components (Header, Footer, Sidebar)
+├── contexts/                  # React context providers
+├── hooks/                     # Custom hooks
+├── pages/                     # Page components that use smaller components
+├── services/                  # API services and third-party integrations
+├── utils/                     # Utility functions
+├── types/                     # TypeScript types and interfaces
+├── styles/                    # Global styles and theming
+└── test/                      # Test utilities and mocks
+```
+
+#### 1.1.2 Monorepo Structure (Future Consideration)
+```
+/
+├── apps/
+│   ├── web/                   # Web application
+│   ├── mobile/                # Mobile application (React Native)
+│   └── desktop/               # Desktop application (Electron)
+├── packages/
+│   ├── ui/                    # Shared UI components
+│   ├── api/                   # API client
+│   ├── utils/                 # Shared utilities
+│   ├── types/                 # Shared types
+│   └── config/                # Shared configuration
+└── infrastructure/
+    ├── api/                   # API server
+    └── db/                    # Database migrations and schemas
+```
+
+### 1.2 Architectural Protection Patterns
+
+#### 1.2.1 Deletion Protection Mechanism
+Implement a comprehensive system to prevent accidental data deletion:
+
+1. **Soft Delete Implementation**
+   ```typescript
+   // Database schema modification example
+   ALTER TABLE plaid_accounts ADD COLUMN deleted_at TIMESTAMP;
+   ALTER TABLE transactions ADD COLUMN deleted_at TIMESTAMP;
+   ALTER TABLE financial_goals ADD COLUMN deleted_at TIMESTAMP;
+   
+   // Repository layer implementation
+   class BaseRepository<T> {
+     async delete(id: string): Promise<void> {
+       // Perform soft delete instead of hard delete
+       await this.db.query(
+         `UPDATE ${this.tableName} SET deleted_at = NOW() WHERE id = $1`,
+         [id]
+       );
+     }
+     
+     async findAll(options?: QueryOptions): Promise<T[]> {
+       // Only return non-deleted items by default
+       const whereClause = options?.includeDeleted 
+         ? '' 
+         : 'WHERE deleted_at IS NULL';
+       return this.db.query(
+         `SELECT * FROM ${this.tableName} ${whereClause}`
+       );
+     }
+     
+     async hardDelete(id: string): Promise<void> {
+       // Restricted method for permanent deletion
+       // Requires additional permissions
+       if (!this.context.user.hasPermission('HARD_DELETE')) {
+         throw new Error('Insufficient permissions for hard delete');
+       }
+       await this.db.query(
+         `DELETE FROM ${this.tableName} WHERE id = $1`,
+         [id]
+       );
+     }
+     
+     async restore(id: string): Promise<void> {
+       // Method to restore soft-deleted items
+       await this.db.query(
+         `UPDATE ${this.tableName} SET deleted_at = NULL WHERE id = $1`,
+         [id]
+       );
+     }
+   }
+   ```
+
+2. **Deletion Confirmation Workflow**
+   ```typescript
+   // Frontend implementation
+   const handleDelete = async (itemId: string) => {
+     // First click sets item to "pending deletion"
+     if (!pendingDeletions.includes(itemId)) {
+       setPendingDeletions([...pendingDeletions, itemId]);
+       // Auto-clear after timeout
+       setTimeout(() => {
+         setPendingDeletions(pendingDeletions.filter(id => id !== itemId));
+       }, 5000);
+       return;
+     }
+     
+     // Second click confirms deletion
+     try {
+       await api.delete(`/api/${resourceType}/${itemId}`);
+       setPendingDeletions(pendingDeletions.filter(id => id !== itemId));
+       refetch();
+     } catch (error) {
+       showError('Failed to delete item');
+     }
+   };
+   ```
+
+3. **Deletion Audit Log**
+   ```typescript
+   // Middleware implementation
+   const auditMiddleware = async (req, res, next) => {
+     const originalEnd = res.end;
+     
+     res.end = function(...args) {
+       // If this was a DELETE operation
+       if (req.method === 'DELETE') {
+         // Log the deletion operation
+         logger.info('Deletion operation', {
+           user: req.user.id,
+           resource: req.path,
+           timestamp: new Date(),
+           ip: req.ip,
+           userAgent: req.headers['user-agent']
+         });
+         
+         // Store in audit log table
+         db.query(
+           `INSERT INTO audit_log (user_id, action, resource, metadata) 
+            VALUES ($1, $2, $3, $4)`,
+           [req.user.id, 'DELETE', req.path, JSON.stringify(req.body)]
+         );
+       }
+       
+       originalEnd.apply(res, args);
+     };
+     
+     next();
+   };
+   ```
+
+4. **Recursive Deletion Protection**
+   ```typescript
+   // API implementation
+   const deleteAccount = async (req, res) => {
+     const { accountId } = req.params;
+     
+     // Check for dependent entities
+     const transactions = await db.query(
+       'SELECT COUNT(*) FROM transactions WHERE account_id = $1',
+       [accountId]
+     );
+     
+     if (transactions.rows[0].count > 0) {
+       return res.status(400).json({
+         error: 'Cannot delete account with associated transactions',
+         dependentItems: {
+           transactions: transactions.rows[0].count
+         },
+         resolution: 'Delete associated transactions first or use the force parameter'
+       });
+     }
+     
+     // If force parameter is provided and user has proper permissions
+     if (req.query.force === 'true' && req.user.hasPermission('CASCADE_DELETE')) {
+       // Delete associated transactions first
+       await db.query('UPDATE transactions SET deleted_at = NOW() WHERE account_id = $1', [accountId]);
+     }
+     
+     // Perform soft delete
+     await db.query('UPDATE accounts SET deleted_at = NOW() WHERE id = $1', [accountId]);
+     
+     res.json({ success: true });
+   };
+   ```
+
+#### 1.2.2 Data Recovery System
+
+1. **Recycle Bin Feature**
+   ```typescript
+   // API implementation
+   router.get('/recycle-bin/:resourceType', async (req, res) => {
+     const { resourceType } = req.params;
+     const userId = req.user.id;
+     
+     // Get deleted items of the specified resource type
+     const items = await db.query(
+       `SELECT * FROM ${resourceType} 
+        WHERE user_id = $1 AND deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC`,
+       [userId]
+     );
+     
+     res.json({ items: items.rows });
+   });
+   
+   router.post('/recycle-bin/:resourceType/:id/restore', async (req, res) => {
+     const { resourceType, id } = req.params;
+     const userId = req.user.id;
+     
+     // Restore item
+     await db.query(
+       `UPDATE ${resourceType} SET deleted_at = NULL 
+        WHERE id = $1 AND user_id = $2`,
+       [id, userId]
+     );
+     
+     res.json({ success: true });
+   });
+   
+   router.delete('/recycle-bin/:resourceType/:id', async (req, res) => {
+     const { resourceType, id } = req.params;
+     const userId = req.user.id;
+     
+     // Hard delete (with appropriate permissions)
+     if (!req.user.hasPermission('HARD_DELETE')) {
+       return res.status(403).json({ error: 'Insufficient permissions' });
+     }
+     
+     await db.query(
+       `DELETE FROM ${resourceType} 
+        WHERE id = $1 AND user_id = $2 AND deleted_at IS NOT NULL`,
+       [id, userId]
+     );
+     
+     res.json({ success: true });
+   });
+   ```
+
+2. **Periodic Backups**
+   ```typescript
+   // Scheduled backup job
+   const scheduleBackups = () => {
+     // Daily user data backup
+     cron.schedule('0 0 * * *', async () => {
+       try {
+         // Create a timestamp for the backup
+         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+         
+         // Backup each table
+         for (const table of ['users', 'financial_goals', 'plaid_accounts', 'transactions']) {
+           const data = await db.query(`SELECT * FROM ${table}`);
+           
+           // Store backup in the filesystem or cloud storage
+           await fs.writeFile(
+             `./backups/${table}_${timestamp}.json`,
+             JSON.stringify(data.rows)
+           );
+         }
+         
+         logger.info('Backup completed successfully');
+       } catch (error) {
+         logger.error('Backup failed', error);
+         // Send notification to administrators
+         notifications.sendToAdmins('Backup failed', error.message);
+       }
+     });
+   };
+   ```
+
+3. **Point-in-Time Recovery**
+   ```typescript
+   // DB schema for version history
+   CREATE TABLE entity_versions (
+     id SERIAL PRIMARY KEY,
+     entity_type VARCHAR(100) NOT NULL,
+     entity_id VARCHAR(100) NOT NULL,
+     data JSONB NOT NULL,
+     user_id VARCHAR(100) NOT NULL,
+     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+     version INT NOT NULL
+   );
+   
+   // Service implementation
+   class VersioningService {
+     async createVersion(entityType, entityId, data, userId) {
+       // Get latest version number
+       const result = await db.query(
+         `SELECT MAX(version) FROM entity_versions 
+          WHERE entity_type = $1 AND entity_id = $2`,
+         [entityType, entityId]
+       );
+       
+       const currentVersion = result.rows[0].max || 0;
+       const newVersion = currentVersion + 1;
+       
+       // Store new version
+       await db.query(
+         `INSERT INTO entity_versions 
+          (entity_type, entity_id, data, user_id, version) 
+          VALUES ($1, $2, $3, $4, $5)`,
+         [entityType, entityId, JSON.stringify(data), userId, newVersion]
+       );
+       
+       return newVersion;
+     }
+     
+     async getVersions(entityType, entityId) {
+       return db.query(
+         `SELECT * FROM entity_versions 
+          WHERE entity_type = $1 AND entity_id = $2
+          ORDER BY version DESC`,
+         [entityType, entityId]
+       );
+     }
+     
+     async restoreVersion(entityType, entityId, version) {
+       // Get the specified version
+       const result = await db.query(
+         `SELECT * FROM entity_versions 
+          WHERE entity_type = $1 AND entity_id = $2 AND version = $3`,
+         [entityType, entityId, version]
+       );
+       
+       if (result.rows.length === 0) {
+         throw new Error('Version not found');
+       }
+       
+       const versionData = result.rows[0].data;
+       
+       // Update the current entity with the version data
+       await db.query(
+         `UPDATE ${entityType} SET data = $1 WHERE id = $2`,
+         [versionData, entityId]
+       );
+       
+       return versionData;
+     }
+   }
+   ```
+
+## 2. System Integration & State Management
+
+### 2.1 Context API Redesign
+
+1. **Unified State Management Architecture**
+   ```typescript
+   // /src/contexts/AppContext.tsx
+   interface AppState {
+     auth: AuthState;
+     plaid: PlaidState;
+     transactions: TransactionsState;
+     goals: GoalsState;
+     ui: UIState;
+   }
+   
+   interface AppContextType {
+     state: AppState;
+     dispatch: React.Dispatch<AppAction>;
+   }
+   
+   type AppAction = 
+     | { type: 'AUTH_LOGIN', payload: User }
+     | { type: 'AUTH_LOGOUT' }
+     | { type: 'PLAID_CONNECT_ACCOUNT', payload: PlaidAccount }
+     | { type: 'PLAID_REMOVE_ACCOUNT', payload: string }
+     | { type: 'TRANSACTIONS_LOADED', payload: Transaction[] }
+     | { type: 'GOALS_ADD', payload: Goal }
+     | { type: 'GOALS_UPDATE', payload: { id: string, updates: Partial<Goal> } }
+     | { type: 'GOALS_DELETE', payload: string }
+     | { type: 'UI_SET_THEME', payload: 'light' | 'dark' | 'system' }
+     | { type: 'UI_SET_SIDEBAR_OPEN', payload: boolean };
+   
+   // Reducer implementation
+   const appReducer = (state: AppState, action: AppAction): AppState => {
+     switch (action.type) {
+       case 'AUTH_LOGIN':
+         return { ...state, auth: { ...state.auth, user: action.payload, isAuthenticated: true } };
+       // ... other actions
+       default:
+         return state;
+     }
+   };
+   
+   // Context provider
+   export const AppProvider: React.FC = ({ children }) => {
+     const [state, dispatch] = useReducer(appReducer, initialState);
+     
+     return (
+       <AppContext.Provider value={{ state, dispatch }}>
+         {children}
+       </AppContext.Provider>
+     );
+   };
+   ```
+
+2. **Module-Specific Context Providers**
+   ```typescript
+   // /src/contexts/PlaidContext.tsx
+   interface PlaidContextType {
+     accounts: PlaidAccount[];
+     isLoading: boolean;
+     error: Error | null;
+     connectAccount: () => Promise<void>;
+     refreshAccounts: () => Promise<void>;
+     getTransactions: (startDate: string, endDate: string) => Promise<Transaction[]>;
+   }
+   
+   export const PlaidProvider: React.FC = ({ children }) => {
+     // Implementation leveraging AppContext for state management
+     const { state, dispatch } = useContext(AppContext);
+     
+     const connectAccount = useCallback(async () => {
+       try {
+         // Implementation...
+         dispatch({ type: 'PLAID_CONNECT_ACCOUNT', payload: account });
+       } catch (error) {
+         // Error handling...
+       }
+     }, [dispatch]);
+     
+     // Other methods...
+     
+     return (
+       <PlaidContext.Provider value={{ 
+         accounts: state.plaid.accounts,
+         isLoading: state.plaid.isLoading,
+         error: state.plaid.error,
+         connectAccount,
+         refreshAccounts,
+         getTransactions
+       }}>
+         {children}
+       </PlaidContext.Provider>
+     );
+   };
+   ```
+
+### 2.2 Service Layer Restructuring
+
+1. **API Service Abstraction**
+   ```typescript
+   // /src/services/api.ts
+   class ApiService {
+     private baseUrl: string;
+     private authToken: string | null = null;
+     
+     constructor(baseUrl: string) {
+       this.baseUrl = baseUrl;
+     }
+     
+     setAuthToken(token: string) {
+       this.authToken = token;
+     }
+     
+     clearAuthToken() {
+       this.authToken = null;
+     }
+     
+     async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+       const url = `${this.baseUrl}${endpoint}`;
+       const headers = {
+         'Content-Type': 'application/json',
+         ...options.headers,
+       };
+       
+       if (this.authToken) {
+         headers['Authorization'] = `Bearer ${this.authToken}`;
+       }
+       
+       const config: RequestInit = {
+         method: options.method || 'GET',
+         headers,
+         ...(options.body && { body: JSON.stringify(options.body) }),
+       };
+       
+       try {
+         const response = await fetch(url, config);
+         
+         // Handle 401 Unauthorized globally
+         if (response.status === 401) {
+           // Trigger auth refresh or logout
+           eventBus.emit('auth:unauthorized');
+           throw new Error('Unauthorized');
+         }
+         
+         if (!response.ok) {
+           const errorData = await response.json();
+           throw new ApiError(response.status, errorData.message || 'API Error', errorData);
+         }
+         
+         // Handle no-content responses
+         if (response.status === 204) {
+           return {} as T;
+         }
+         
+         return await response.json() as T;
+       } catch (error) {
+         // Handle network errors
+         if (error instanceof TypeError && error.message === 'Network request failed') {
+           throw new ApiError(0, 'Network error', { originalError: error });
+         }
+         
+         throw error;
+       }
+     }
+     
+     // Convenience methods
+     async get<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+       return this.request<T>(endpoint, { ...options, method: 'GET' });
+     }
+     
+     async post<T>(endpoint: string, data: any, options: RequestOptions = {}): Promise<T> {
+       return this.request<T>(endpoint, { ...options, method: 'POST', body: data });
+     }
+     
+     async put<T>(endpoint: string, data: any, options: RequestOptions = {}): Promise<T> {
+       return this.request<T>(endpoint, { ...options, method: 'PUT', body: data });
+     }
+     
+     async patch<T>(endpoint: string, data: any, options: RequestOptions = {}): Promise<T> {
+       return this.request<T>(endpoint, { ...options, method: 'PATCH', body: data });
+     }
+     
+     async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+       return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+     }
+   }
+   
+   export const api = new ApiService(process.env.REACT_APP_API_URL || '/api');
+   ```
+
+2. **Feature-Specific Service Modules**
+   ```typescript
+   // /src/services/plaidService.ts
+   class PlaidService {
+     async createLinkToken(): Promise<string> {
+       const response = await api.post<{ link_token: string }>('/plaid/create-link-token', {});
+       return response.link_token;
+     }
+     
+     async exchangePublicToken(publicToken: string): Promise<string> {
+       const response = await api.post<{ access_token: string }>('/plaid/exchange-token', { public_token: publicToken });
+       return response.access_token;
+     }
+     
+     async getAccounts(): Promise<PlaidAccount[]> {
+       const response = await api.get<{ accounts: PlaidAccount[] }>('/plaid/accounts');
+       return response.accounts;
+     }
+     
+     async getTransactions(startDate: string, endDate: string): Promise<Transaction[]> {
+       const response = await api.get<{ transactions: Transaction[] }>('/plaid/transactions', {
+         params: { start_date: startDate, end_date: endDate }
+       });
+       return response.transactions;
+     }
+     
+     async syncTransactions(): Promise<SyncResponse> {
+       const response = await api.post<SyncResponse>('/plaid/sync-transactions', {});
+       return response;
+     }
+     
+     async removeAccount(accountId: string): Promise<void> {
+       await api.delete(`/plaid/accounts/${accountId}`);
+     }
+   }
+   
+   export const plaidService = new PlaidService();
+   ```
+
+### 2.3 Robust Error Handling & Retries
+
+1. **Global Error Handling**
+   ```typescript
+   // /src/services/errorHandler.ts
+   export class ApiError extends Error {
+     status: number;
+     data: any;
+     
+     constructor(status: number, message: string, data: any = {}) {
+       super(message);
+       this.name = 'ApiError';
+       this.status = status;
+       this.data = data;
+     }
+   }
+   
+   export const handleApiError = (error: any, defaultMessage: string): string => {
+     if (error instanceof ApiError) {
+       // Handle based on status code
+       switch (error.status) {
+         case 400:
+           return error.data.details?.message || 'Invalid request data';
+         case 401:
+           return 'Authentication required';
+         case 403:
+           return 'You do not have permission for this action';
+         case 404:
+           return 'The requested resource was not found';
+         case 429:
+           return 'Too many requests. Please try again later';
+         case 500:
+           return 'Server error. Our team has been notified';
+         default:
+           return error.message || defaultMessage;
+       }
+     }
+     
+     if (error instanceof TypeError && error.message === 'Network request failed') {
+       return 'Network connection error. Please check your internet connection';
+     }
+     
+     // Default error message
+     return defaultMessage;
+   };
+   ```
+
+2. **Retry Mechanism**
+   ```typescript
+   // /src/utils/retryUtil.ts
+   interface RetryOptions {
+     maxRetries: number;
+     initialDelay: number;
+     maxDelay: number;
+     backoffFactor: number;
+     retryableStatusCodes: number[];
+     retryCondition?: (error: any) => boolean;
+   }
+   
+   const defaultRetryOptions: RetryOptions = {
+     maxRetries: 3,
+     initialDelay: 1000,
+     maxDelay: 10000,
+     backoffFactor: 2,
+     retryableStatusCodes: [408, 429, 500, 502, 503, 504],
+   };
+   
+   export async function retryAsync<T>(
+     fn: () => Promise<T>,
+     options: Partial<RetryOptions> = {}
+   ): Promise<T> {
+     const opts = { ...defaultRetryOptions, ...options };
+     
+     let lastError: any;
+     
+     for (let attempt = 0; attempt < opts.maxRetries; attempt++) {
+       try {
+         return await fn();
+       } catch (error) {
+         lastError = error;
+         
+         const isApiError = error instanceof ApiError;
+         const isRetryableStatus = isApiError && opts.retryableStatusCodes.includes(error.status);
+         const isNetworkError = error instanceof TypeError && error.message === 'Network request failed';
+         const passesCustomCondition = opts.retryCondition ? opts.retryCondition(error) : false;
+         
+         // If error is not retryable, throw immediately
+         if (!(isRetryableStatus || isNetworkError || passesCustomCondition)) {
+           throw error;
+         }
+         
+         // Calculate backoff delay
+         const delay = Math.min(
+           opts.initialDelay * Math.pow(opts.backoffFactor, attempt),
+           opts.maxDelay
+         );
+         
+         // Add some jitter to prevent all clients from retrying simultaneously
+         const jitteredDelay = delay * (0.8 + Math.random() * 0.4);
+         
+         // Log retry attempt
+         console.log(`Retrying operation after ${jitteredDelay}ms. Attempt ${attempt + 1} of ${opts.maxRetries}`);
+         
+         // Wait before retrying
+         await new Promise(resolve => setTimeout(resolve, jitteredDelay));
+       }
+     }
+     
+     // If we've exhausted all retries, throw the last error
+     throw lastError;
+   }
+   ```
+
+## 3. Frontend Enhancements & User Experience
+
+### 3.1 Component Architecture Modernization
+
+1. **Compound Component Pattern**
+   ```typescript
+   // /src/components/common/Card/index.tsx
+   import React from 'react';
+   import { CardHeader } from './CardHeader';
+   import { CardBody } from './CardBody';
+   import { CardFooter } from './CardFooter';
+
+   export interface CardProps {
+     className?: string;
+     children: React.ReactNode;
+   }
+
+   export const Card: React.FC<CardProps> & {
+     Header: typeof CardHeader;
+     Body: typeof CardBody;
+     Footer: typeof CardFooter;
+   } = ({ className = '', children }) => {
+     return (
+       <div className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}>
+         {children}
+       </div>
+     );
+   };
+
+   Card.Header = CardHeader;
+   Card.Body = CardBody;
+   Card.Footer = CardFooter;
+
+   // Usage example:
+   // <Card>
+   //   <Card.Header>Card Title</Card.Header>
+   //   <Card.Body>Card content...</Card.Body>
+   //   <Card.Footer>Card footer</Card.Footer>
+   // </Card>
+   ```
+
+2. **Component Factory Pattern**
+   ```typescript
+   // /src/components/common/Table/tableFactory.tsx
+   import React from 'react';
+
+   export interface Column<T> {
+     key: string;
+     header: React.ReactNode;
+     render?: (item: T, index: number) => React.ReactNode;
+     sortable?: boolean;
+     className?: string;
+   }
+
+   export interface TableFactoryOptions<T> {
+     rowKey: (item: T) => string | number;
+     defaultSort?: { key: string; direction: 'asc' | 'desc' };
+     onRowClick?: (item: T) => void;
+     rowClassName?: (item: T, index: number) => string;
+     emptyState?: React.ReactNode;
+   }
+
+   export function createTable<T>(columns: Column<T>[], options: TableFactoryOptions<T>) {
+     return function Table({ data, loading }: { data: T[]; loading?: boolean }) {
+       const [sortConfig, setSortConfig] = React.useState(options.defaultSort || null);
+       
+       // Sorting logic
+       const sortedData = React.useMemo(() => {
+         if (!sortConfig) return data;
+         
+         return [...data].sort((a, b) => {
+           const aValue = a[sortConfig.key as keyof T];
+           const bValue = b[sortConfig.key as keyof T];
+           
+           if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+           if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+           return 0;
+         });
+       }, [data, sortConfig]);
+       
+       // Handle sort
+       const handleSort = (key: string) => {
+         setSortConfig(currentSort => {
+           if (currentSort?.key === key) {
+             return {
+               key,
+               direction: currentSort.direction === 'asc' ? 'desc' : 'asc'
+             };
+           }
+           return { key, direction: 'asc' };
+         });
+       };
+       
+       if (loading) {
+         return <div className="animate-pulse">Loading...</div>;
+       }
+       
+       if (data.length === 0) {
+         return <div>{options.emptyState || 'No data available'}</div>;
+       }
+       
+       return (
+         <table className="min-w-full divide-y divide-gray-200">
+           <thead className="bg-gray-50">
+             <tr>
+               {columns.map(column => (
+                 <th
+                   key={column.key}
+                   className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                     column.sortable ? 'cursor-pointer' : ''
+                   } ${column.className || ''}`}
+                   onClick={column.sortable ? () => handleSort(column.key) : undefined}
+                 >
+                   <div className="flex items-center">
+                     {column.header}
+                     {sortConfig?.key === column.key && (
+                       <span className="ml-2">
+                         {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                       </span>
+                     )}
+                   </div>
+                 </th>
+               ))}
+             </tr>
+           </thead>
+           <tbody className="bg-white divide-y divide-gray-200">
+             {sortedData.map((item, index) => (
+               <tr
+                 key={options.rowKey(item)}
+                 onClick={options.onRowClick ? () => options.onRowClick!(item) : undefined}
+                 className={`${options.onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} ${
+                   options.rowClassName ? options.rowClassName(item, index) : ''
+                 }`}
+               >
+                 {columns.map(column => (
+                   <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                     {column.render
+                       ? column.render(item, index)
+                       : item[column.key as keyof T]}
+                   </td>
+                 ))}
+               </tr>
+             ))}
+           </tbody>
+         </table>
+       );
+     };
+   }
+
+   // Usage example:
+   // const TransactionsTable = createTable<Transaction>(
+   //   [
+   //     { key: 'date', header: 'Date', sortable: true },
+   //     { key: 'description', header: 'Description' },
+   //     { 
+   //       key: 'amount', 
+   //       header: 'Amount',
+   //       render: (transaction) => `$${transaction.amount.toFixed(2)}`,
+   //       sortable: true 
+   //     },
+   //   ],
+   //   { 
+   //     rowKey: (transaction) => transaction.id,
+   //     defaultSort: { key: 'date', direction: 'desc' },
+   //     onRowClick: (transaction) => showTransactionDetails(transaction)
+   //   }
+   // );
+   ```
+
+3. **Custom Hooks Pattern**
+   ```typescript
+   // /src/hooks/useAsyncAction.ts
+   import { useState, useCallback } from 'react';
+
+   interface AsyncActionOptions<T> {
+     onSuccess?: (result: T) => void;
+     onError?: (error: Error) => void;
+     resetOnSuccess?: boolean;
+   }
+
+   export function useAsyncAction<T>(
+     asyncFunction: (...args: any[]) => Promise<T>,
+     options: AsyncActionOptions<T> = {}
+   ) {
+     const [data, setData] = useState<T | null>(null);
+     const [error, setError] = useState<Error | null>(null);
+     const [loading, setLoading] = useState(false);
+     
+     const execute = useCallback(
+       async (...args: any[]) => {
+         setLoading(true);
+         setError(null);
+         
+         try {
+           const result = await asyncFunction(...args);
+           setData(result);
+           
+           if (options.onSuccess) {
+             options.onSuccess(result);
+           }
+           
+           if (options.resetOnSuccess) {
+             setTimeout(() => {
+               setData(null);
+               setLoading(false);
+             }, 2000);
+           } else {
+             setLoading(false);
+           }
+           
+           return result;
+         } catch (err) {
+           const error = err instanceof Error ? err : new Error(String(err));
+           setError(error);
+## 3. Frontend Enhancements & User Experience (Continued)
+
+### 3.1 Component Architecture Modernization (Continued)
+
+```typescript
+// /src/hooks/useAsyncAction.ts (continued)
+           if (options.onError) {
+             options.onError(error);
+           }
+           
+           setLoading(false);
+           throw error;
+         }
+       },
+       [asyncFunction, options]
+     );
+     
+     const reset = useCallback(() => {
+       setData(null);
+       setError(null);
+       setLoading(false);
+     }, []);
+     
+     return {
+       execute,
+       data,
+       error,
+       loading,
+       reset
+     };
+   }
+
+   // Usage example:
+   // const { execute: createGoal, loading, error } = useAsyncAction(
+   //   goalService.createGoal,
+   //   { 
+   //     onSuccess: () => {
+   //       toast.success('Goal created successfully');
+   //       navigate('/goals');
+   //     },
+   //     onError: (error) => toast.error(handleApiError(error, 'Failed to create goal'))
+   //   }
+   // );
+   ```
+
+### 3.2 Advanced UI Components
+
+1. **Multi-Step Form Control**
+   ```typescript
+   // /src/components/common/MultiStepForm/index.tsx
+   import React, { useState, useCallback } from 'react';
+
+   interface Step {
+     id: string;
+     title: string;
+     component: React.ReactNode;
+     validationSchema?: any;
+   }
+
+   interface MultiStepFormProps {
+     steps: Step[];
+     initialValues: Record<string, any>;
+     onSubmit: (values: Record<string, any>) => void | Promise<void>;
+     submitButtonText?: string;
+     showStepIndicator?: boolean;
+   }
+
+   export const MultiStepForm: React.FC<MultiStepFormProps> = ({
+     steps,
+     initialValues,
+     onSubmit,
+     submitButtonText = 'Submit',
+     showStepIndicator = true,
+   }) => {
+     const [currentStepIndex, setCurrentStepIndex] = useState(0);
+     const [formValues, setFormValues] = useState(initialValues);
+     const [isSubmitting, setIsSubmitting] = useState(false);
+     
+     const currentStep = steps[currentStepIndex];
+     const isFirstStep = currentStepIndex === 0;
+     const isLastStep = currentStepIndex === steps.length - 1;
+     
+     const handleNext = useCallback(
+       async (stepData: Record<string, any>) => {
+         const newValues = { ...formValues, ...stepData };
+         setFormValues(newValues);
+         
+         if (isLastStep) {
+           try {
+             setIsSubmitting(true);
+             await onSubmit(newValues);
+           } catch (error) {
+             console.error('Form submission error:', error);
+           } finally {
+             setIsSubmitting(false);
+           }
+         } else {
+           setCurrentStepIndex(index => index + 1);
+         }
+       },
+       [formValues, isLastStep, onSubmit]
+     );
+     
+     const handlePrevious = useCallback(() => {
+       setCurrentStepIndex(index => index - 1);
+     }, []);
+     
+     const handleStepClick = useCallback(
+       (index: number) => {
+         // Only allow navigating to completed steps or the next available step
+         if (index <= currentStepIndex + 1) {
+           setCurrentStepIndex(index);
+         }
+       },
+       [currentStepIndex]
+     );
+     
+     return (
+       <div className="w-full">
+         {showStepIndicator && (
+           <div className="mb-8">
+             <div className="flex items-center justify-between">
+               {steps.map((step, index) => (
+                 <React.Fragment key={step.id}>
+                   <div 
+                     className={`flex flex-col items-center ${
+                       index <= currentStepIndex ? 'cursor-pointer' : 'opacity-50'
+                     }`}
+                     onClick={() => handleStepClick(index)}
+                   >
+                     <div 
+                       className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                         index < currentStepIndex
+                           ? 'bg-green-500 text-white'
+                           : index === currentStepIndex
+                           ? 'bg-blue-500 text-white'
+                           : 'bg-gray-200 text-gray-500'
+                       }`}
+                     >
+                       {index < currentStepIndex ? (
+                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                         </svg>
+                       ) : (
+                         index + 1
+                       )}
+                     </div>
+                     <div className="mt-2 text-sm">{step.title}</div>
+                   </div>
+                   
+                   {index < steps.length - 1 && (
+                     <div className={`flex-1 h-1 mx-2 ${
+                       index < currentStepIndex ? 'bg-green-500' : 'bg-gray-200'
+                     }`} />
+                   )}
+                 </React.Fragment>
+               ))}
+             </div>
+           </div>
+         )}
+         
+         <div className="mb-6">
+           {React.cloneElement(currentStep.component as React.ReactElement, {
+             initialValues: formValues,
+             onSubmit: handleNext,
+             onBack: isFirstStep ? undefined : handlePrevious,
+             isSubmitting,
+             isLastStep,
+             submitButtonText: isLastStep ? submitButtonText : 'Next',
+             backButtonText: 'Previous',
+           })}
+         </div>
+       </div>
+     );
+   }
+   ```
+
+2. **Smart Data Grid Component**
+   ```typescript
+   // /src/components/common/DataGrid/index.tsx
+   import React, { useState, useEffect, useCallback } from 'react';
+   import { useAsyncAction } from '../../../hooks/useAsyncAction';
+
+   export interface DataGridColumn<T> {
+     field: keyof T | string;
+     headerName: string;
+     width?: number | string;
+     flex?: number;
+     sortable?: boolean;
+     filterable?: boolean;
+     renderCell?: (params: { row: T; value: any; index: number }) => React.ReactNode;
+     valueGetter?: (params: { row: T }) => any;
+     align?: 'left' | 'center' | 'right';
+     headerAlign?: 'left' | 'center' | 'right';
+     hide?: boolean;
+   }
+
+   export interface DataGridProps<T> {
+     columns: DataGridColumn<T>[];
+     dataSource: T[] | ((params: DataGridFetchParams) => Promise<DataGridResponse<T>>);
+     rowKey: keyof T | ((row: T) => string);
+     pagination?: boolean;
+     pageSize?: number;
+     serverSide?: boolean;
+     rowSelection?: 'single' | 'multiple' | 'none';
+     onRowClick?: (row: T) => void;
+     onSelectionChange?: (selectedRows: T[]) => void;
+     toolbar?: React.ReactNode;
+     loading?: boolean;
+     className?: string;
+     autoHeight?: boolean;
+     getRowClassName?: (params: { row: T; index: number }) => string;
+     initialSort?: { field: string; direction: 'asc' | 'desc' };
+     onSortChange?: (field: string, direction: 'asc' | 'desc') => void;
+   }
+
+   export interface DataGridFetchParams {
+     page: number;
+     pageSize: number;
+     sortField?: string;
+     sortDirection?: 'asc' | 'desc';
+     filters?: Record<string, any>;
+   }
+
+   export interface DataGridResponse<T> {
+     data: T[];
+     total: number;
+   }
+
+   export function DataGrid<T extends Record<string, any>>({
+     columns,
+     dataSource,
+     rowKey,
+     pagination = true,
+     pageSize = 10,
+     serverSide = false,
+     rowSelection = 'none',
+     onRowClick,
+     onSelectionChange,
+     toolbar,
+     loading: externalLoading,
+     className = '',
+     autoHeight = false,
+     getRowClassName,
+     initialSort,
+     onSortChange,
+   }: DataGridProps<T>) {
+     const [page, setPage] = useState(1);
+     const [sortConfig, setSortConfig] = useState(initialSort || null);
+     const [filters, setFilters] = useState<Record<string, any>>({});
+     const [selectedRows, setSelectedRows] = useState<T[]>([]);
+     
+     // Fetch data from server if serverSide is true
+     const { execute: fetchData, data: fetchedData, loading: fetchLoading, error } = 
+       useAsyncAction<DataGridResponse<T>>(
+         async (params: DataGridFetchParams) => {
+           if (typeof dataSource === 'function') {
+             return await dataSource(params);
+           }
+           return { data: [], total: 0 };
+         }
+       );
+     
+     const loading = externalLoading !== undefined ? externalLoading : fetchLoading;
+     
+     // Initialize data based on dataSource type
+     const [localData, setLocalData] = useState<{
+       data: T[];
+       total: number;
+     }>({
+       data: [],
+       total: 0,
+     });
+     
+     // Handle data source initialization and updates
+     useEffect(() => {
+       if (Array.isArray(dataSource)) {
+         setLocalData({
+           data: dataSource,
+           total: dataSource.length,
+         });
+       } else if (serverSide) {
+         fetchData({
+           page,
+           pageSize,
+           sortField: sortConfig?.field,
+           sortDirection: sortConfig?.direction,
+           filters,
+         });
+       }
+     }, [dataSource, serverSide, page, pageSize, sortConfig, filters, fetchData]);
+     
+     // Update local data when fetch completes
+     useEffect(() => {
+       if (fetchedData) {
+         setLocalData(fetchedData);
+       }
+     }, [fetchedData]);
+     
+     // Handle sorting
+     const handleSort = useCallback(
+       (field: string) => {
+         const column = columns.find(col => col.field === field);
+         if (!column?.sortable) return;
+         
+         const newDirection = 
+           sortConfig?.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+         
+         const newSortConfig = {
+           field,
+           direction: newDirection,
+         };
+         
+         setSortConfig(newSortConfig);
+         
+         if (onSortChange) {
+           onSortChange(field, newDirection);
+         }
+       },
+       [columns, sortConfig, onSortChange]
+     );
+     
+     // Handle selection
+     const handleRowSelection = useCallback(
+       (row: T) => {
+         if (rowSelection === 'none') return;
+         
+         let newSelectedRows: T[];
+         const getRowId = (item: T) => 
+           typeof rowKey === 'function' ? rowKey(item) : item[rowKey];
+         
+         const rowId = getRowId(row);
+         const isSelected = selectedRows.some(r => getRowId(r) === rowId);
+         
+         if (rowSelection === 'single') {
+           newSelectedRows = isSelected ? [] : [row];
+         } else {
+           newSelectedRows = isSelected
+             ? selectedRows.filter(r => getRowId(r) !== rowId)
+             : [...selectedRows, row];
+         }
+         
+         setSelectedRows(newSelectedRows);
+         
+         if (onSelectionChange) {
+           onSelectionChange(newSelectedRows);
+         }
+       },
+       [rowSelection, selectedRows, rowKey, onSelectionChange]
+     );
+     
+     // Determine displayed data
+     const displayData = serverSide
+       ? localData.data
+       : Array.isArray(dataSource)
+       ? paginateData(filterData(sortData(dataSource)))
+       : [];
+     
+     // Helper functions for client-side operations
+     function sortData(data: T[]) {
+       if (!sortConfig) return data;
+       
+       const { field, direction } = sortConfig;
+       
+       return [...data].sort((a, b) => {
+         const column = columns.find(col => col.field === field);
+         const aValue = column?.valueGetter 
+           ? column.valueGetter({ row: a })
+           : a[field as keyof T];
+         const bValue = column?.valueGetter
+           ? column.valueGetter({ row: b })
+           : b[field as keyof T];
+         
+         if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+         if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+         return 0;
+       });
+     }
+     
+     function filterData(data: T[]) {
+       return data.filter(row => {
+         return Object.entries(filters).every(([field, value]) => {
+           if (!value) return true;
+           
+           const column = columns.find(col => col.field === field);
+           const cellValue = column?.valueGetter
+             ? column.valueGetter({ row })
+             : row[field as keyof T];
+           
+           if (typeof cellValue === 'string') {
+             return cellValue.toLowerCase().includes(String(value).toLowerCase());
+           }
+           
+           return String(cellValue) === String(value);
+         });
+       });
+     }
+     
+     function paginateData(data: T[]) {
+       if (!pagination) return data;
+       
+       const startIndex = (page - 1) * pageSize;
+       return data.slice(startIndex, startIndex + pageSize);
+     }
+     
+     // Handle pagination
+     const handlePageChange = useCallback(
+       (newPage: number) => {
+         setPage(newPage);
+       },
+       []
+     );
+     
+     // Calculate total pages
+     const totalPages = Math.ceil(localData.total / pageSize);
+     
+     return (
+       <div className={`flex flex-col ${className}`}>
+         {toolbar && <div className="mb-4">{toolbar}</div>}
+         
+         <div className={`overflow-x-auto ${autoHeight ? '' : 'flex-1'}`}>
+           {error && (
+             <div className="p-4 bg-red-50 text-red-500 rounded mb-4">
+               Error loading data: {error.message}
+             </div>
+           )}
+           
+           <table className="min-w-full divide-y divide-gray-200">
+             {/* Table header */}
+             <thead className="bg-gray-50">
+               <tr>
+                 {rowSelection !== 'none' && (
+                   <th className="w-12 px-4 py-3">
+                     {rowSelection === 'multiple' && (
+                       <input
+                         type="checkbox"
+                         checked={
+                           selectedRows.length > 0 &&
+                           selectedRows.length === displayData.length
+                         }
+                         onChange={() => {
+                           const newSelectedRows =
+                             selectedRows.length === displayData.length ? [] : [...displayData];
+                           setSelectedRows(newSelectedRows);
+                           if (onSelectionChange) {
+                             onSelectionChange(newSelectedRows);
+                           }
+                         }}
+                         className="h-4 w-4 rounded border-gray-300"
+                       />
+                     )}
+                   </th>
+                 )}
+                 
+                 {columns
+                   .filter(column => !column.hide)
+                   .map(column => (
+                     <th
+                       key={column.field as string}
+                       className={`px-6 py-3 text-${column.headerAlign || 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                         column.sortable ? 'cursor-pointer' : ''
+                       }`}
+                       style={{ width: column.width, flex: column.flex }}
+                       onClick={() => handleSort(column.field as string)}
+                     >
+                       <div className="flex items-center">
+                         <span>{column.headerName}</span>
+                         {sortConfig?.field === column.field && (
+                           <span className="ml-2">
+                             {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                           </span>
+                         )}
+                       </div>
+                     </th>
+                   ))}
+               </tr>
+             </thead>
+             
+             {/* Table body */}
+             <tbody className="bg-white divide-y divide-gray-200">
+               {loading ? (
+                 <tr>
+                   <td
+                     colSpan={
+                       columns.filter(column => !column.hide).length +
+                       (rowSelection !== 'none' ? 1 : 0)
+                     }
+                     className="px-6 py-4 text-center"
+                   >
+                     <div className="flex justify-center">
+                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
+                     </div>
+                   </td>
+                 </tr>
+               ) : displayData.length === 0 ? (
+                 <tr>
+                   <td
+                     colSpan={
+                       columns.filter(column => !column.hide).length +
+                       (rowSelection !== 'none' ? 1 : 0)
+                     }
+                     className="px-6 py-4 text-center"
+                   >
+                     No data available
+                   </td>
+                 </tr>
+               ) : (
+                 displayData.map((row, index) => {
+                   const getRowId = (item: T) =>
+                     typeof rowKey === 'function' ? rowKey(item) : String(item[rowKey]);
+                   
+                   const isSelected = selectedRows.some(
+                     selectedRow => getRowId(selectedRow) === getRowId(row)
+                   );
+                   
+                   return (
+                     <tr
+                       key={getRowId(row)}
+                       className={`${
+                         onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''
+                       } ${isSelected ? 'bg-blue-50' : ''} ${
+                         getRowClassName ? getRowClassName({ row, index }) : ''
+                       }`}
+                       onClick={() => {
+                         if (onRowClick) {
+                           onRowClick(row);
+                         }
+                       }}
+                     >
+                       {rowSelection !== 'none' && (
+                         <td className="px-4 py-4">
+                           <input
+                             type="checkbox"
+                             checked={isSelected}
+                             onChange={e => {
+                               e.stopPropagation();
+                               handleRowSelection(row);
+                             }}
+                             className="h-4 w-4 rounded border-gray-300"
+                           />
+                         </td>
+                       )}
+                       
+                       {columns
+                         .filter(column => !column.hide)
+                         .map(column => {
+                           const field = column.field as string;
+                           const value = column.valueGetter
+                             ? column.valueGetter({ row })
+                             : row[field as keyof T];
+                           
+                           return (
+                             <td
+                               key={field}
+                               className={`px-6 py-4 text-${column.align || 'left'} ${
+                                 typeof value === 'string' && value.length > 100
+                                   ? 'truncate'
+                                   : 'whitespace-nowrap'
+                               }`}
+                             >
+                               {column.renderCell
+                                 ? column.renderCell({ row, value, index })
+                                 : value}
+                             </td>
+                           );
+                         })}
+                     </tr>
+                   );
+                 })
+               )}
+             </tbody>
+           </table>
+         </div>
+         
+         {pagination && totalPages > 1 && (
+           <div className="mt-4 flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6">
+             <div className="flex flex-1 justify-between sm:hidden">
+               <button
+                 onClick={() => handlePageChange(page - 1)}
+                 disabled={page === 1}
+                 className={`relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium ${
+                   page === 1
+                     ? 'text-gray-300 cursor-not-allowed'
+                     : 'text-gray-700 hover:bg-gray-50'
+                 }`}
+               >
+                 Previous
+               </button>
+               <button
+                 onClick={() => handlePageChange(page + 1)}
+                 disabled={page === totalPages}
+                 className={`relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium ${
+                   page === totalPages
+                     ? 'text-gray-300 cursor-not-allowed'
+                     : 'text-gray-700 hover:bg-gray-50'
+                 }`}
+               >
+                 Next
+               </button>
+             </div>
+             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+               <div>
+                 <p className="text-sm text-gray-700">
+                   Showing <span className="font-medium">{Math.min((page - 1) * pageSize + 1, localData.total)}</span> to{' '}
+                   <span className="font-medium">{Math.min(page * pageSize, localData.total)}</span> of{' '}
+                   <span className="font-medium">{localData.total}</span> results
+                 </p>
+               </div>
+               <div>
+                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                   <button
+                     onClick={() => handlePageChange(page - 1)}
+                     disabled={page === 1}
+                     className={`relative inline-flex items-center rounded-l-md px-2 py-2 ${
+                       page === 1
+                         ? 'text-gray-300 cursor-not-allowed'
+                         : 'text-gray-500 hover:bg-gray-50'
+                     }`}
+                   >
+                     <span className="sr-only">Previous</span>
+                     <svg
+                       className="h-5 w-5"
+                       xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 20 20"
+                       fill="currentColor"
+                       aria-hidden="true"
+                     >
+                       <path
+                         fillRule="evenodd"
+                         d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                         clipRule="evenodd"
+                       />
+                     </svg>
+                   </button>
+                   
+                   {/* Generate page buttons */}
+                   {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                     let pageNum;
+                     
+                     if (totalPages <= 5) {
+                       pageNum = i + 1;
+                     } else if (page <= 3) {
+                       pageNum = i + 1;
+                     } else if (page >= totalPages - 2) {
+                       pageNum = totalPages - 4 + i;
+                     } else {
+                       pageNum = page - 2 + i;
+                     }
+                     
+                     return (
+                       <button
+                         key={pageNum}
+                         onClick={() => handlePageChange(pageNum)}
+                         className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                           page === pageNum
+                             ? 'bg-blue-50 text-blue-600 z-10'
+                             : 'text-gray-900 hover:bg-gray-50'
+                         }`}
+                       >
+                         {pageNum}
+                       </button>
+                     );
+                   })}
+                   
+                   <button
+                     onClick={() => handlePageChange(page + 1)}
+                     disabled={page === totalPages}
+                     className={`relative inline-flex items-center rounded-r-md px-2 py-2 ${
+                       page === totalPages
+                         ? 'text-gray-300 cursor-not-allowed'
+                         : 'text-gray-500 hover:bg-gray-50'
+                     }`}
+                   >
+                     <span className="sr-only">Next</span>
+                     <svg
+                       className="h-5 w-5"
+                       xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 20 20"
+                       fill="currentColor"
+                       aria-hidden="true"
+                     >
+                       <path
+                         fillRule="evenodd"
+                         d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                         clipRule="evenodd"
+                       />
+                     </svg>
+                   </button>
+                 </nav>
+               </div>
+             </div>
+           </div>
+         )}
+       </div>
+     );
+   }
+   ```
+
+## 4. API & Backend Architecture
+
+### 4.1 Robust API Architecture
+
+1. **Controller-Service-Repository Pattern**
+   ```typescript
+   // /server/controllers/TransactionController.ts
+   import { Request, Response, NextFunction } from 'express';
+   import { transactionService } from '../services/TransactionService';
+   import { ApiError } from '../utils/ApiError';
+   import { validate } from '../middleware/validation';
+   import { z } from 'zod';
+
+   // Validation schemas
+   const getTransactionsSchema = z.object({
+     query: z.object({
+       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+       endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+       category: z.string().optional(),
+       accountId: z.string().optional(),
+       limit: z.string().transform(Number).pipe(z.number().positive()).optional(),
+       offset: z.string().transform(Number).pipe(z.number().nonnegative()).optional(),
+     }),
+   });
+
+   export class TransactionController {
+     /**
+      * Get transactions for the authenticated user
+      */
+     public static getTransactions = [
+       validate(getTransactionsSchema),
+       async (req: Request, res: Response, next: NextFunction) => {
+         try {
+           const { startDate, endDate, category, accountId, limit = 100, offset = 0 } = req.query;
+           const userId = req.user.id;
+           
+           const result = await transactionService.getTransactions({
+             userId,
+             startDate: startDate as string,
+             endDate: endDate as string,
+             category: category as string | undefined,
+             accountId: accountId as string | undefined,
+             limit: Number(limit),
+             offset: Number(offset),
+           });
+           
+           res.json(result);
+         } catch (error) {
+           next(error);
+         }
+       },
+     ];
+     
+     /**
+      * Get transaction by ID
+      */
+     public static getTransactionById = async (req: Request, res: Response, next: NextFunction) => {
+       try {
+         const { id } = req.params;
+         const userId = req.user.id;
+         
+         const transaction = await transactionService.getTransactionById(id, userId);
+         
+         if (!transaction) {
+           throw new ApiError(404, 'Transaction not found');
+         }
+         
+         res.json(transaction);
+       } catch (error) {
+         next(error);
+       }
+     };
+     
+     /**
+      * Update transaction category
+      */
+     public static updateTransactionCategory = async (req: Request, res: Response, next: NextFunction) => {
+       try {
+         const { id } = req.params;
+         const { category } = req.body;
+         const userId = req.user.id;
+         
+         const updatedTransaction = await transactionService.updateTransactionCategory(id, category, userId);
+         
+         res.json(updatedTransaction);
+       } catch (error) {
+         next(error);
+       }
+     };
+   }
+
+   // /server/services/TransactionService.ts
+   import { transactionRepository } from '../repositories/TransactionRepository';
+   import { ApiError } from '../utils/ApiError';
+
+   interface GetTransactionsParams {
+     userId: string;
+     startDate: string;
+     endDate: string;
+     category?: string;
+     accountId?: string;
+     limit: number;
+     offset: number;
+   }
+
+   class TransactionService {
+     /**
+      * Get transactions for a user with filtering
+      */
+     async getTransactions(params: GetTransactionsParams) {
+       const { transactions, total } = await transactionRepository.findByUserIdWithFilters(params);
+       
+       // Process transactions (e.g., format dates, calculate additional fields)
+       const processedTransactions = transactions.map(transaction => ({
+         ...transaction,
+         formattedDate: new Date(transaction.date).toLocaleDateString(),
+         humanReadableAmount: `$${Math.abs(transaction.amount).toFixed(2)}`,
+         type: transaction.amount < 0 ? 'expense' : 'income',
+       }));
+       
+       return {
+         transactions: processedTransactions,
+         total,
+         limit: params.limit,
+         offset: params.offset,
+       };
+     }
+     
+     /**
+      * Get a specific transaction by ID
+      */
+     async getTransactionById(id: string, userId: string) {
+       const transaction = await transactionRepository.findById(id);
+       
+       if (!transaction) {
+         return null;
+       }
+       
+       // Check if transaction belongs to user
+       if (transaction.userId !== userId) {
+         throw new ApiError(403, 'Forbidden');
+       }
+       
+       // Process transaction
+       return {
+         ...transaction,
+         formattedDate: new Date(transaction.date).toLocaleDateString(),
+         humanReadableAmount: `$${Math.abs(transaction.amount).toFixed(2)}`,
+         type: transaction.amount < 0 ? 'expense' : 'income',
+       };
+     }
+     
+     /**
+      * Update transaction category
+      */
+     async updateTransactionCategory(id: string, category: string, userId: string) {
+       // Check if transaction exists and belongs to user
+       const transaction = await transactionRepository.findById(id);
+       
+       if (!transaction) {
+         throw new ApiError(404, 'Transaction not found');
+       }
+       
+       if (transaction.userId !== userId) {
+         throw new ApiError(403, 'Forbidden');
+       }
+       
+       // Update category
+       const updatedTransaction = await transactionRepository.update(id, { category });
+       
+       return updatedTransaction;
+     }
+   }           
+## 4. API & Backend Architecture (Continued)
+
+### 4.1 Robust API Architecture (Continued)
+
+```typescript
+// /server/repositories/TransactionRepository.ts
+import { db } from '../config/database';
+import { Transaction } from '../models/Transaction';
+
+interface FindByUserIdWithFiltersParams {
+  userId: string;
+  startDate: string;
+  endDate: string;
+  category?: string;
+  accountId?: string;
+  limit: number;
+  offset: number;
+}
+
+class TransactionRepository {
+  /**
+   * Find transactions with filters
+   */
+  async findByUserIdWithFilters(params: FindByUserIdWithFiltersParams) {
+    const {
+      userId,
+      startDate,
+      endDate,
+      category,
+      accountId,
+      limit,
+      offset,
+    } = params;
+    
+    // Build query conditions
+    const conditions = [
+      `user_id = $1`,
+      `date >= $2`,
+      `date <= $3`,
+      `deleted_at IS NULL`,
+    ];
+    
+    const queryParams = [userId, startDate, endDate];
+    
+    // Add optional filters
+    if (category) {
+      conditions.push(`category = $${queryParams.length + 1}`);
+      queryParams.push(category);
+    }
+    
+    if (accountId) {
+      conditions.push(`account_id = $${queryParams.length + 1}`);
+      queryParams.push(accountId);
+    }
+    
+    // Build WHERE clause
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM transactions
+      ${whereClause}
+    `;
+    
+    const countResult = await db.query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total, 10);
+    
+    // Get transactions with pagination
+    const query = `
+      SELECT *
+      FROM transactions
+      ${whereClause}
+      ORDER BY date DESC
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `;
+    
+    const result = await db.query(query, [...queryParams, limit, offset]);
+    
+    return {
+      transactions: result.rows as Transaction[],
+      total,
+    };
+  }
+  
+  /**
+   * Find transaction by ID
+   */
+  async findById(id: string) {
+    const query = `
+      SELECT *
+      FROM transactions
+      WHERE id = $1 AND deleted_at IS NULL
+    `;
+    
+    const result = await db.query(query, [id]);
+    
+    return result.rows[0] as Transaction | undefined;
+  }
+  
+  /**
+   * Update transaction
+   */
+  async update(id: string, data: Partial<Transaction>) {
+    // Build SET clause
+    const updates = Object.entries(data)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key, _], index) => `${key} = $${index + 2}`);
+    
+    const query = `
+      UPDATE transactions
+      SET ${updates.join(', ')}, updated_at = NOW()
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    
+    const values = [id, ...Object.values(data).filter(value => value !== undefined)];
+    const result = await db.query(query, values);
+    
+    return result.rows[0] as Transaction;
+  }
+  
+  /**
+   * Soft delete transaction
+   */
+  async softDelete(id: string) {
+    const query = `
+      UPDATE transactions
+      SET deleted_at = NOW()
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    
+    const result = await db.query(query, [id]);
+    
+    return result.rows[0] as Transaction;
+  }
+  
+  /**
+   * Restore soft-deleted transaction
+   */
+  async restore(id: string) {
+    const query = `
+      UPDATE transactions
+      SET deleted_at = NULL
+      WHERE id = $1 AND deleted_at IS NOT NULL
+      RETURNING *
+    `;
+    
+    const result = await db.query(query, [id]);
+    
+    return result.rows[0] as Transaction;
+  }
+}
+
+export const transactionRepository = new TransactionRepository();
+```
+
+2. **Global Error Handler**
+```typescript
+// /server/middleware/errorHandler.ts
+import { Request, Response, NextFunction } from 'express';
+import { ApiError } from '../utils/ApiError';
+import { logger } from '../utils/logger';
+
+export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+  // Log error
+  logger.error({
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    requestId: req.id,
+    userId: req.user?.id,
+  });
+  
+  // Handle ApiError
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      error: {
+        code: err.code,
+        message: err.message,
+        details: err.details,
+        requestId: req.id,
+      },
+    });
+  }
+  
+  // Handle database errors
+  if (err.name === 'QueryFailedError' || err.name === 'DatabaseError') {
+    return res.status(500).json({
+      error: {
+        code: 'DATABASE_ERROR',
+        message: 'Database operation failed',
+        requestId: req.id,
+      },
+    });
+  }
+  
+  // Handle validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: err.message,
+        requestId: req.id,
+      },
+    });
+  }
+  
+  // Handle JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      error: {
+        code: 'INVALID_TOKEN',
+        message: 'Invalid authentication token',
+        requestId: req.id,
+      },
+    });
+  }
+  
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      error: {
+        code: 'TOKEN_EXPIRED',
+        message: 'Authentication token expired',
+        requestId: req.id,
+      },
+    });
+  }
+  
+  // Generic error response
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  return res.status(500).json({
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: isProduction ? 'An unexpected error occurred' : err.message,
+      requestId: req.id,
+    },
+  });
+};
+```
+
+### 4.2 Database Transaction Safety
+
+1. **Transaction Manager**
+```typescript
+// /server/utils/transaction.ts
+import { db } from '../config/database';
+import { logger } from './logger';
+
+interface TransactionCallback<T> {
+  (client: any): Promise<T>;
+}
+
+/**
+ * Execute a function within a database transaction
+ */
+export async function runInTransaction<T>(callback: TransactionCallback<T>): Promise<T> {
+  const client = await db.pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    const result = await callback(client);
+    
+    await client.query('COMMIT');
+    
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    
+    logger.error('Transaction rollback', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Repository base class with transaction support
+ */
+export class BaseRepository<T> {
+  protected tableName: string;
+  
+  constructor(tableName: string) {
+    this.tableName = tableName;
+  }
+  
+  /**
+   * Create a new record with transaction support
+   */
+  async createWithTransaction(data: Partial<T>, client: any) {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+    const columnNames = keys.join(', ');
+    
+    const query = `
+      INSERT INTO ${this.tableName} (${columnNames})
+      VALUES (${placeholders})
+      RETURNING *
+    `;
+    
+    const result = await client.query(query, values);
+    
+    return result.rows[0] as T;
+  }
+  
+  /**
+   * Update a record with transaction support
+   */
+  async updateWithTransaction(id: string, data: Partial<T>, client: any) {
+    const updates = Object.entries(data)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key, _], index) => `${key} = $${index + 2}`);
+    
+    const query = `
+      UPDATE ${this.tableName}
+      SET ${updates.join(', ')}, updated_at = NOW()
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    
+    const values = [id, ...Object.values(data).filter(value => value !== undefined)];
+    const result = await client.query(query, values);
+    
+    return result.rows[0] as T;
+  }
+  
+  /**
+   * Delete a record with transaction support
+   */
+  async deleteWithTransaction(id: string, client: any) {
+    const query = `
+      UPDATE ${this.tableName}
+      SET deleted_at = NOW()
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    
+    const result = await client.query(query, [id]);
+    
+    return result.rows[0] as T;
+  }
+}
+```
+
+2. **Complex Transaction Example**
+```typescript
+// Example complex transaction in a service
+async transferMoney(fromAccountId: string, toAccountId: string, amount: number, userId: string) {
+  // Validate the transfer
+  if (amount <= 0) {
+    throw new ApiError(400, 'Amount must be positive');
+  }
+  
+  return runInTransaction(async (client) => {
+    // Lock the accounts to prevent race conditions
+    const fromAccountQuery = `
+      SELECT * FROM accounts
+      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+      FOR UPDATE
+    `;
+    
+    const fromAccountResult = await client.query(fromAccountQuery, [fromAccountId, userId]);
+    const fromAccount = fromAccountResult.rows[0];
+    
+    if (!fromAccount) {
+      throw new ApiError(404, 'Source account not found');
+    }
+    
+    if (fromAccount.balance < amount) {
+      throw new ApiError(400, 'Insufficient funds');
+    }
+    
+    const toAccountQuery = `
+      SELECT * FROM accounts
+      WHERE id = $1 AND deleted_at IS NULL
+      FOR UPDATE
+    `;
+    
+    const toAccountResult = await client.query(toAccountQuery, [toAccountId]);
+    const toAccount = toAccountResult.rows[0];
+    
+    if (!toAccount) {
+      throw new ApiError(404, 'Destination account not found');
+    }
+    
+    // Update source account balance
+    await client.query(
+      'UPDATE accounts SET balance = balance - $1, updated_at = NOW() WHERE id = $2',
+      [amount, fromAccountId]
+    );
+    
+    // Update destination account balance
+    await client.query(
+      'UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2',
+      [amount, toAccountId]
+    );
+    
+    // Create transaction records
+    const sourceTransaction = await transactionRepository.createWithTransaction(
+      {
+        user_id: userId,
+        account_id: fromAccountId,
+        amount: -amount,
+        description: `Transfer to account ${toAccount.name}`,
+        category: 'Transfer',
+        date: new Date().toISOString(),
+        transaction_type: 'Transfer',
+      },
+      client
+    );
+    
+    const destinationTransaction = await transactionRepository.createWithTransaction(
+      {
+        user_id: toAccount.user_id,
+        account_id: toAccountId,
+        amount: amount,
+        description: `Transfer from account ${fromAccount.name}`,
+        category: 'Transfer',
+        date: new Date().toISOString(),
+        transaction_type: 'Transfer',
+      },
+      client
+    );
+    
+    // Create transfer record to link the two transactions
+    await client.query(
+      `INSERT INTO transfers (source_transaction_id, destination_transaction_id, amount, created_at)
+       VALUES ($1, $2, $3, NOW())`,
+      [sourceTransaction.id, destinationTransaction.id, amount]
+    );
+    
+    // Return updated account balances
+    const updatedFromAccount = await client.query(
+      'SELECT * FROM accounts WHERE id = $1',
+      [fromAccountId]
+    );
+    
+    const updatedToAccount = await client.query(
+      'SELECT * FROM accounts WHERE id = $1',
+      [toAccountId]
+    );
+    
+    return {
+      fromAccount: updatedFromAccount.rows[0],
+      toAccount: updatedToAccount.rows[0],
+      sourceTransaction,
+      destinationTransaction,
+    };
+  });
+}
+```
+
+## 5. Feature Implementation Plan
+
+### 5.1 Budget Management System
+
+#### 5.1.1 Database Schema
+```sql
+-- Create budget_categories table
+CREATE TABLE budget_categories (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  icon VARCHAR(50),
+  color VARCHAR(50),
+  description TEXT,
+  parent_category_id INTEGER REFERENCES budget_categories(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  UNIQUE (user_id, name, deleted_at)
+);
+
+-- Create budgets table
+CREATE TABLE budgets (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  amount DECIMAL(19, 4) NOT NULL,
+  period_type VARCHAR(20) NOT NULL, -- 'monthly', 'quarterly', 'annual'
+  start_date DATE NOT NULL,
+  end_date DATE,
+  rollover BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create budget_category_allocations table
+CREATE TABLE budget_category_allocations (
+  id SERIAL PRIMARY KEY,
+  budget_id INTEGER NOT NULL REFERENCES budgets(id),
+  category_id INTEGER NOT NULL REFERENCES budget_categories(id),
+  amount DECIMAL(19, 4) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  UNIQUE (budget_id, category_id, deleted_at)
+);
+
+-- Create budget_transaction_categories table to map Plaid categories to budget categories
+CREATE TABLE budget_transaction_categories_map (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(100) NOT NULL,
+  transaction_category VARCHAR(100) NOT NULL,
+  budget_category_id INTEGER REFERENCES budget_categories(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, transaction_category)
+);
+```
+
+#### 5.1.2 API Endpoints
+```typescript
+// BudgetController.ts
+
+// Budget CRUD operations
+public static createBudget = [
+  validateRequest(createBudgetSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user.id;
+      const budgetData = req.body;
+      
+      const budget = await budgetService.createBudget(userId, budgetData);
+      
+      res.status(201).json(budget);
+    } catch (error) {
+      next(error);
+    }
+  }
+];
+
+public static getBudgets = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { period, startDate, endDate } = req.query;
+    
+    const budgets = await budgetService.getBudgets(userId, {
+      period: period as string,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    });
+    
+    res.json(budgets);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Budget category operations
+public static createBudgetCategory = [
+  validateRequest(createBudgetCategorySchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user.id;
+      const categoryData = req.body;
+      
+      const category = await budgetService.createBudgetCategory(userId, categoryData);
+      
+      res.status(201).json(category);
+    } catch (error) {
+      next(error);
+    }
+  }
+];
+
+// Budget progress
+public static getBudgetProgress = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { budgetId, startDate, endDate } = req.query;
+    
+    const progress = await budgetService.getBudgetProgress(userId, {
+      budgetId: budgetId as string,
+      startDate: startDate as string,
+      endDate: endDate as string,
+    });
+    
+    res.json(progress);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Budget insights
+public static getBudgetInsights = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { period, compareWithPrevious } = req.query;
+    
+    const insights = await budgetService.getBudgetInsights(userId, {
+      period: period as string,
+      compareWithPrevious: compareWithPrevious === 'true',
+    });
+    
+    res.json(insights);
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+#### 5.1.3 Frontend Components
+```typescript
+// /src/components/features/budgeting/BudgetForm.tsx
+import React from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { DatePicker } from '../../common/DatePicker';
+import { Select } from '../../common/Select';
+import { Button } from '../../common/Button';
+import { Input } from '../../common/Input';
+import { Switch } from '../../common/Switch';
+
+const budgetSchema = z.object({
+  name: z.string().min(1, 'Budget name is required').max(100),
+  amount: z.number().positive('Amount must be positive'),
+  periodType: z.enum(['monthly', 'quarterly', 'annual']),
+  startDate: z.date(),
+  endDate: z.date().optional(),
+  rollover: z.boolean(),
+  categoryAllocations: z.array(
+    z.object({
+      categoryId: z.number(),
+      amount: z.number().positive('Amount must be positive'),
+    })
+  ),
+});
+
+type BudgetFormData = z.infer<typeof budgetSchema>;
+
+interface BudgetFormProps {
+  onSubmit: (data: BudgetFormData) => void;
+  initialValues?: Partial<BudgetFormData>;
+  categories: Array<{ id: number; name: string }>;
+  isSubmitting?: boolean;
+}
+
+export const BudgetForm: React.FC<BudgetFormProps> = ({
+  onSubmit,
+  initialValues,
+  categories,
+  isSubmitting,
+}) => {
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm<BudgetFormData>({
+    resolver: zodResolver(budgetSchema),
+    defaultValues: {
+      name: '',
+      amount: 0,
+      periodType: 'monthly',
+      startDate: new Date(),
+      rollover: false,
+      categoryAllocations: [],
+      ...initialValues,
+    },
+  });
+  
+  const watchAmount = watch('amount');
+  const watchCategoryAllocations = watch('categoryAllocations');
+  
+  // Calculate remaining amount to allocate
+  const totalAllocated = watchCategoryAllocations.reduce(
+    (sum, allocation) => sum + (allocation.amount || 0),
+    0
+  );
+  
+  const remainingAmount = (watchAmount || 0) - totalAllocated;
+  
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Input
+            label="Budget Name"
+            {...register('name')}
+            error={errors.name?.message}
+          />
+        </div>
+        
+        <div>
+          <Input
+            label="Total Amount"
+            type="number"
+            step="0.01"
+            min="0"
+            {...register('amount', { valueAsNumber: true })}
+            error={errors.amount?.message}
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Controller
+            control={control}
+            name="periodType"
+            render={({ field }) => (
+              <Select
+                label="Budget Period"
+                options={[
+                  { value: 'monthly', label: 'Monthly' },
+                  { value: 'quarterly', label: 'Quarterly' },
+                  { value: 'annual', label: 'Annual' },
+                ]}
+                {...field}
+                error={errors.periodType?.message}
+              />
+            )}
+          />
+        </div>
+        
+        <div>
+          <Controller
+            control={control}
+            name="startDate"
+            render={({ field }) => (
+              <DatePicker
+                label="Start Date"
+                selected={field.value}
+                onChange={field.onChange}
+                error={errors.startDate?.message}
+              />
+            )}
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center">
+        <Controller
+          control={control}
+          name="rollover"
+          render={({ field }) => (
+            <Switch
+              checked={field.value}
+              onChange={field.onChange}
+              label="Roll over unused budget to next period"
+            />
+          )}
+        />
+      </div>
+      
+      <div className="border-t border-gray-200 pt-4">
+        <h3 className="text-lg font-medium mb-2">Category Allocations</h3>
+        
+        <div className="mb-4 p-3 bg-blue-50 rounded flex justify-between items-center">
+          <span>Remaining to allocate:</span>
+          <span className={`font-semibold ${remainingAmount < 0 ? 'text-red-500' : ''}`}>
+            ${remainingAmount.toFixed(2)}
+          </span>
+        </div>
+        
+        <div className="space-y-4">
+          {categories.map((category, index) => (
+            <div key={category.id} className="flex items-center space-x-4">
+              <span className="w-1/3">{category.name}</span>
+              <div className="w-2/3">
+                <Controller
+                  control={control}
+                  name={`categoryAllocations.${index}.categoryId`}
+                  defaultValue={category.id}
+                  render={({ field }) => (
+                    <input type="hidden" {...field} />
+                  )}
+                />
+                
+                <Controller
+                  control={control}
+                  name={`categoryAllocations.${index}.amount`}
+                  defaultValue={0}
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      error={
+                        errors.categoryAllocations?.[index]?.amount?.message
+                      }
+                    />
+                  )}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <div className="flex justify-end">
+        <Button type="submit" loading={isSubmitting}>
+          Save Budget
+        </Button>
+      </div>
+    </form>
+  );
+};
+```
+
+### 5.2 Subscription Management System
+
+#### 5.2.1 Database Schema
+```sql
+-- Create subscriptions table
+CREATE TABLE subscriptions (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  amount DECIMAL(19, 4) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  billing_cycle VARCHAR(20) NOT NULL, -- 'monthly', 'quarterly', 'annual'
+  start_date DATE NOT NULL,
+  end_date DATE,
+  billing_day INTEGER CHECK (billing_day >= 1 AND billing_day <= 31),
+  category VARCHAR(100),
+  provider VARCHAR(100),
+  auto_renew BOOLEAN DEFAULT TRUE,
+  notification_days_before INTEGER DEFAULT 3,
+  logo_url TEXT,
+  last_billed_date DATE,
+  next_billing_date DATE,
+  status VARCHAR(20) DEFAULT 'active', -- 'active', 'paused', 'canceled'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create subscription_payment_methods table
+CREATE TABLE subscription_payment_methods (
+  id SERIAL PRIMARY KEY,
+  subscription_id INTEGER NOT NULL REFERENCES subscriptions(id),
+  payment_method_type VARCHAR(50) NOT NULL, -- 'plaid_account', 'credit_card', 'other'
+  account_id VARCHAR(100),
+  details JSONB,
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create subscription_transactions table
+CREATE TABLE subscription_transactions (
+  id SERIAL PRIMARY KEY,
+  subscription_id INTEGER NOT NULL REFERENCES subscriptions(id),
+  transaction_id VARCHAR(100),
+  amount DECIMAL(19, 4) NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  billing_date DATE NOT NULL,
+  status VARCHAR(20) NOT NULL, -- 'processed', 'pending', 'failed'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create subscription_reminders table
+CREATE TABLE subscription_reminders (
+  id SERIAL PRIMARY KEY,
+  subscription_id INTEGER NOT NULL REFERENCES subscriptions(id),
+  reminder_date DATE NOT NULL,
+  reminder_type VARCHAR(50) NOT NULL, -- 'upcoming_payment', 'trial_ending', 'renewal'
+  reminded BOOLEAN DEFAULT FALSE,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 5.2.2 API Endpoints
+```typescript
+// SubscriptionController.ts
+
+// Subscription CRUD operations
+public static createSubscription = [
+  validateRequest(createSubscriptionSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user.id;
+      const subscriptionData = req.body;
+      
+      const subscription = await subscriptionService.createSubscription(userId, subscriptionData);
+      
+      res.status(201).json(subscription);
+    } catch (error) {
+      next(error);
+    }
+  }
+];
+
+public static getSubscriptions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { status, category } = req.query;
+    
+    const subscriptions = await subscriptionService.getSubscriptions(userId, {
+      status: status as string,
+      category: category as string,
+    });
+    
+    res.json(subscriptions);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Subscription transaction detection
+public static detectSubscriptionTransactions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    
+    const result = await subscriptionService.detectSubscriptionTransactions(userId);
+    
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Subscription insights
+public static getSubscriptionInsights = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    
+    const insights = await subscriptionService.getSubscriptionInsights(userId);
+    
+    res.json(insights);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Subscription reminders
+public static getUpcomingReminders = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user.id;
+    const { days } = req.query;
+    
+    const reminders = await subscriptionService.getUpcomingReminders(
+      userId,
+      parseInt(days as string) || 7
+    );
+    
+    res.json(reminders);
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+#### 5.2.3 Core Service Implementation
+```typescript
+// Subscription detection service
+async detectSubscriptionTransactions(userId: string) {
+  // Get transactions from the last 90 days
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  
+  const transactions = await transactionService.getTransactions({
+    userId,
+    startDate: ninetyDaysAgo.toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    limit: 5000,
+    offset: 0,
+  });
+  
+  // Group transactions by merchant and amount
+  const transactionGroups = groupTransactionsByMerchantAndAmount(transactions.transactions);
+  
+  // Find recurring patterns
+  const potentialSubscriptions = findRecurringPatterns(transactionGroups);
+  
+  // Get existing subscriptions
+  const existingSubscriptions = await subscriptionRepository.findByUserId(userId);
+  
+  // Filter out already tracked subscriptions
+  const newSubscriptionCandidates = filterNewSubscriptions(
+    potentialSubscriptions,
+    existingSubscriptions
+  );
+  
+  return {
+    detectedSubscriptions: newSubscriptionCandidates,
+  };
+}
+
+// Helper functions
+function groupTransactionsByMerchantAndAmount(transactions) {
+  const groups = {};
+  
+  transactions.forEach(transaction => {
+    // Skip deposits
+    if (transaction.amount >= 0) return;
+    
+    const key = `${transaction.merchant_name || transaction.name}|${Math.abs(transaction.amount).toFixed(2)}`;
+    
+    if (!groups[key]) {
+      groups[key] = {
+        merchantName: transaction   
+.merchant_name || transaction.name,
+        amount: Math.abs(transaction.amount),
+        transactions: [],
+      };
+    }
+    
+    groups[key].transactions.push(transaction);
+  });
+  
+  return Object.values(groups);
+}
+
+function findRecurringPatterns(transactionGroups) {
+  const subscriptionCandidates = [];
+  
+  transactionGroups.forEach(group => {
+    // Need at least 2 transactions to detect a pattern
+    if (group.transactions.length < 2) return;
+    
+    // Sort transactions by date
+    const sortedTransactions = [...group.transactions].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Calculate intervals between transactions
+    const intervals = [];
+    for (let i = 1; i < sortedTransactions.length; i++) {
+      const daysDiff = Math.round(
+        (new Date(sortedTransactions[i].date).getTime() - new Date(sortedTransactions[i - 1].date).getTime()) 
+        / (1000 * 60 * 60 * 24)
+      );
+      intervals.push(daysDiff);
+    }
+    
+    // Check if intervals are consistent
+    const isMonthly = isConsistentMonthlyInterval(intervals);
+    const isYearly = isConsistentYearlyInterval(intervals);
+    const isWeekly = isConsistentWeeklyInterval(intervals);
+    
+    if (isMonthly || isYearly || isWeekly) {
+      const billingCycle = isMonthly ? 'monthly' : isYearly ? 'annual' : 'weekly';
+      
+      subscriptionCandidates.push({
+        merchantName: group.merchantName,
+        amount: group.amount,
+        billingCycle,
+        transactions: sortedTransactions,
+        confidence: calculateConfidence(sortedTransactions.length, intervals),
+        lastDate: sortedTransactions[sortedTransactions.length - 1].date,
+        nextPredictedDate: predictNextDate(
+          sortedTransactions[sortedTransactions.length - 1].date,
+          billingCycle
+        ),
+      });
+    }
+  });
+  
+  return subscriptionCandidates;
+}
+
+function isConsistentMonthlyInterval(intervals) {
+  // Check if intervals are consistently between 28-32 days
+  return intervals.every(interval => interval >= 28 && interval <= 32);
+}
+
+function isConsistentYearlyInterval(intervals) {
+  // Check if intervals are consistently between 350-380 days
+  return intervals.every(interval => interval >= 350 && interval <= 380);
+}
+
+function isConsistentWeeklyInterval(intervals) {
+  // Check if intervals are consistently between 6-8 days
+  return intervals.every(interval => interval >= 6 && interval <= 8);
+}
+
+function calculateConfidence(transactionCount, intervals) {
+  // More transactions and consistent intervals = higher confidence
+  let baseConfidence = Math.min(transactionCount * 0.2, 0.8);
+  
+  // Check interval consistency
+  const intervalVariance = calculateVariance(intervals);
+  const consistencyFactor = 1 - Math.min(intervalVariance / 10, 0.5);
+  
+  return Math.round((baseConfidence * consistencyFactor) * 100);
+}
+
+function predictNextDate(lastDate, billingCycle) {
+  const nextDate = new Date(lastDate);
+  
+  switch (billingCycle) {
+    case 'weekly':
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case 'monthly':
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      break;
+    case 'annual':
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      break;
+  }
+  
+  return nextDate.toISOString().split('T')[0];
+}
+
+function calculateVariance(numbers) {
+  if (numbers.length <= 1) return 0;
+  
+  const mean = numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
+  const squaredDiffs = numbers.map(num => Math.pow(num - mean, 2));
+  return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / numbers.length;
+}
+
+function filterNewSubscriptions(candidates, existingSubscriptions) {
+  return candidates.filter(candidate => {
+    // Check if this subscription is already being tracked
+    return !existingSubscriptions.some(existing => 
+      existing.name.toLowerCase().includes(candidate.merchantName.toLowerCase()) && 
+      Math.abs(existing.amount - candidate.amount) < 0.01
+    );
+  });
+}
+```
+
+## 6. Comprehensive Future Roadmap
+
+### 6.1 Finance Intelligence Suite
+
+#### 6.1.1 Cash Flow Prediction Engine
+Implement a predictive system that forecasts future cash flow based on recurring income, expenses, and spending patterns.
+
+**Core Components:**
+1. **Data Collection & Preparation**
+   - Gather historical transaction data
+   - Identify recurring transactions
+   - Normalize and clean data
+   - Split into training and validation sets
+
+2. **Model Development**
+   - Implement time series analysis with ARIMA or Prophet
+   - Add machine learning components for pattern recognition
+   - Create validation framework
+
+3. **Prediction Engine**
+   - Forecast future transactions
+   - Calculate confidence intervals
+   - Generate cash flow visualizations
+   - Provide intelligent alerts
+
+4. **User Interface**
+   - Cash flow projection chart with confidence bands
+   - Daily/weekly/monthly forecast views
+   - Interactive what-if scenarios
+   - Actionable recommendations
+
+#### 6.1.2 Investment Portfolio Analysis
+Develop a comprehensive investment tracking and analysis platform that integrates with brokerage accounts.
+
+**Core Components:**
+1. **Account Integration**
+   - Connect to major brokerages through Plaid
+   - Manual portfolio entry for unsupported brokerages
+   - Cryptocurrency wallet tracking
+
+2. **Portfolio Analysis**
+   - Asset allocation visualization
+   - Performance tracking against benchmarks
+   - Risk assessment (Beta, Sharpe ratio, etc.)
+   - Dividend tracking and projection
+
+3. **Tax Optimization**
+   - Tax lot optimization suggestions
+   - Harvest loss opportunities
+   - Dividend tax impact analysis
+   - Capital gains projections
+
+4. **Investment Recommendations**
+   - Portfolio optimization suggestions
+   - Diversification recommendations
+   - Fee analysis and optimization
+   - Retirement readiness assessment
+
+#### 6.1.3 Financial Health Score System
+Create a comprehensive scoring system that evaluates and tracks users' overall financial health over time.
+
+**Core Components:**
+1. **Score Algorithm**
+   - Develop weighted scoring model across key financial dimensions
+   - Create normalized scoring (0-100 scale)
+   - Implement benchmarking against similar demographics
+   - Design improvement path recommendations
+
+2. **Key Dimensions**
+   - Emergency savings adequacy
+   - Debt management
+   - Retirement savings progress
+   - Spending patterns
+   - Protection (insurance)
+   - Credit utilization
+
+3. **Reporting & Tracking**
+   - Historical score tracking
+   - Sub-score drill-down
+   - Comparative analysis
+   - Improvement trend visualization
+
+4. **Improvement Framework**
+   - Personalized action steps
+   - Progress tracking
+   - Automated challenges and goals
+   - Achievement recognition
+
+### 6.2 Advanced Data Synchronization & Integration
+
+#### 6.2.1 Enhanced Plaid Integration
+Upgrade the Plaid integration to leverage the full capabilities of the Plaid API for richer financial data.
+
+**Core Components:**
+1. **Investment Data Integration**
+   - Security holdings details
+   - Investment transactions
+   - Performance reporting
+   - Cost basis tracking
+
+2. **Identity & Income Verification**
+   - Payroll data integration
+   - Income verification
+   - Employment verification
+   - Identity confirmation
+
+3. **Liabilities Management**
+   - Loan account details
+   - Mortgage information
+   - Refinance opportunities
+   - Pay-off strategies
+
+4. **Enhanced Categories & Enrichment**
+   - Merchant logo display
+   - Location data integration
+   - Detailed sub-categorization
+   - Receipt attachment capability
+
+#### 6.2.2 Open Banking API Expansion
+Expand beyond Plaid to support additional financial data providers for global coverage and redundancy.
+
+**Core Components:**
+1. **Multi-Provider Architecture**
+   - Abstraction layer for provider-agnostic data model
+   - Provider-specific adapters
+   - Credential management system
+   - Provider health monitoring
+
+2. **Global Coverage Expansion**
+   - European PSD2-compliant providers
+   - Asia-Pacific region support
+   - Latin America integrations
+   - Cross-border transaction handling
+
+3. **API Reliability Enhancement**
+   - Fallback provider capabilities
+   - Automatic retry mechanisms
+   - Rate limiting management
+   - Connection health monitoring
+
+4. **Data Normalization**
+   - Standardized transaction format
+   - Unified categorization system
+   - Currency normalization
+   - Provider-specific data transformations
+
+#### 6.2.3 Document Processing & OCR
+Implement intelligent document processing for financial documents such as receipts, statements, and bills.
+
+**Core Components:**
+1. **Document Capture**
+   - Mobile camera integration
+   - Email forwarding
+   - Drag-and-drop upload
+   - Provider statement import
+
+2. **OCR & Data Extraction**
+   - Text recognition (OCR)
+   - Form field detection
+   - Table data extraction
+   - Key information isolation
+
+3. **Document Classification**
+   - Automatic document type recognition
+   - Multi-page document handling
+   - Version comparison
+   - Document quality assessment
+
+4. **Data Integration**
+   - Transaction matching
+   - Statement reconciliation
+   - Receipt attachment
+   - Document-based insights
+
+### 6.3 User Experience & Engagement
+
+#### 6.3.1 Personalized Financial Insights
+Create an AI-powered insight engine that delivers personalized, actionable financial guidance.
+
+**Core Components:**
+1. **Insight Generation System**
+   - Pattern recognition algorithms
+   - Anomaly detection
+   - Comparative analysis
+   - Opportunity identification
+
+2. **Insight Categories**
+   - Spending optimization
+   - Savings opportunities
+   - Fee detection and reduction
+   - Goal progress notifications
+   - Investment suggestions
+   - Educational content matching
+
+3. **Delivery Mechanism**
+   - In-app notification system
+   - Email digest options
+   - Weekly/monthly reports
+   - Proactive alerts for time-sensitive insights
+
+4. **Engagement Optimization**
+   - Insight relevance scoring
+   - User feedback collection
+   - A/B testing framework
+   - Personalization improvement
+
+#### 6.3.2 Financial Education Platform
+Develop an integrated education system that helps users improve their financial literacy.
+
+**Core Components:**
+1. **Content Library**
+   - Educational articles
+   - Video tutorials
+   - Interactive courses
+   - Financial calculators
+
+2. **Personalized Learning Path**
+   - Skill assessment
+   - Topic recommendations
+   - Progress tracking
+   - Achievement recognition
+
+3. **Integration with App Features**
+   - Contextual educational tips
+   - Feature-specific tutorials
+   - Practical application exercises
+   - Knowledge check quizzes
+
+4. **Community Learning**
+   - Discussion forums
+   - Expert Q&A sessions
+   - Group challenges
+   - Peer progress sharing
+
+#### 6.3.3 Mobile-First Experience Enhancement
+Optimize the entire application for a truly mobile-first experience with native capabilities.
+
+**Core Components:**
+1. **Native Feature Integration**
+   - Biometric authentication
+   - Notification management
+   - Camera integration for document capture
+   - Offline mode capabilities
+
+2. **Mobile Optimization**
+   - Touch-optimized interfaces
+   - Reduced data usage options
+   - Battery-efficient operation
+   - Progressive loading
+
+3. **Cross-Device Synchronization**
+   - Seamless experience transition
+   - State preservation
+   - Preference synchronization
+   - Cross-device notifications
+
+4. **Platform-Specific Enhancements**
+   - iOS widgets
+   - Android quick actions
+   - Apple/Google Pay integration
+   - App shortcuts
+
+### 6.4 Enterprise & Team Features
+
+#### 6.4.1 Multi-User Household Management
+Enable families and households to collaborate on financial management while maintaining appropriate privacy.
+
+**Core Components:**
+1. **Household Setup**
+   - Invitation system
+   - Role configuration
+   - Shared/private account designation
+   - Permission management
+
+2. **Shared Financial Views**
+   - Household dashboard
+   - Shared goals tracking
+   - Family budget management
+   - Expense allocation
+
+3. **Transaction Collaboration**
+   - Shared transaction review
+   - Split expense handling
+   - Reimbursement tracking
+   - Shared category management
+
+4. **Communication Tools**
+   - Financial discussion threads
+   - Decision requests
+   - Notification preferences
+   - Activity feed
+
+#### 6.4.2 Small Business Features
+Extend the platform to support small business financial management.
+
+**Core Components:**
+1. **Business Account Management**
+   - Business vs. personal transaction separation
+   - Multi-account business views
+   - Category customization for businesses
+   - Tax category mapping
+
+2. **Expense Tracking**
+   - Receipt capture and management
+   - Expense categorization
+   - Mileage tracking
+   - Per-client expense allocation
+
+3. **Invoice & Payment Tracking**
+   - Invoice creation and tracking
+   - Payment reconciliation
+   - Client payment history
+   - Aging reports
+
+4. **Tax Preparation**
+   - Tax category reporting
+   - Quarterly estimate preparation
+   - Deduction tracking
+   - Year-end reports
+
+#### 6.4.3 Financial Advisor Collaboration
+Create tools for users to securely share financial information with professional advisors.
+
+**Core Components:**
+1. **Advisor Connection**
+   - Advisor invitation system
+   - Access level configuration
+   - Temporary/permanent access options
+   - View-only/interactive modes
+
+2. **Shared View Creation**
+   - Customizable data sharing
+   - Report generation
+   - Combined view of multiple accounts
+   - Historical data access management
+
+3. **Collaborative Planning**
+   - Shared goal setting
+   - Scenario modeling
+   - Plan adjustment recommendations
+   - Progress tracking
+
+4. **Communication Channel**
+   - Secure messaging
+   - Document sharing
+   - Task assignment
+   - Meeting scheduling
+
+## 7. Implementation Strategy
+
+### 7.1 Phased Roll-out Plan
+
+#### Phase 1: Core Infrastructure (Months 1-3)
+1. Implement directory structure standardization
+2. Deploy deletion protection mechanisms
+3. Establish data recovery system
+4. Refactor API architecture
+5. Implement transaction safety features
+
+#### Phase 2: Platform Enhancement (Months 4-6)
+1. Rebuild component architecture
+2. Implement error handling and retries
+3. Develop smart data grid components
+4. Create advanced form components
+5. Establish multi-step workflows
+
+#### Phase 3: Feature Expansion (Months 7-12)
+1. Deploy budget management system
+2. Launch subscription management
+3. Implement cash flow predictions
+4. Release mobile optimization features
+5. Develop document processing capabilities
+
+#### Phase 4: Advanced Intelligence (Months 13-18)
+1. Implement financial health score
+2. Deploy investment portfolio analysis
+3. Create personalized insights engine
+4. Establish education platform
+5. Develop household management features
+
+### 7.2 Security & QA Strategy
+
+#### Comprehensive Testing Framework
+1. Unit tests for all core components
+2. Integration tests for API endpoints
+3. End-to-end tests for critical workflows
+4. Performance testing for data-intensive operations
+5. Security audits for all features
+
+#### Security Implementation Plan
+1. Regular security audits and penetration testing
+2. Secure development training for all team members
+3. Vulnerability scanning in CI/CD pipeline
+4. Regular dependency updates and security patches
+5. Data encryption at rest and in transit
+
+### 7.3 Monitoring & Operations
+
+#### Performance Monitoring
+1. Implement frontend performance tracking
+2. Set up API response time monitoring
+3. Establish database query performance tracking
+4. Deploy real-time alerting for issues
+5. Create performance dashboards
+
+#### Error Tracking & Resolution
+1. Deploy comprehensive error logging
+2. Implement user feedback collection
+3. Establish error prioritization framework
+4. Create post-mortem process for critical issues
+5. Develop automated error classification
+
+## 8. Conclusion
+
+This master plan provides a comprehensive roadmap for transforming the Personal Finance Dashboard into a robust, feature-rich platform with strong safeguards against data loss. By implementing the architectural improvements, protection patterns, and feature enhancements outlined in this document, the application will be well-positioned to scale and adapt to future requirements while maintaining high standards for data safety and user experience.
+
+The phased implementation approach ensures that foundational improvements are made first, creating a solid base for more advanced features. The comprehensive testing and monitoring strategy will help maintain quality and security throughout the development process.
+
+With this plan, the Personal Finance Dashboard can evolve from a basic tracking tool into a comprehensive financial management platform that delivers significant value to users through intelligent insights, robust protection mechanisms, and a seamless user experience.        

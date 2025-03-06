@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import LinkAccounts from '../Components/LinkAccounts';
+import LinkAccounts from '../components/LinkAccounts';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../utils/logger';

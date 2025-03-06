@@ -1,5 +1,5 @@
 import React from 'react';
-import Pricing from '../Components/Pricing';
+import Pricing from '../components/Pricing';
 import { Helmet } from 'react-helmet-async';
 
 const PricingPage: React.FC = () => {

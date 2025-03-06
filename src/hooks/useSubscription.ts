@@ -1,68 +1,48 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-
-interface SubscriptionPlan {
-  id: string;
-  current_period_end: number;
-  cancel_at_period_end: boolean;
-  plan: {
-    id: string;
-    name: string;
-    amount: number;
-    currency: string;
-    interval: string;
-  };
-}
+import { SubscriptionService } from '../services/SubscriptionService';
 
 interface SubscriptionStatus {
-  status: 'active' | 'no_subscription';
-  subscription?: SubscriptionPlan;
+  status: 'active' | 'canceled' | 'past_due' | 'none';
+  plan: string;
+  currentPeriodEnd: string;
 }
 
 export const useSubscription = () => {
-  const { user } = useAuth();
+  const auth = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
 
   useEffect(() => {
     const fetchSubscriptionStatus = async () => {
-      if (!user) {
+      if (!auth.state.user) {
+        setSubscriptionStatus(null);
         setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch('/.netlify/functions/subscription-status', {
-          headers: {
-            Authorization: `Bearer ${await user.getIdToken()}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch subscription status');
-        }
-
-        const data = await response.json();
-        setSubscriptionStatus(data);
+        const status = await SubscriptionService.getSubscriptionStatus(auth.state.user.id);
+        setSubscriptionStatus(status);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'Failed to fetch subscription status');
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscriptionStatus();
-  }, [user]);
+  }, [auth.state.user]);
 
   const redirectToCustomerPortal = async () => {
-    if (!user) return;
+    if (!auth.state.user) return;
 
     try {
       const response = await fetch('/.netlify/functions/create-portal-session', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${await user.getIdToken()}`
+          Authorization: `Bearer ${auth.state.user.id}`
         }
       });
 

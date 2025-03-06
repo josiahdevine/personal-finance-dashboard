@@ -4,12 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { Elements } from '@stripe/react-stripe-js';
 import { initializeStripe } from '../utils/stripeUtils';
 import { motion } from 'framer-motion';
+import { SubscriptionService } from '../services/SubscriptionService';
 
 // Initialize Stripe
 const stripePromise = initializeStripe();
 
 const Subscription: React.FC = () => {
-  const { currentUser } = useAuth();
+  const auth = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<any>(null);
@@ -17,35 +18,36 @@ const Subscription: React.FC = () => {
 
   useEffect(() => {
     const fetchSubscription = async () => {
-      if (!currentUser) {
+      if (!auth.state.user) {
         navigate('/login');
         return;
       }
 
       try {
-        setLoading(true);
-        // Fetch current subscription status
-        const response = await fetch('/api/subscription/status', {
-          headers: {
-            'Authorization': `Bearer ${await currentUser.getIdToken()}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch subscription status');
-        }
-
-        const data = await response.json();
+        const data = await SubscriptionService.getSubscription(auth.state.user.id);
         setSubscription(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'Failed to fetch subscription');
       } finally {
         setLoading(false);
       }
     };
 
     fetchSubscription();
-  }, [currentUser, navigate]);
+  }, [auth.state.user, navigate]);
+
+  const handleManageSubscription = async () => {
+    if (!auth.state.user) return;
+
+    try {
+      setLoading(true);
+      const url = await SubscriptionService.createCustomerPortalSession(auth.state.user.id);
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to redirect to customer portal');
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -135,10 +137,11 @@ const Subscription: React.FC = () => {
                     </button>
                     {subscription.status === 'active' && (
                       <button
-                        onClick={() => navigate('/billing')}
-                        className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        onClick={handleManageSubscription}
+                        disabled={loading}
+                        className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                       >
-                        Manage Billing
+                        Manage Subscription
                       </button>
                     )}
                   </div>

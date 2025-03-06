@@ -11,6 +11,11 @@ const config = {
   changelogFilePath: path.join(__dirname, 'DEVELOPMENT-CHANGELOG.md')
 };
 
+const directoriesToStandardize = {
+  'Components': 'components',
+  'context': 'contexts',
+};
+
 // Function to check if a directory exists
 function directoryExists(dirPath) {
   try {
@@ -100,6 +105,63 @@ function copyDirectory(src, dest) {
   }
 }
 
+function renameDirectory(oldPath, newPath) {
+  try {
+    // Create a temporary directory name
+    const tempPath = oldPath + '_temp';
+    
+    // First rename to temp to handle case-sensitive filesystems
+    fs.renameSync(oldPath, tempPath);
+    
+    // Then rename to final name
+    fs.renameSync(tempPath, newPath);
+    
+    console.log(`Successfully renamed ${oldPath} to ${newPath}`);
+    return true;
+  } catch (error) {
+    console.error(`Error renaming directory ${oldPath} to ${newPath}:`, error);
+    return false;
+  }
+}
+
+function updateImports(directory, oldName, newName) {
+  const extensions = ['.ts', '.tsx', '.js', '.jsx'];
+  
+  function processFile(filePath) {
+    if (!extensions.some(ext => filePath.endsWith(ext))) return;
+    
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const oldImportPattern = new RegExp(`from (['"]).*//${oldName}/`, 'g');
+      const newContent = content.replace(oldImportPattern, `from $1../../${newName}/`);
+      
+      if (content !== newContent) {
+        fs.writeFileSync(filePath, newContent, 'utf8');
+        console.log(`Updated imports in ${filePath}`);
+      }
+    } catch (error) {
+      console.error(`Error processing file ${filePath}:`, error);
+    }
+  }
+  
+  function walkDir(dir) {
+    const files = fs.readdirSync(dir);
+    
+    for (const file of files) {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      
+      if (stat.isDirectory()) {
+        walkDir(filePath);
+      } else {
+        processFile(filePath);
+      }
+    }
+  }
+  
+  walkDir(directory);
+}
+
 // Main function to standardize component directory structure
 function standardizeComponentDirectory() {
   console.log('Starting component directory standardization...');
@@ -177,9 +239,25 @@ This change improves compatibility with case-sensitive filesystems (like Linux s
   console.log('Component directory standardization completed successfully!');
 }
 
+function main() {
+  const srcPath = path.join(__dirname, 'src');
+  
+  for (const [oldName, newName] of Object.entries(directoriesToStandardize)) {
+    const oldPath = path.join(srcPath, oldName);
+    const newPath = path.join(srcPath, newName);
+    
+    if (fs.existsSync(oldPath)) {
+      if (renameDirectory(oldPath, newPath)) {
+        updateImports(srcPath, oldName, newName);
+      }
+    }
+  }
+}
+
 // Run the standardization if executing directly
 if (require.main === module) {
   standardizeComponentDirectory();
+  main();
 }
 
 module.exports = {

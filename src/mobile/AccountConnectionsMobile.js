@@ -16,7 +16,7 @@ import {
   IconShieldCheck,
   getAccountIcon
 } from '../utils/iconHelpers';
-import LoadingSpinner from '../Components/ui/LoadingSpinner';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 /**
  * Mobile-optimized version of Account Connections page

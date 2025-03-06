@@ -1,5 +1,3 @@
-import { ChatSession } from '@google/generative-ai';
-
 export interface GeminiConfig {
   apiKey: string;
   projectId: string;
@@ -18,8 +16,9 @@ export interface ChatMessage {
 }
 
 export interface GeminiMessage {
-  role: 'user' | 'model';
-  parts: { text: string }[];
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
 }
 
 export interface GeminiContextType {
@@ -32,7 +31,7 @@ export interface GeminiContextType {
 }
 
 export interface GeminiResponse {
-  text: string;
+  message: GeminiMessage;
   usage: {
     promptTokens: number;
     completionTokens: number;
@@ -47,8 +46,8 @@ export interface FinancialInsight {
   timestamp: number;
 }
 
-export interface GeminiError extends Error {
-  code?: string;
-  details?: string;
-  response?: any;
+export interface GeminiError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
 } 

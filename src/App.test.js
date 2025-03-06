@@ -20,7 +20,7 @@ process.env.NODE_ENV = 'test';
 
 // Custom render function that includes all necessary providers
 const renderWithProviders = async (component, { route = '/' } = {}) => {
-  const rendered = render(
+  const view = render(
     <MemoryRouter initialEntries={[route]}>
       <ThemeProvider>
         <AuthProvider>
@@ -35,7 +35,7 @@ const renderWithProviders = async (component, { route = '/' } = {}) => {
     expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
   });
 
-  return rendered;
+  return view;
 };
 
 // Test the root route redirect
@@ -102,4 +102,10 @@ describe('Public Routes', () => {
       expect(screen.getByTestId('register-page')).toBeInTheDocument();
     });
   });
+});
+
+test('renders learn react link', () => {
+  const view = render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
 });

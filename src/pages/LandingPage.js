@@ -11,7 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import AuthMenu from '../Components/AuthMenu.tsx';
+import AuthMenu from '../components/AuthMenu.tsx';
 import { Link } from 'react-router-dom';
 
 

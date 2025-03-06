@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import BillsAnalysis from '../Components/BillsAnalysis';
+import BillsAnalysis from '../components/BillsAnalysis';
 import { useAuth } from '../contexts/AuthContext';
 import { useFinanceData } from '../contexts/FinanceDataContext';
 import { log, logError } from '../utils/logger';

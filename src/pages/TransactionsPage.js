@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Transactions from '../Components/Transactions';
+import Transactions from '../components/Transactions';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../utils/logger';

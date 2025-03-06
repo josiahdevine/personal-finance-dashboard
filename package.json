@@ -13,18 +13,34 @@
     "@emotion/is-prop-valid": "^1.3.1",
     "@google/generative-ai": "^0.1.3",
     "@headlessui/react": "^1.7.18",
-    "@heroicons/react": "2.2.0",
-    "@netlify/functions": "^3.0.0",
+    "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^4.1.3",
+    "@neondatabase/serverless": "^0.9.0",
+    "@netlify/functions": "^3.0.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
+    "@prisma/client": "^4.16.2",
     "@stripe/react-stripe-js": "^3.1.1",
-    "@stripe/stripe-js": "^5.7.0",
+    "@stripe/stripe-js": "^5.9.2",
     "@tailwindcss/forms": "^0.5.10",
+    "@tanstack/react-query": "^5.67.1",
+    "@types/classnames": "^2.3.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/next": "^8.0.7",
+    "@types/next-auth": "^3.13.0",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.11.11",
+    "@types/react": "^18.2.57",
+    "@types/react-csv": "^1.1.10",
+    "@types/react-dom": "^18.2.19",
+    "@types/socket.io": "^3.0.1",
+    "@types/socket.io-client": "^1.4.36",
     "@types/uuid": "^9.0.8",
     "axios": "^1.6.7",
     "babel-loader": "^8.3.0",
     "buffer": "^6.0.3",
     "chart.js": "^4.4.8",
     "chokidar": "^3.6.0",
+    "classnames": "^2.5.1",
     "cross-env": "^7.0.3",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
@@ -37,6 +53,7 @@
     "npx": "^10.2.2",
     "papaparse": "^5.5.2",
     "pg": "^8.13.3",
+    "plaid": "^31.1.0",
     "process": "^0.11.10",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.0",
@@ -52,20 +69,25 @@
     "resolve-url-loader": "^5.0.0",
     "stripe": "^17.7.0",
     "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^4.9.5",
     "uuid": "^9.0.1",
-    "web-vitals": "^2.1.4",
+    "web-vitals": "^4.2.4",
     "webpack": "^5.90.3",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "zod": "^3.24.2"
   },
   "scripts": {
     "start": "craco start",
     "start:netlify": "npx cross-env NODE_ENV=development PORT=3000 BROWSER=none npx craco start & netlify dev --port 8888",
     "build": "craco build",
     "build:prod": "npx cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false BABEL_ENV=production npx craco build",
-    "test": "jest --config jest.config.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage",
     "test:schema": "node server/tests/run-tests.js --suite schema",
     "test:api": "node server/tests/run-tests.js --suite api",
-    "test:watch": "node server/tests/run-tests.js --watch",
     "eject": "react-scripts eject",
     "postinstall": "node -e \"try { require('fs').statSync('./node_modules/.bin/patch-package') && require('child_process').execSync('npx patch-package') } catch(e) { console.log('Skipping patch-package in CI environment'); }\"",
     "apply-patches": "patch-package",
@@ -86,27 +108,6 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
-  },
-  "jest": {
-    "moduleNameMapper": {
-      "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-      "^@/(.*)$": "<rootDir>/src/$1"
-    },
-    "transform": {
-      "^.+\\.(js|jsx|ts|tsx)$": [
-        "babel-jest",
-        {
-          "configFile": "./babel.config.js"
-        }
-      ]
-    },
-    "transformIgnorePatterns": [
-      "/node_modules/(?!(@babel/runtime)/)"
-    ],
-    "testMatch": [
-      "<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}",
-      "<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}"
     ]
   },
   "browserslist": {
@@ -134,22 +135,43 @@
     "@types/jest": "^29.5.14",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "ajv": "^8.12.0",
+    "ajv-keywords": "^5.1.0",
+    "assert": "^2.1.0",
+    "autoprefixer": "^10.4.17",
     "babel-jest": "^29.7.0",
+    "browser-process": "^0.0.1",
+    "buffer": "^6.0.3",
     "chai": "^4.3.7",
     "colors": "^1.4.0",
+    "concurrently": "^8.2.2",
+    "crypto-browserify": "^3.12.1",
     "eslint": "^8.57.0",
     "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "https-browserify": "^1.0.0",
     "identity-obj-proxy": "^3.0.0",
+    "jest-watch-typeahead": "^2.2.2",
     "mocha": "^10.2.0",
-    "netlify-cli": "^12.7.2",
-    "null-loader": "^4.0.1",
+    "msw": "^2.7.3",
+    "netlify-cli": "^17.38.1",
+    "null-loader": "^4.0.0",
+    "os-browserify": "^0.3.0",
     "patch-package": "^8.0.0",
+    "path-browserify": "^1.0.1",
+    "postcss": "^8.4.35",
     "postinstall-postinstall": "^2.1.0",
+    "prisma": "^4.16.2",
+    "process": "^0.11.10",
+    "schema-utils": "^4.2.0",
     "sinon": "^15.0.1",
     "source-map-explorer": "^2.5.3",
-    "supertest": "^6.3.3"
-  },
-  "resolutions": {}
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.2.6",
+    "url": "^0.11.4",
+    "util": "^0.12.5"
+  }
 }

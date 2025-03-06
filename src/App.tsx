@@ -20,6 +20,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAccounts } from './hooks/useAccounts';
 import { useTheme } from './contexts/ThemeContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { CashFlowPredictionPage } from './pages/CashFlowPredictionPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
                   <Route path="bills" element={<Bills />} />
                   <Route path="budget" element={<BudgetPlanning />} />
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="cash-flow" element={<CashFlowPredictionPage />} />
                   <Route path="notifications" element={<Notifications />} />
                   <Route path="ai" element={<AskAI />} />
                   <Route path="settings" element={<Settings />} />

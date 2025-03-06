@@ -1,0 +1,237 @@
+openapi: 3.0.0
+info:
+  title: Personal Finance Dashboard API
+  version: 1.0.0
+  description: |
+    API documentation for the Personal Finance Dashboard application.
+    Authentication is handled through Firebase Authentication.
+    
+    To use this API:
+    1. Sign in through Firebase Authentication (Web, Mobile, or Google Sign-In)
+    2. Get the Firebase ID token
+    3. Include the token in the Authorization header as "Bearer <token>".
+
+servers:
+  - url: /api
+    description: API server
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Firebase Authentication token.
+        Get this token after signing in through Firebase Authentication.
+        The token must be included in the Authorization header as "Bearer <token>".
+
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: float
+        category:
+          type: string
+        description:
+          type: string
+        accountId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: UNAUTHORIZED
+        message:
+          type: string
+          example: No token provided
+        details:
+          type: object
+        requestId:
+          type: string
+
+security:
+  - firebaseAuth: []
+
+paths:
+  /transactions:
+    get:
+      summary: Get transactions for the authenticated user
+      operationId: getTransactions
+      security:
+        - firebaseAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Start date for transaction range (YYYY-MM-DD)
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: End date for transaction range (YYYY-MM-DD)
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by transaction category
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Filter by account ID
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 100
+          description: Number of transactions to return
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of transactions to skip
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  total:
+                    type: integer
+                    description: Total number of transactions matching the filters
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing Firebase token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions/{id}:
+    get:
+      summary: Get transaction by ID
+      operationId: getTransactionById
+      security:
+        - firebaseAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Transaction ID
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing Firebase token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update transaction category
+      operationId: updateTransactionCategory
+      security:
+        - firebaseAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Transaction ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category
+              properties:
+                category:
+                  type: string
+      responses:
+        '200':
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid or missing Firebase token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Transaction belongs to another user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

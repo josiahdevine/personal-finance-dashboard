@@ -22,6 +22,7 @@ import investmentRoutes from './routes/investmentRoutes.js';
 import loanRoutes from './routes/loanRoutes.js';
 import manualAccountRoutes from './routes/manualAccountRoutes.js';
 import stockRoutes from './routes/stockRoutes.js';
+import cashFlowRoutes from './routes/cashFlowRoutes.js';
 import config from './config/index.js';
 import pool from './db.js';
 
@@ -171,6 +172,7 @@ app.use('/api/transactions', authenticateToken, transactionRoutes);
 app.use('/api/goals', authenticateToken, goalRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/investments', investmentRoutes);
+app.use('/api/cash-flow', authenticateToken, cashFlowRoutes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
@@ -217,7 +219,7 @@ app.put('/api/salary-journal/:entryId', authenticateToken, SalaryJournalControll
 app.delete('/api/salary-journal/:entryId', authenticateToken, SalaryJournalController.deleteSalaryEntry);
 
 // Enhanced error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
     console.error('Error:', {
         message: err.message,
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,

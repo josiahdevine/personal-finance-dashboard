@@ -1,14 +1,13 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { TimeFrameProvider } from './contexts/TimeFrameContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Pages
-import PricingPage from './pages/PricingPage';
-import LandingPage from './pages/LandingPage';
+// Pages and Components
+import { LandingPage } from './components/LandingPage';
 import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/Layout/DashboardLayout';
@@ -23,32 +22,42 @@ import { AskAI } from './components/Dashboard/AskAI';
 import { Settings } from './components/Dashboard/Settings';
 import { CashFlowPredictionPage } from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
-
-// Components
+import { ErrorBoundary } from './components/ErrorBoundary';
 import PublicNavbar from './components/navigation/PublicNavbar';
 import Footer from './components/Footer';
-import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Create Query Client
-const queryClient = new QueryClient();
+// Hooks
+import { useAccounts } from './hooks/useAccounts';
+import { useTheme } from './hooks/useTheme';
 
-// Define PrivateRoute component locally
-interface PrivateRouteProps {
-  children: React.ReactNode;
-}
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { currentUser } = useAuth();
-  const location = useLocation();
-
-  if (!currentUser) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return <>{children}</>;
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  return user ? <>{children}</> : <Navigate to="/login" />;
 };
 
-function App() {
+const OverviewContainer: React.FC = () => {
+  const { accounts, refreshAccounts, handleAccountClick } = useAccounts();
+  return (
+    <Overview
+      accounts={accounts}
+      onRefresh={refreshAccounts}
+      onAccountClick={handleAccountClick}
+    />
+  );
+};
+
+export const App: React.FC = () => {
+  const { theme } = useTheme();
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -56,24 +65,27 @@ function App() {
           <AuthProvider>
             <ThemeProvider>
               <TimeFrameProvider>
-                <ErrorBoundary>
-                  <div className="flex flex-col min-h-screen">
+                <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
+                  <ErrorBoundary>
                     <PublicNavbar />
                     <main className="flex-grow">
                       <Routes>
+                        {/* Public Routes */}
                         <Route path="/" element={<LandingPage />} />
-                        <Route path="/pricing" element={<PricingPage />} />
-                        <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/features" element={<LandingPage />} />
+
+                        {/* Protected Dashboard Routes */}
                         <Route
-                          path="/dashboard/*"
+                          path="/dashboard"
                           element={
-                            <PrivateRoute>
+                            <ProtectedRoute>
                               <DashboardLayout />
-                            </PrivateRoute>
+                            </ProtectedRoute>
                           }
                         >
-                          <Route index element={<Overview />} />
+                          <Route index element={<OverviewContainer />} />
                           <Route path="transactions" element={<Transactions />} />
                           <Route path="salary" element={<SalaryJournal />} />
                           <Route path="bills" element={<Bills />} />
@@ -85,13 +97,14 @@ function App() {
                           <Route path="ai" element={<AskAI />} />
                           <Route path="settings" element={<Settings />} />
                         </Route>
+
                         {/* Catch-all redirect */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Routes>
                     </main>
                     <Footer />
-                  </div>
-                </ErrorBoundary>
+                  </ErrorBoundary>
+                </div>
               </TimeFrameProvider>
             </ThemeProvider>
           </AuthProvider>
@@ -99,6 +112,4 @@ function App() {
       </Router>
     </QueryClientProvider>
   );
-}
-
-export default App; 
+}; 

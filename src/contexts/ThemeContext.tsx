@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark';
 
 interface ThemeState {
   theme: Theme;
+  isDarkMode: boolean;
   isLoading: boolean;
   error: string | null;
 }
@@ -15,6 +16,7 @@ type ThemeAction =
 
 const initialState: ThemeState = {
   theme: 'light',
+  isDarkMode: false,
   isLoading: true,
   error: null
 };
@@ -23,6 +25,7 @@ const ThemeContext = createContext<{
   state: ThemeState;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  toggleDarkMode: () => void;
 } | null>(null);
 
 const themeReducer = (state: ThemeState, action: ThemeAction): ThemeState => {
@@ -31,6 +34,7 @@ const themeReducer = (state: ThemeState, action: ThemeAction): ThemeState => {
       return {
         ...state,
         theme: action.payload,
+        isDarkMode: action.payload === 'dark',
         isLoading: false
       };
     case 'SET_LOADING':
@@ -69,6 +73,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTheme(state.theme === 'light' ? 'dark' : 'light');
   }, [state.theme, setTheme]);
 
+  const toggleDarkMode = useCallback(() => {
+    toggleTheme();
+  }, [toggleTheme]);
+
   useEffect(() => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
@@ -94,7 +102,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         state,
         setTheme,
-        toggleTheme
+        toggleTheme,
+        toggleDarkMode
       }}
     >
       {children}

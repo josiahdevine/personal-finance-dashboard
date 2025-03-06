@@ -36,7 +36,8 @@ import {
   BoltIcon,
   BookOpenIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  PlusCircleIcon
 } from '@heroicons/react/24/outline';
 
 // Map react-icons/hi icons to heroicons
@@ -92,4 +93,12 @@ export const FiRefreshCw = ArrowPathIcon;
 export const FiCheckCircle = CheckCircleIcon;
 export const FiAlertTriangle = ExclamationTriangleIcon;
 export const FiXCircle = XMarkIcon;
-export const FiInfo = InformationCircleIcon; 
+export const FiInfo = InformationCircleIcon;
+
+// Add missing icon mappings
+export const HiOutlinePlusCircle = PlusCircleIcon;
+export const HiOutlineBanknotes = BanknotesIcon;
+export const HiOutlineArrowsRightLeft = ArrowsRightLeftIcon;
+export const HiOutlineCog = Cog6ToothIcon;
+export const HiOutlineBell = BellIcon;
+export const HiOutlineUserCircle = UserCircleIcon; 

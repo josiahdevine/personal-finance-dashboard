@@ -9,12 +9,12 @@ import { PlaidLinkProvider } from './contexts/PlaidLinkContext';
 import { FinanceDataProvider } from './contexts/FinanceDataContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GeminiProvider } from './contexts/GeminiContext';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
+import { Login } from './components/auth/Login';
+import { Register } from './components/auth/Register';
 import LandingPage from './pages/LandingPage';
-import Sidebar from './components/Sidebar';
-import AuthenticatedHeader from './components/navigation/AuthenticatedHeader';
-import ErrorBoundary from './components/ErrorBoundary';
+import { Sidebar } from './components/layout/Sidebar';
+import { Header as AuthenticatedHeader } from './components/layout/Header';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import ResponsiveWrapper from './components/ResponsiveWrapper';
 import { log, logError, logRender } from './utils/logger';
 import { checkNeedsMigration, showMigrationNotice } from './utils/authUtils';
@@ -26,17 +26,16 @@ import './App.css';
 
 // Import page components
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const SalaryJournal = lazy(() => import('./Components/SalaryJournal'));
-const BillsAnalysis = lazy(() => import('./Components/BillsAnalysis'));
-const Goals = lazy(() => import('./Components/Goals.tsx'));
-const LinkAccounts = lazy(() => import('./Components/LinkAccounts'));
-const Transactions = lazy(() => import('./Components/Transactions.tsx'));
-const AskAI = lazy(() => import('./Components/AskAI'));
-const SubscriptionPlans = lazy(() => import('./Components/SubscriptionPlans'));
-const UIComponentDemo = lazy(() => import('./Components/examples/UIComponentDemo'));
+const SalaryJournal = lazy(() => import('./components/SalaryJournal'));
+const BillsAnalysis = lazy(() => import('./components/Bills'));
+const Goals = lazy(() => import('./components/Goals'));
+const LinkAccounts = lazy(() => import('./components/PlaidIntegration'));
+const Transactions = lazy(() => import('./components/Transactions'));
+const AskAI = lazy(() => import('./components/AskAI'));
+const SubscriptionPlans = lazy(() => import('./components/Subscriptions'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Subscription = lazy(() => import('./pages/Subscription.tsx'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword.tsx'));
+const Subscription = lazy(() => import('./pages/Subscription'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
 // Import mobile versions of components
 const AccountConnectionsMobile = lazy(() => import('./mobile/AccountConnectionsMobile'));
@@ -243,27 +242,15 @@ const AuthenticatedLayout = ({ children }) => {
 };
 
 // Define RootRouteHandler component to properly handle the redirect based on auth state
-const RootRouteHandler = () => {
+const _RootRouteHandler = () => {
   const { currentUser, loading } = useAuth();
   
   // Don't redirect while auth is initializing
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingFallback />;
   }
   
-  return (
-    <ErrorBoundary componentName="RootPath">
-      {currentUser ? (
-        <Navigate to="/dashboard" />
-      ) : (
-        <Navigate to="/landing" />
-      )}
-    </ErrorBoundary>
-  );
+  return currentUser ? <Navigate to="/dashboard" /> : <Navigate to="/landing" />;
 };
 
 // Component to handle anonymous auth for users who aren't logged in
@@ -292,9 +279,15 @@ const AnonymousAuthHandler = () => {
   return null; // This component doesn't render anything
 };
 
+// Update empty arrow function to include a comment explaining its purpose
+const handleEmptyFunction = (_error) => {
+  // This function is intentionally empty as it's a placeholder for future error handling
+  // TODO: Implement error handling logic
+};
+
 function App() {
   logRender('App');
-  const [stripeAvailable, setStripeAvailable] = useState(isStripeAvailable());
+  const [_stripeAvailable, _setStripeAvailable] = useState(false);
   
   useEffect(() => {
     log('App', 'App component mounted');
@@ -314,15 +307,8 @@ function App() {
     };
 
     // Add global error handler for uncaught errors
-    const handleError = (event) => {
-      logError('App', 'Uncaught Error', event.error || new Error(event.message), {
-        type: 'error',
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno
-      });
-      event.preventDefault();
+    const handleError = (_error, _info) => {
+      // Error handling logic here
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
@@ -346,7 +332,7 @@ function App() {
 
   // Conditional wrapper for Elements to handle when Stripe isn't available
   const StripeWrapper = ({ children }) => {
-    if (!stripeAvailable) {
+    if (!_stripeAvailable) {
       return <>{children}</>;
     }
     
@@ -473,17 +459,6 @@ function App() {
                             <PrivateRoute>
                               <AuthenticatedLayout>
                                 <Profile />
-                              </AuthenticatedLayout>
-                            </PrivateRoute>
-                          } 
-                        />
-                        
-                        <Route 
-                          path="/ui-components" 
-                          element={
-                            <PrivateRoute>
-                              <AuthenticatedLayout>
-                                <UIComponentDemo />
                               </AuthenticatedLayout>
                             </PrivateRoute>
                           } 

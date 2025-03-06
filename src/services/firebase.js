@@ -422,17 +422,13 @@ log('Firebase', 'Exporting Firebase auth module', {
 export {
   auth,
   app,
-  ensureAuth,
-  loginUser,
-  registerUser,
-  logoutUser,
-  onAuthStateChange,
-  signInWithGoogle,
-  // Remove these as they're already being exported individually
-  // createUserWithEmailAndPassword,
-  // signInWithEmailAndPassword,
-  // signOut,
-  // onAuthStateChanged
+  ensureAuth
+  // These are already exported individually
+  // loginUser,
+  // registerUser,
+  // logoutUser,
+  // onAuthStateChange,
+  // signInWithGoogle
 };
 
 // Added for Google Authentication

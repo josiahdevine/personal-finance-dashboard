@@ -15,6 +15,7 @@ import {
   BellIcon,
   Bars3Icon,
   XMarkIcon,
+  ChartPieIcon
 } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Bills & Subscriptions', href: '/dashboard/bills', icon: ClipboardDocumentListIcon },
   { name: 'Budget Planning', href: '/dashboard/budget', icon: CalculatorIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
+  { name: 'Cash Flow', href: '/dashboard/cash-flow', icon: ChartPieIcon },
   { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
   { name: 'Ask AI', href: '/dashboard/ai', icon: ChatBubbleLeftRightIcon },
   { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },

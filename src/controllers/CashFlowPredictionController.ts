@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { RequestHandler } from 'express';
 import { z } from 'zod';
 import { CashFlowPredictionService } from '../services/CashFlowPredictionService';
 import { ModelValidationService } from '../services/ModelValidationService';
@@ -33,15 +33,12 @@ export class CashFlowPredictionController {
     /**
      * Generate cash flow predictions
      */
-    public static generatePredictions = [
+    public static generatePredictions: [RequestHandler, RequestHandler] = [
         validateRequest(generatePredictionsSchema),
-        async (
-            req: AuthenticatedRequest<any, any, any, GeneratePredictionsQuery>,
-            res: Response,
-            next: NextFunction
-        ) => {
+        async (req, res, next) => {
             try {
-                if (!req.user) {
+                const typedReq = req as unknown as AuthenticatedRequest<any, any, any, GeneratePredictionsQuery>;
+                if (!typedReq.user) {
                     res.status(401).json({
                         success: false,
                         error: 'User not authenticated'
@@ -49,8 +46,8 @@ export class CashFlowPredictionController {
                     return;
                 }
 
-                const userId = req.user.id;
-                const config = req.query;
+                const userId = typedReq.user.id;
+                const config = typedReq.query;
 
                 const predictions = await this.cashFlowPredictionService.generatePredictions(
                     userId,
@@ -73,13 +70,10 @@ export class CashFlowPredictionController {
     /**
      * Get recurring transactions
      */
-    public static getRecurringTransactions = async (
-        req: AuthenticatedRequest,
-        res: Response,
-        next: NextFunction
-    ) => {
+    public static getRecurringTransactions: RequestHandler = async (req, res, next) => {
         try {
-            if (!req.user) {
+            const typedReq = req as AuthenticatedRequest;
+            if (!typedReq.user) {
                 res.status(401).json({
                     success: false,
                     error: 'User not authenticated'
@@ -87,7 +81,7 @@ export class CashFlowPredictionController {
                 return;
             }
 
-            const userId = req.user.id;
+            const userId = typedReq.user.id;
             const recurringTransactions = await this.cashFlowPredictionService.getRecurringTransactions(userId);
             res.json(recurringTransactions);
         } catch (error) {
@@ -98,15 +92,12 @@ export class CashFlowPredictionController {
     /**
      * Get model validation metrics
      */
-    public static getModelValidation = [
+    public static getModelValidation: [RequestHandler, RequestHandler] = [
         validateRequest(validateModelSchema),
-        async (
-            req: AuthenticatedRequest<any, any, any, ValidateModelQuery>,
-            res: Response,
-            next: NextFunction
-        ) => {
+        async (req, res, next) => {
             try {
-                if (!req.user) {
+                const typedReq = req as AuthenticatedRequest<any, any, any, ValidateModelQuery>;
+                if (!typedReq.user) {
                     res.status(401).json({
                         success: false,
                         error: 'User not authenticated'
@@ -114,8 +105,8 @@ export class CashFlowPredictionController {
                     return;
                 }
 
-                const userId = req.user.id;
-                const config = req.query;
+                const userId = typedReq.user.id;
+                const config = typedReq.query;
 
                 // Get historical transactions for validation
                 const transactions = await this.cashFlowPredictionService.getHistoricalTransactions(userId);

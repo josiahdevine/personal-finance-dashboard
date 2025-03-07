@@ -3,17 +3,20 @@ import { format } from 'date-fns';
 /**
  * Format a number as currency
  */
-export const formatCurrency = (value: number, currency = 'USD'): string => {
+export const currencyFormatter = (value: number, currency = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
   }).format(value);
 };
 
+// Alias for backward compatibility
+export const formatCurrency = currencyFormatter;
+
 /**
  * Format a number as a percentage
  */
-export const formatPercentage = (value: number): string => {
+export const percentFormatter = (value: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'percent',
     minimumFractionDigits: 2,
@@ -21,10 +24,13 @@ export const formatPercentage = (value: number): string => {
   }).format(value / 100);
 };
 
+// Alias for backward compatibility
+export const formatPercentage = percentFormatter;
+
 /**
  * Format a date to a string
  */
-export const formatDate = (date: string): string => {
+export const dateFormatter = (date: string): string => {
   return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -35,7 +41,7 @@ export const formatDate = (date: string): string => {
 /**
  * Format a number with commas
  */
-export const formatNumber = (value: number): string => {
+export const numberFormatter = (value: number): string => {
   return new Intl.NumberFormat('en-US').format(value);
 };
 

@@ -13,39 +13,34 @@ export const NotificationSettings: React.FC = () => {
       <Card.Body>
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-medium">Notification Channels</h3>
-            <div className="mt-2 space-y-2">
+            <h3 className="text-lg font-medium mb-3">Notification Channels</h3>
+            <div className="space-y-3">
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="email-notifications"
-                  checked={preferences.channels.email}
+                  checked={preferences.email}
                   onChange={(e) => updatePreferences({
-                    channels: {
-                      ...preferences.channels,
-                      email: e.target.checked
-                    }
+                    email: e.target.checked
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="email-notifications" className="ml-2 text-sm text-gray-600">
+                <label htmlFor="email-notifications" className="ml-2 block text-sm text-gray-700">
                   Email Notifications
                 </label>
               </div>
+              
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="push-notifications"
-                  checked={preferences.channels.push}
+                  checked={preferences.push}
                   onChange={(e) => updatePreferences({
-                    channels: {
-                      ...preferences.channels,
-                      push: e.target.checked
-                    }
+                    push: e.target.checked
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="push-notifications" className="ml-2 text-sm text-gray-600">
+                <label htmlFor="push-notifications" className="ml-2 block text-sm text-gray-700">
                   Push Notifications
                 </label>
               </div>
@@ -53,67 +48,78 @@ export const NotificationSettings: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium">Notification Types</h3>
-            <div className="mt-2 space-y-2">
-              {Object.entries(preferences.types).map(([type, enabled]) => (
-                <div key={type} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id={`notification-${type}`}
-                    checked={enabled}
-                    onChange={(e) => updatePreferences({
-                      types: {
-                        ...preferences.types,
-                        [type]: e.target.checked
-                      }
-                    })}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor={`notification-${type}`}
-                    className="ml-2 text-sm text-gray-600 capitalize"
-                  >
-                    {type.replace(/-/g, ' ')}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium">Notification Schedule</h3>
-            <div className="mt-2 space-y-4">
-              <div>
-                <label className="block text-sm text-gray-600">
-                  Quiet Hours Start
-                </label>
+            <h3 className="text-lg font-medium mb-3">Notification Types</h3>
+            <div className="space-y-3">
+              <div className="flex items-center">
                 <input
-                  type="time"
-                  value={preferences.schedule.quietHoursStart}
+                  type="checkbox"
+                  id="bills-notifications"
+                  checked={preferences.types.bills}
                   onChange={(e) => updatePreferences({
-                    schedule: {
-                      ...preferences.schedule,
-                      quietHoursStart: e.target.value
+                    types: {
+                      ...preferences.types,
+                      bills: e.target.checked
                     }
                   })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
+                <label htmlFor="bills-notifications" className="ml-2 block text-sm text-gray-700">
+                  Bill Reminders
+                </label>
               </div>
-              <div>
-                <label className="block text-sm text-gray-600">
-                  Quiet Hours End
-                </label>
+              
+              <div className="flex items-center">
                 <input
-                  type="time"
-                  value={preferences.schedule.quietHoursEnd}
+                  type="checkbox"
+                  id="budget-notifications"
+                  checked={preferences.types.budgetAlerts}
                   onChange={(e) => updatePreferences({
-                    schedule: {
-                      ...preferences.schedule,
-                      quietHoursEnd: e.target.value
+                    types: {
+                      ...preferences.types,
+                      budgetAlerts: e.target.checked
                     }
                   })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
+                <label htmlFor="budget-notifications" className="ml-2 block text-sm text-gray-700">
+                  Budget Alerts
+                </label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="goals-notifications"
+                  checked={preferences.types.goals}
+                  onChange={(e) => updatePreferences({
+                    types: {
+                      ...preferences.types,
+                      goals: e.target.checked
+                    }
+                  })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="goals-notifications" className="ml-2 block text-sm text-gray-700">
+                  Goal Progress
+                </label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="unusual-activity-notifications"
+                  checked={preferences.types.unusualActivity}
+                  onChange={(e) => updatePreferences({
+                    types: {
+                      ...preferences.types,
+                      unusualActivity: e.target.checked
+                    }
+                  })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="unusual-activity-notifications" className="ml-2 block text-sm text-gray-700">
+                  Unusual Activity
+                </label>
               </div>
             </div>
           </div>

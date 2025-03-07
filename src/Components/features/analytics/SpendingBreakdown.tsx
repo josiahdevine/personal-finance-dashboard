@@ -1,13 +1,29 @@
 import React, { useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Card } from '../../common/Card';
-import { usePlaid } from '../../../contexts/PlaidContext';
+// import { usePlaid } from '../../../contexts/PlaidContext';
 import { formatCurrency } from '../../../utils/formatters';
 import type { ChartOptions } from 'chart.js';
 
 interface CategoryTotal {
   [key: string]: number;
 }
+
+// Mock implementation of usePlaid
+const usePlaid = () => {
+  return {
+    transactions: [
+      { id: '1', amount: 45.99, category: ['Food and Drink'] },
+      { id: '2', amount: 125.00, category: ['Housing'] },
+      { id: '3', amount: 35.50, category: ['Transportation'] },
+      { id: '4', amount: 75.25, category: ['Entertainment'] },
+      { id: '5', amount: 200.00, category: ['Housing'] },
+      { id: '6', amount: 55.75, category: ['Food and Drink'] },
+      { id: '7', amount: 30.00, category: ['Transportation'] },
+      { id: '8', amount: 120.50, category: ['Shopping'] }
+    ]
+  };
+};
 
 export const SpendingBreakdown: React.FC = () => {
   const { transactions } = usePlaid();

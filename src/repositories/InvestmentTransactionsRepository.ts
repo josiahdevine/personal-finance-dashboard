@@ -1,6 +1,7 @@
 import { BaseRepository } from './BaseRepository';
 import { InvestmentTransaction, Security } from '../types/Investment';
 import { db } from '../config/database';
+import { convertKeysToCamelCase } from '../utils/convertSnakeToCamel';
 
 class InvestmentTransactionsRepository extends BaseRepository<InvestmentTransaction> {
     constructor() {
@@ -27,38 +28,25 @@ class InvestmentTransactionsRepository extends BaseRepository<InvestmentTransact
         const result = await db.query(query, [accountId, startDate, endDate]);
 
         return result.rows.map(row => {
-            const transaction: InvestmentTransaction = {
-                id: row.id,
-                investment_account_id: row.investment_account_id,
-                security_id: row.security_id,
-                transaction_type: row.transaction_type,
-                amount: row.amount,
-                quantity: row.quantity,
-                price: row.price,
-                fees: row.fees,
-                date: row.date,
-                name: row.name,
-                description: row.description,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-            };
+            const transaction: InvestmentTransaction = convertKeysToCamelCase(row) as InvestmentTransaction;
+            delete transaction.security;
 
             let security: Security | undefined;
 
             if (row.security_id) {
                 security = {
                     id: row.security_id,
-                    ticker_symbol: row.ticker_symbol,
+                    tickerSymbol: row.ticker_symbol,
                     name: row.name,
                     type: row.type,
-                    close_price: row.close_price,
-                    close_price_as_of: row.close_price_as_of,
+                    closePrice: row.close_price,
+                    closePriceAsOf: row.close_price_as_of,
                     isin: row.isin,
                     cusip: row.cusip,
-                    currency_code: row.currency_code,
-                    is_cash_equivalent: row.is_cash_equivalent,
-                    created_at: row.created_at,
-                    updated_at: row.updated_at,
+                    currencyCode: row.currency_code,
+                    isCashEquivalent: row.is_cash_equivalent,
+                    createdAt: row.created_at,
+                    updatedAt: row.updated_at,
                 };
             }
 
@@ -81,6 +69,7 @@ class InvestmentTransactionsRepository extends BaseRepository<InvestmentTransact
             const results: InvestmentTransaction[] = [];
 
             for (const transaction of transactions) {
+                const t = transaction as InvestmentTransaction;
                 const insertQuery = `
                     INSERT INTO ${this.tableName} (
                         investment_account_id,
@@ -99,16 +88,16 @@ class InvestmentTransactionsRepository extends BaseRepository<InvestmentTransact
                 `;
 
                 const insertResult = await client.query(insertQuery, [
-                    transaction.investment_account_id,
-                    transaction.security_id,
-                    transaction.transaction_type,
-                    transaction.amount,
-                    transaction.quantity,
-                    transaction.price,
-                    transaction.fees,
-                    transaction.date,
-                    transaction.name,
-                    transaction.description,
+                    t.investmentAccountId!,
+                    t.securityId!,
+                    t.transactionType!,
+                    t.amount!,
+                    t.quantity!,
+                    t.price!,
+                    t.fees!,
+                    t.date!,
+                    t.name!,
+                    t.description!,
                 ]);
 
                 results.push(insertResult.rows[0]);

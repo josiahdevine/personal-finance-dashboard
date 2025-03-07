@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { PieChart } from '../../charts/PieChart';
-import { formatPercentage } from '../../../utils/formatters';
+import { PieChart } from "components/Charts/PieChart";
+import { percentFormatter } from '../../../utils/formatters';
 
 export const AssetAllocation: React.FC = () => {
   const { portfolio, loading, error } = usePortfolio();
@@ -46,7 +46,7 @@ export const AssetAllocation: React.FC = () => {
               <span className="text-sm text-gray-600">{asset.name}</span>
             </div>
             <span className="text-sm font-medium">
-              {formatPercentage(asset.value)}
+              {percentFormatter(asset.value)}
             </span>
           </div>
         ))}

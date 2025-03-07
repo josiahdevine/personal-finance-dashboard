@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { currencyFormatter, dateFormatter } from '../../utils/formatters';
 import BillForm from '../../components/Bills/BillForm';
 import Modal from '../../components/common/Modal';
 import { BillFrequency } from '../../components/Bills/BillForm';
@@ -164,10 +164,10 @@ export const Bills: React.FC = () => {
 
             <div className="space-y-2">
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatCurrency(bill.amount)}
+                {currencyFormatter(bill.amount)}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Due: {formatDate(bill.dueDate)}
+                Due: {dateFormatter(bill.dueDate)}
               </p>
               {bill.isRecurring && (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -176,7 +176,7 @@ export const Bills: React.FC = () => {
               )}
               {bill.lastPaymentDate && (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Last paid: {formatDate(bill.lastPaymentDate)}
+                  Last paid: {dateFormatter(bill.lastPaymentDate)}
                 </p>
               )}
               {bill.notes && (

@@ -11,19 +11,47 @@ interface Projection {
 }
 
 export const CashFlowForecast: React.FC = () => {
-  const { predictions, loading } = useAnalytics();
+  const { loadingAnalytics } = useAnalytics();
+  
+  // Mock predictions data
+  const predictions = {
+    netWorthProjections: [
+      { date: '2023-04', amount: 15000 },
+      { date: '2023-05', amount: 16200 },
+      { date: '2023-06', amount: 17500 },
+      { date: '2023-07', amount: 18900 },
+      { date: '2023-08', amount: 20400 },
+      { date: '2023-09', amount: 22000 }
+    ],
+    incomeProjections: [
+      { date: '2023-04', amount: 5000 },
+      { date: '2023-05', amount: 5000 },
+      { date: '2023-06', amount: 5200 },
+      { date: '2023-07', amount: 5200 },
+      { date: '2023-08', amount: 5400 },
+      { date: '2023-09', amount: 5400 }
+    ],
+    expenseProjections: [
+      { date: '2023-04', amount: 3800 },
+      { date: '2023-05', amount: 3800 },
+      { date: '2023-06', amount: 3900 },
+      { date: '2023-07', amount: 3800 },
+      { date: '2023-08', amount: 3900 },
+      { date: '2023-09', amount: 3800 }
+    ]
+  };
 
   const chartData = {
-    labels: predictions?.netWorthProjections?.map((p: Projection) => p.date) || [],
+    labels: predictions.netWorthProjections.map((p: Projection) => p.date),
     datasets: [
       {
         label: 'Projected Net Worth',
-        data: predictions?.netWorthProjections?.map((p: Projection) => p.amount) || [],
+        data: predictions.netWorthProjections.map((p: Projection) => p.amount),
         borderColor: '#3B82F6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-      },
-    ],
+        fill: true
+      }
+    ]
   };
 
   const options: ChartOptions<'line'> = {
@@ -60,7 +88,7 @@ export const CashFlowForecast: React.FC = () => {
         <h2 className="text-lg font-medium">Cash Flow Forecast</h2>
       </Card.Header>
       <Card.Body>
-        {loading ? (
+        {loadingAnalytics ? (
           <div className="animate-pulse h-64 bg-gray-200 rounded" />
         ) : (
           <div className="h-64">

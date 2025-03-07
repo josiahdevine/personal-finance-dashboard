@@ -1,37 +1,76 @@
 import React, { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { CashFlowChart } from '../components/features/cashFlow/CashFlowChart';
 import { CashFlowAlerts } from '../components/features/cashFlow/CashFlowAlerts';
-import { RecurringTransactionsList } from '../components/features/cashFlow/RecurringTransactionsList';
+import { RecurringTransactionsList } from '../components/features/cashFlow/RecurringTransactions';
 import { CashFlowSummary } from '../components/features/cashFlow/CashFlowSummary';
 import { Card } from '../components/common/Card';
 import { Select } from '../components/common/Select';
 import { Toggle } from '../components/common/Toggle';
 import { Button } from '../components/common/Button';
-import { api } from '../services/api';
+import api from '../services/api';
+
+interface CashFlowPrediction {
+  totalPrediction: {
+    balance: number;
+    trend: 'up' | 'down' | 'stable';
+    percentageChange: number;
+  };
+  alerts: Array<{
+    type: 'warning' | 'info' | 'danger';
+    message: string;
+    date?: string;
+  }>;
+  recurringTransactions: {
+    income: Array<{
+      id: string;
+      name: string;
+      amount: number;
+      frequency: string;
+      nextDate: string;
+    }>;
+    expenses: Array<{
+      id: string;
+      name: string;
+      amount: number;
+      frequency: string;
+      nextDate: string;
+    }>;
+  };
+}
+
+type PredictionModelType = 'hybrid' | 'time-series' | 'recurring-transaction';
+
+interface PredictionConfig {
+    timeframeInDays: number;
+    modelType: PredictionModelType;
+    includePendingTransactions: boolean;
+    includeRecurringTransactions: boolean;
+    confidenceLevel: number;
+}
 
 const CashFlowPredictionPage: React.FC = () => {
     // State
     const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-    const [predictionConfig, setPredictionConfig] = useState({
+    const [predictionConfig, setPredictionConfig] = useState<PredictionConfig>({
         timeframeInDays: 90,
-        modelType: 'hybrid' as const,
+        modelType: 'hybrid',
         includePendingTransactions: true,
         includeRecurringTransactions: true,
         confidenceLevel: 0.95
     });
 
+    type PredictionConfigKey = keyof PredictionConfig;
+    type PredictionConfigValue<K extends PredictionConfigKey> = PredictionConfig[K];
+
     // Fetch predictions
-    const { data: predictions, isLoading, error, refetch } = useQuery(
-        ['cashFlowPredictions', predictionConfig],
-        () => api.get('/api/cash-flow/predictions', { params: predictionConfig }),
-        {
-            refetchOnWindowFocus: false
-        }
-    );
+    const { data: predictions, isLoading, error, refetch } = useQuery<CashFlowPrediction>({
+        queryKey: ['cashFlowPredictions', predictionConfig],
+        queryFn: () => api.get('/api/cash-flow/predictions', { params: predictionConfig })
+    });
 
     // Handle config changes
-    const handleConfigChange = (key: keyof typeof predictionConfig, value: any) => {
+    const handleConfigChange = <K extends PredictionConfigKey>(key: K, value: PredictionConfigValue<K>) => {
         setPredictionConfig(prev => ({
             ...prev,
             [key]: value
@@ -88,7 +127,7 @@ const CashFlowPredictionPage: React.FC = () => {
                                 </label>
                                 <Select
                                     value={predictionConfig.modelType}
-                                    onChange={e => handleConfigChange('modelType', e.target.value)}
+                                    onChange={e => handleConfigChange('modelType', e.target.value as 'hybrid' | 'time-series' | 'recurring-transaction')}
                                     options={[
                                         { value: 'hybrid', label: 'Hybrid Model' },
                                         { value: 'time-series', label: 'Time Series' },

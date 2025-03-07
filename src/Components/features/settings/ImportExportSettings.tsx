@@ -6,8 +6,8 @@ import { useImport } from '../../../hooks/useImport';
 import { CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
 
 export const ImportExportSettings: React.FC = () => {
-  const { exportData, exportHistory } = useExport();
-  const { importData, isImporting } = useImport();
+  const { exportData } = useExport();
+  const { startImport, importing } = useImport();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -18,7 +18,7 @@ export const ImportExportSettings: React.FC = () => {
 
   const handleImport = async () => {
     if (!selectedFile) return;
-    await importData(selectedFile);
+    await startImport(selectedFile);
     setSelectedFile(null);
   };
 
@@ -37,7 +37,7 @@ export const ImportExportSettings: React.FC = () => {
             <div className="mt-4 flex space-x-4">
               <Button
                 variant="secondary"
-                onClick={() => exportData('csv')}
+                onClick={() => exportData({ format: 'csv' })}
                 className="flex items-center"
               >
                 <CloudArrowDownIcon className="h-5 w-5 mr-2" />
@@ -45,7 +45,7 @@ export const ImportExportSettings: React.FC = () => {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => exportData('json')}
+                onClick={() => exportData({ format: 'json' })}
                 className="flex items-center"
               >
                 <CloudArrowDownIcon className="h-5 w-5 mr-2" />
@@ -76,46 +76,12 @@ export const ImportExportSettings: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={handleImport}
-                    disabled={isImporting}
+                    disabled={importing}
                     className="flex items-center"
                   >
                     <CloudArrowUpIcon className="h-5 w-5 mr-2" />
-                    {isImporting ? 'Importing...' : 'Import Data'}
+                    {importing ? 'Importing...' : 'Import Data'}
                   </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium">Export History</h3>
-            <div className="mt-2">
-              {exportHistory.length === 0 ? (
-                <p className="text-sm text-gray-500">No previous exports</p>
-              ) : (
-                <div className="space-y-2">
-                  {exportHistory.map((export_) => (
-                    <div
-                      key={export_.id}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">
-                          {export_.type.toUpperCase()} Export
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(export_.date).toLocaleString()}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        onClick={() => exportData(export_.type, export_.id)}
-                        className="text-sm"
-                      >
-                        Download
-                      </Button>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>

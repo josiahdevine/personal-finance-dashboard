@@ -12,5 +12,8 @@ export class PortfolioService {
     return response.data;
   }
 
-  static async refreshPortfolio(userId: string): Promise<void> {
- 
+  static async refreshPortfolio(_userId: string): Promise<void> {
+    // TODO: implement refresh portfolio logic
+    return;
+  }
+} 

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Header } from './Layout/Header';
+import { Header } from './layout/Header';
 import { Testimonials } from './Landing/Testimonials';
 import { IntegrationLogos } from './Landing/IntegrationLogos';
 import { DemoVideo } from './Landing/DemoVideo';
@@ -12,27 +12,21 @@ export const LandingPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ['start start', 'end start'],
+    offset: ['start', 'end']
   });
-
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
+  
   const y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
 
-  const { theme, toggleTheme } = useTheme();
+  const { state: { theme }, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-
-  const handleMenuClick = () => {
-    // No-op for landing page
-  };
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} ref={containerRef}>
-      <Header theme={theme} onThemeToggle={toggleTheme} onMenuClick={handleMenuClick} />
+      <Header theme={theme as any} onThemeToggle={toggleTheme} />
       
       {/* Hero Section */}
       <motion.div
-        style={{ opacity, scale, y }}
+        style={{ y }}
         className="relative h-screen flex items-center justify-center overflow-hidden"
       >
         {/* Animated gradient background */}

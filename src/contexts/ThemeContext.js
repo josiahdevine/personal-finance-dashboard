@@ -16,37 +16,29 @@ export const useTheme = () => {
 // Theme provider component
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState('light');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   // Add any theme-switching logic here if needed
   const toggleTheme = () => {
     setCurrentTheme(currentTheme === 'light' ? 'dark' : 'light');
+    setIsDarkMode(!isDarkMode);
+    localStorage.setItem('theme', !isDarkMode ? 'dark' : 'light');
   };
   
-  // Apply different theme values based on the current theme
   const themeValues = {
     ...theme,
     current: currentTheme,
     toggleTheme,
-    // You can override specific colors for dark mode here
-    colors: {
-      ...theme.colors,
-      // Example of how to add dark mode colors if needed
-      ...(currentTheme === 'dark' && {
-        neutral: {
-          50: '#111827', // Inverted for dark mode
-          100: '#1f2937',
-          200: '#374151',
-          300: '#4b5563',
-          400: '#6b7280',
-          500: '#9ca3af',
-          600: '#d1d5db',
-          700: '#e5e7eb',
-          800: '#f3f4f6',
-          900: '#f9fafb',
-        },
-        // Other dark mode color overrides...
-      }),
-    },
+    isDarkMode,
+    // Theme values used throughout the app
+    values: {
+      primary: isDarkMode ? '#1a56db' : '#1a56db',
+      secondary: isDarkMode ? '#9061f9' : '#6366f1',
+      success: isDarkMode ? '#0e9f6e' : '#059669',
+      danger: isDarkMode ? '#e02424' : '#dc2626',
+      warning: isDarkMode ? '#d03801' : '#d97706',
+      info: isDarkMode ? '#3f83f8' : '#60a5fa',
+    }
   };
   
   return (
@@ -123,8 +115,6 @@ export const Alert = ({
   onClose,
   ...props 
 }) => {
-  const { colors } = useTheme();
-  
   // Define alert styles based on variant
   const alertStyles = {
     info: `bg-blue-50 text-blue-800 border border-blue-200`,
@@ -156,7 +146,7 @@ export const Alert = ({
 };
 
 // Helper function to get theme-based tailwind classes
-export const getThemeClasses = (type, variant, theme, options = {}) => {
+export const getThemeClasses = (type, variant, theme) => {
   if (!theme || !theme.components || !theme.components[type]) {
     console.warn(`Theme component type '${type}' not found`);
     return '';

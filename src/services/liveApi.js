@@ -15,7 +15,7 @@ const getBaseURL = () => {
 };
 
 // Create an axios instance with a base URL
-const isDevelopment = process.env.NODE_ENV === 'development';
+const _isDevelopment = process.env.NODE_ENV === 'development';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || getBaseURL();
 
 // Define API endpoints

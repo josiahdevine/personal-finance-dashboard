@@ -1,5 +1,5 @@
+import { GeminiConfig } from '../types/gemini';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GeminiConfig, GeminiMessage } from '../types/gemini';
 
 class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -37,17 +37,13 @@ class GeminiService {
   async startChat(history: { role: string; content: string }[] = []): Promise<any> {
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
-      const formattedHistory: GeminiMessage[] = history.map(msg => ({
+      const formattedHistory = history.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }]
       }));
 
       const chat = model.startChat({
         history: formattedHistory,
-        generationConfig: {
-          maxOutputTokens: this.config.maxTokens,
-          temperature: this.config.temperature,
-        },
       });
 
       return chat;

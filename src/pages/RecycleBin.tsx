@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '../components/common/Card';
-import { api } from '../services/api';
+import api from '../services/api';
 
 interface DeletedItem {
   id: string;

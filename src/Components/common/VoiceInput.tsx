@@ -3,7 +3,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
-  placeholder?: string;
   className?: string;
   isListening?: boolean;
   onListeningChange?: (isListening: boolean) => void;
@@ -22,15 +21,14 @@ declare global {
 
 export const VoiceInput: React.FC<VoiceInputProps> = ({
   onTranscript,
-  placeholder = 'Click the microphone to start speaking...',
   className = '',
   isListening: externalIsListening,
   onListeningChange
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [internalIsListening, setInternalIsListening] = useState(false);
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { state } = useTheme();
+  const isDark = state.theme === 'dark';
 
   const isListening = externalIsListening ?? internalIsListening;
 

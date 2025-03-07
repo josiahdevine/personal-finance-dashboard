@@ -17,35 +17,58 @@ import { Toggle } from '../../common/Toggle';
 import { format as formatDate } from 'date-fns';
 
 interface CashFlowPrediction {
-    date: string;
-    cashFlow: number;
-    confidenceLow: number;
-    confidenceHigh: number;
-    recurringTransactions: Array<{
-        merchantName: string;
-        amount: number;
-        category: string;
-        isIncome: boolean;
+    totalPrediction: {
+        balance: number;
+        trend: 'up' | 'down' | 'stable';
+        percentageChange: number;
+    };
+    dailyPredictions?: Array<{
+        date: string;
+        cashFlow: number;
+        confidenceLow: number;
+        confidenceHigh: number;
     }>;
+    weeklyPredictions?: Array<{
+        startDate: string;
+        endDate: string;
+        cashFlow: number;
+        confidenceLow: number;
+        confidenceHigh: number;
+    }>;
+    monthlyPredictions?: Array<{
+        month: string;
+        cashFlow: number;
+        confidenceLow: number;
+        confidenceHigh: number;
+    }>;
+    alerts: Array<{
+        type: 'warning' | 'info' | 'danger';
+        message: string;
+        date?: string;
+    }>;
+    recurringTransactions: {
+        income: Array<{
+            id: string;
+            name: string;
+            amount: number;
+            frequency: string;
+            nextDate: string;
+        }>;
+        expenses: Array<{
+            id: string;
+            name: string;
+            amount: number;
+            frequency: string;
+            nextDate: string;
+        }>;
+    };
 }
 
 interface CashFlowChartProps {
-    predictions: CashFlowPrediction[];
+    predictions: CashFlowPrediction | undefined;
     timeframe: 'daily' | 'weekly' | 'monthly';
     onTimeframeChange: (timeframe: 'daily' | 'weekly' | 'monthly') => void;
     isLoading: boolean;
-}
-
-interface TooltipProps {
-    active?: boolean;
-    payload?: Array<{
-        payload: {
-            displayDate: string;
-            cashFlow: number;
-            confidenceLow: number;
-            confidenceHigh: number;
-        };
-    }>;
 }
 
 export const CashFlowChart: React.FC<CashFlowChartProps> = ({
@@ -57,6 +80,11 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
     const [showConfidenceInterval, setShowConfidenceInterval] = React.useState(true);
     const [chartData, setChartData] = React.useState<any[]>([]);
 
+    // Format currency for display
+    const formatCurrency = (value: number) => {
+        return `$${Math.abs(value).toFixed(2)}`;
+    };
+
     // Process data based on selected timeframe
     React.useEffect(() => {
         if (!predictions) return;
@@ -64,7 +92,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
         let data;
         switch (timeframe) {
             case 'daily':
-                data = predictions.dailyPredictions?.map((day: any) => ({
+                data = predictions.dailyPredictions?.map(day => ({
                     date: day.date,
                     cashFlow: day.cashFlow,
                     confidenceLow: day.confidenceLow,
@@ -74,7 +102,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
                 break;
 
             case 'weekly':
-                data = predictions.weeklyPredictions?.map((week: any) => ({
+                data = predictions.weeklyPredictions?.map(week => ({
                     date: week.startDate,
                     cashFlow: week.cashFlow,
                     confidenceLow: week.confidenceLow,
@@ -84,7 +112,7 @@ export const CashFlowChart: React.FC<CashFlowChartProps> = ({
                 break;
 
             case 'monthly':
-                data = predictions.monthlyPredictions?.map((month: any) => ({
+                data = predictions.monthlyPredictions?.map(month => ({
                     date: month.month,
                     cashFlow: month.cashFlow,
                     confidenceLow: month.confidenceLow,

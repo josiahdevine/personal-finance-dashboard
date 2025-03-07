@@ -14,7 +14,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public data?: any
+    public data?: any,
+    public isNetworkError: boolean = false
   ) {
     super(message);
     this.name = 'ApiError';
@@ -22,14 +23,25 @@ export class ApiError extends Error {
 }
 
 const handleApiError = (error: unknown): never => {
-  if (axios.isAxiosError(error) && error.response) {
-    throw new ApiError(
-      error.response.status,
-      error.response.data?.message || 'An error occurred',
-      error.response.data
-    );
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      throw new ApiError(
+        error.response.status,
+        error.response.data?.message || 'An error occurred',
+        error.response.data,
+        false
+      );
+    } else {
+      // Network error (no response)
+      throw new ApiError(
+        500,
+        'Network error - unable to connect to the server',
+        undefined,
+        true
+      );
+    }
   }
-  throw new ApiError(500, error instanceof Error ? error.message : 'Network error');
+  throw new ApiError(500, error instanceof Error ? error.message : 'Network error', undefined, true);
 };
 
 export const get = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {

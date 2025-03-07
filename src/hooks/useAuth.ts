@@ -152,10 +152,19 @@ export const useAuth = () => {
     checkAuthStatus();
   }, []);
 
+  // Add a stub for signInWithGoogle
+  const signInWithGoogle = useCallback(async () => {
+    return Promise.reject('Not implemented');
+  }, []);
+
   return {
-    ...state,
-    login,
-    logout,
+    user: state.user,
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    error: state.error,
+    signInWithEmail: login,
+    signInWithGoogle,
+    signOut: logout,
     register,
     updateProfile,
     updatePassword,

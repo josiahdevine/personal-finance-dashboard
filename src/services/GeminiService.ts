@@ -9,7 +9,8 @@ export class GeminiService {
   private cacheTTL = 24 * 60 * 60 * 1000; // 24 hours
 
   private constructor() {
-    const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY!);
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY!;
+    const genAI = new GoogleGenerativeAI(apiKey);
     this.model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     this.cache = CacheService.getInstance();
   }

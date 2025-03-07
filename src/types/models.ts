@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  phone?: string;
   createdAt: string;
   updatedAt: string;
   subscription?: {
@@ -87,6 +88,7 @@ export interface Account {
   balance: number;
   currency: string;
   institution: string;
+  status?: 'active' | 'inactive';
   lastSync?: string;
   createdAt: string;
   updatedAt: string;

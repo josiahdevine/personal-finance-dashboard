@@ -4,7 +4,7 @@ import { useBudgets } from '../../../hooks/useBudgets';
 import { formatCurrency } from '../../../utils/formatters';
 
 export const BudgetOverview: React.FC = () => {
-  const { budgets, loading } = useBudgets();
+  const { budgets, loadingBudgets } = useBudgets();
 
   const getProgressColor = (percentUsed: number) => {
     if (percentUsed >= 100) return 'bg-red-600';
@@ -23,7 +23,7 @@ export const BudgetOverview: React.FC = () => {
         </div>
       </Card.Header>
       <Card.Body>
-        {loading ? (
+        {loadingBudgets ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse space-y-2">
@@ -40,7 +40,7 @@ export const BudgetOverview: React.FC = () => {
               return (
                 <div key={budget.id} className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">{budget.category}</span>
+                    <span className="font-medium">{budget.name}</span>
                     <span className="text-sm text-gray-600">
                       {formatCurrency(budget.spent)} of {formatCurrency(budget.amount)}
                     </span>

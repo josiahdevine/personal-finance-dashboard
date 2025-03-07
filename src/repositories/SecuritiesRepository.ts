@@ -61,10 +61,10 @@ class SecuritiesRepository extends BaseRepository<Security> {
             let existingSecurity: Security | null = null;
 
             // Try to find by ticker
-            if (security.ticker_symbol) {
+            if (security.tickerSymbol) {
                 const tickerResult = await client.query(
                     `SELECT * FROM ${this.tableName} WHERE ticker_symbol = $1`,
-                    [security.ticker_symbol]
+                    [security.tickerSymbol]
                 );
                 if (tickerResult.rows.length > 0) {
                     existingSecurity = tickerResult.rows[0];
@@ -97,13 +97,13 @@ class SecuritiesRepository extends BaseRepository<Security> {
             if (existingSecurity) {
                 const updateQuery = `
                     UPDATE ${this.tableName}
-                    SET
-                        name = COALESCE($1, name),
-                        type = COALESCE($2, type),
-                        close_price = COALESCE($3, close_price),
-                        close_price_as_of = COALESCE($4, close_price_as_of),
-                        currency_code = COALESCE($5, currency_code),
-                        is_cash_equivalent = COALESCE($6, is_cash_equivalent),
+                    SET 
+                        name = $1,
+                        type = $2,
+                        close_price = $3,
+                        close_price_as_of = $4,
+                        currency_code = $5,
+                        is_cash_equivalent = $6,
                         updated_at = NOW()
                     WHERE id = $7
                     RETURNING *
@@ -112,10 +112,10 @@ class SecuritiesRepository extends BaseRepository<Security> {
                 const updateResult = await client.query(updateQuery, [
                     security.name,
                     security.type,
-                    security.close_price,
-                    security.close_price_as_of,
-                    security.currency_code,
-                    security.is_cash_equivalent,
+                    security.closePrice,
+                    security.closePriceAsOf,
+                    security.currencyCode,
+                    security.isCashEquivalent,
                     existingSecurity.id
                 ]);
 
@@ -126,30 +126,23 @@ class SecuritiesRepository extends BaseRepository<Security> {
             // Create new security
             const insertQuery = `
                 INSERT INTO ${this.tableName} (
-                    ticker_symbol,
-                    name,
-                    type,
-                    close_price,
-                    close_price_as_of,
-                    isin,
-                    cusip,
-                    currency_code,
-                    is_cash_equivalent
+                    ticker_symbol, name, type, close_price, close_price_as_of,
+                    isin, cusip, currency_code, is_cash_equivalent
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *
             `;
 
             const insertResult = await client.query(insertQuery, [
-                security.ticker_symbol,
+                security.tickerSymbol,
                 security.name,
                 security.type || 'equity',
-                security.close_price,
-                security.close_price_as_of,
+                security.closePrice,
+                security.closePriceAsOf,
                 security.isin,
                 security.cusip,
-                security.currency_code || 'USD',
-                security.is_cash_equivalent || false
+                security.currencyCode || 'USD',
+                security.isCashEquivalent || false
             ]);
 
             await client.query('COMMIT');

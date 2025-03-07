@@ -1,9 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { z } from 'zod';
-import { PlaidService } from '../../../services/PlaidService';
+import PlaidService from '../../../services/PlaidService';
 import { BillsRepository } from '../../../models/BillsRepository';
-import { handleApiError } from '../../../utils/api';
 
 const billSchema = z.object({
   name: z.string(),
@@ -19,7 +18,6 @@ const billSchema = z.object({
 });
 
 const billsRepo = new BillsRepository();
-const plaidService = new PlaidService();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -33,26 +31,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (req.method) {
       case 'GET':
         // Get both Plaid and manual bills
-        const [plaidBills, manualBills] = await Promise.all([
-          plaidService.getBills(userId),
+        const [accounts, manualBills] = await Promise.all([
+          PlaidService.getAccounts(userId),
           billsRepo.getUserBills(userId),
         ]);
 
-        // Transform Plaid bills to match our format
-        const transformedPlaidBills = plaidBills.map(bill => ({
-          id: bill.bill_id,
-          name: bill.name,
-          amount: bill.amount,
-          dueDate: bill.due_date,
-          category: bill.category,
+        // Get transactions for each account
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30); // Last 30 days
+        const endDate = new Date();
+
+        const transactions = await Promise.all(
+          accounts.map(() => PlaidService.getTransactions(
+            userId,
+            startDate.toISOString().split('T')[0],
+            endDate.toISOString().split('T')[0]
+          ))
+        );
+
+        // Transform transactions into bills
+        const transformedPlaidBills = transactions.flat().map(transaction => ({
+          id: transaction.id,
+          name: transaction.description,
+          amount: transaction.amount,
+          dueDate: transaction.date,
+          category: transaction.category[0] || 'Uncategorized',
           isRecurring: true,
           frequency: 'monthly',
-          plaidAccountId: bill.account_id,
-          plaidBillId: bill.bill_id,
+          plaidAccountId: transaction.accountId,
+          plaidBillId: transaction.id,
           isManual: false,
-          status: bill.status,
-          lastPaymentDate: bill.last_payment_date,
-          nextPaymentDate: bill.next_payment_date,
+          status: transaction.pending ? 'pending' : 'posted',
+          lastPaymentDate: transaction.date,
+          nextPaymentDate: null,
         }));
 
         return res.status(200).json({
@@ -90,6 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
-    return handleApiError(error, res);
+    console.error('API Error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 } 

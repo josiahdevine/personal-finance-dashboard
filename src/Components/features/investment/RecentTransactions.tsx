@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { formatCurrency, formatDate } from '../../../utils/formatters';
+import { dateFormatter, currencyFormatter } from '../../../utils/formatters';
 
 export const RecentTransactions: React.FC = () => {
   const { portfolio, loading, error } = usePortfolio();
@@ -51,7 +51,7 @@ export const RecentTransactions: React.FC = () => {
             {portfolio?.recentTransactions.map((transaction) => (
               <tr key={transaction.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(transaction.date)}
+                  {dateFormatter(transaction.date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {transaction.description}
@@ -62,7 +62,7 @@ export const RecentTransactions: React.FC = () => {
                 <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
                   transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                  {transaction.amount >= 0 ? '+' : ''}{currencyFormatter(transaction.amount)}
                 </td>
               </tr>
             ))}

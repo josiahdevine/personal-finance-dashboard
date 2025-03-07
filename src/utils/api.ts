@@ -33,4 +33,18 @@ api.interceptors.response.use(
     }
     return Promise.reject(error);
   }
-); 
+);
+
+// Handle API errors in a consistent way
+export const handleApiError = (error: any, res: any) => {
+  console.error('API Error:', error);
+  
+  const status = error.status || 500;
+  const message = error.message || 'Internal Server Error';
+  
+  return res.status(status).json({
+    error: true,
+    message,
+    details: error.data || {}
+  });
+}; 

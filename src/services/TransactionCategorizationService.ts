@@ -20,8 +20,8 @@ class TransactionCategorizationService {
     if (this.initialized) return;
 
     try {
-      // Load category rules
-      const rules = await CategoryService.getCategoryRules();
+      // Load category rules for all categories
+      const rules = await CategoryService.getCategoryRules('all');
       rules.forEach(rule => {
         this.rules.set(rule.pattern.toLowerCase(), rule.categoryId);
       });
@@ -73,7 +73,7 @@ class TransactionCategorizationService {
 
     // Try machine learning suggestion
     try {
-      const suggestion = await CategoryService.suggestCategory(
+      const suggestion = await CategoryService.predictCategory(
         `${merchant} ${description}`
       );
       

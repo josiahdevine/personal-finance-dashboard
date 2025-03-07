@@ -209,7 +209,7 @@ function generateMockSalaryEntries() {
 const USE_MOCK_DATA = false;
 
 // Get the current port from the window location
-const getCurrentPort = () => {
+const _getCurrentPort = () => {
   if (typeof window !== 'undefined') {
     // For development, check if we're running on localhost
     if (window.location.hostname === 'localhost') {
@@ -248,7 +248,7 @@ console.log('[API] Client initialized with:', {
   hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown'
 });
 
-// Add a simple health check function to test API connectivity
+/* Health check runs only once at startup. Automatic retries are not implemented to avoid blocking the event loop. */
 api.checkHealth = async () => {
   try {
     const response = await api.get('/health');
@@ -289,12 +289,12 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Check if we're in development mode or using mock data intentionally
-const shouldUseMockData = () => {
+const _shouldUseMockData = () => {
   return process.env.NODE_ENV === 'development' || USE_MOCK_DATA;
 };
 
 // Mock API response handler
-const handleMockResponse = async (config) => {
+const _handleMockResponse = async (config) => {
   console.log('Using mock data for:', config.url);
   
   // Extract the endpoint path from the URL

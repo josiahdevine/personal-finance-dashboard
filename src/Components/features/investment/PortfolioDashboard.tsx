@@ -4,7 +4,12 @@ import { AssetAllocation } from './AssetAllocation';
 import { PerformanceChart } from './PerformanceChart';
 import { RecentTransactions } from './RecentTransactions';
 
-export const PortfolioDashboard: React.FC = () => {
+interface PortfolioDashboardProps {
+  accountIds: string[];
+}
+
+export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ accountIds: _accountIds }) => {
+  // TODO: Use accountIds to filter portfolio data
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
       <div className="col-span-1 md:col-span-2">

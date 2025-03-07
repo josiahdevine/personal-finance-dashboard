@@ -9,14 +9,28 @@ import {
   XCircleIcon 
 } from '@heroicons/react/24/outline';
 
+// Mock data and types for development
+interface MockIntegration {
+  id: string;
+  name: string;
+  type: "plaid" | "stripe" | "quickbooks" | "custom";
+  status: string;
+  icon: string;
+  isConnected: boolean;
+  settings?: Record<string, boolean>;
+}
+
 export const IntegrationSettings: React.FC = () => {
   const { 
-    integrations, 
-    connectIntegration, 
-    disconnectIntegration, 
-    refreshIntegration,
-    updateIntegrationSettings 
+    integrations: rawIntegrations, 
+    addIntegration, 
+    removeIntegration, 
+    syncIntegration,
+    updateIntegration 
   } = useIntegrations();
+
+  // Convert to mock type for development
+  const integrations = rawIntegrations as unknown as MockIntegration[];
 
   return (
     <Card>
@@ -49,14 +63,14 @@ export const IntegrationSettings: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="ghost"
-                      onClick={() => refreshIntegration(integration.id)}
+                      onClick={() => syncIntegration(integration.id)}
                       className="p-2"
                     >
                       <ArrowPathIcon className="h-5 w-5 text-gray-500" />
                     </Button>
                     <Button
                       variant="danger"
-                      onClick={() => disconnectIntegration(integration.id)}
+                      onClick={() => removeIntegration(integration.id)}
                     >
                       Disconnect
                     </Button>
@@ -64,7 +78,11 @@ export const IntegrationSettings: React.FC = () => {
                 ) : (
                   <Button
                     variant="primary"
-                    onClick={() => connectIntegration(integration.id)}
+                    onClick={() => addIntegration({
+                      type: integration.type,
+                      name: integration.name,
+                      settings: {}
+                    })}
                   >
                     Connect
                   </Button>
@@ -82,8 +100,11 @@ export const IntegrationSettings: React.FC = () => {
                       <Switch
                         checked={value}
                         onChange={(checked) => 
-                          updateIntegrationSettings(integration.id, {
-                            [key]: checked
+                          updateIntegration(integration.id, {
+                            settings: {
+                              ...integration.settings,
+                              [key]: checked
+                            }
                           })
                         }
                       />

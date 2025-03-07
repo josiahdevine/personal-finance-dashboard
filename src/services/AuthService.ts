@@ -73,18 +73,15 @@ export class AuthService {
       } else {
         // Update existing user if needed
         const updates: Partial<User> = {};
-        if (user.display_name !== (name || firebaseUser.displayName)) {
-          updates.display_name = name || firebaseUser.displayName || undefined;
-        }
-        if (user.photo_url !== firebaseUser.photoURL) {
-          updates.photo_url = firebaseUser.photoURL || undefined;
+        if (user.name !== (name || firebaseUser.displayName)) {
+          updates.name = name || firebaseUser.displayName || undefined;
         }
         if (user.email !== firebaseUser.email) {
           updates.email = firebaseUser.email || undefined;
         }
 
         if (Object.keys(updates).length > 0) {
-          await this.userRepo.update(user.id, updates);
+          await UserRepository.updateUser(user.id, updates);
         }
       }
     } catch (error) {
@@ -138,11 +135,10 @@ export class AuthService {
         throw new Error('No user is currently signed in');
       }
 
-      // Update Firebase profile if display name or photo URL is provided
-      if (data.display_name || data.photo_url) {
+      // Update Firebase profile if name is provided
+      if (data.name) {
         await firebaseUpdateProfile(firebaseUser, {
-          displayName: data.display_name || firebaseUser.displayName,
-          photoURL: data.photo_url || firebaseUser.photoURL,
+          displayName: data.name || firebaseUser.displayName,
         });
       }
 
@@ -152,7 +148,14 @@ export class AuthService {
         throw new Error('User not found in database');
       }
 
-      const updatedUser = await this.userRepo.update(user.id, data);
+      await UserRepository.updateUser(user.id, data);
+      
+      // Get the updated user
+      const updatedUser = await this.userRepo.findByFirebaseUid(firebaseUser.uid);
+      if (!updatedUser) {
+        throw new Error('Failed to retrieve updated user');
+      }
+      
       return updatedUser;
     } catch (error) {
       console.error('Error updating user profile:', error);

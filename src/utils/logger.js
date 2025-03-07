@@ -9,7 +9,7 @@ if (!isProduction) {
 }
 
 // Disable verbose logging in production
-const VERBOSE_LOGGING = process.env.NODE_ENV === 'development';
+const _VERBOSE_LOGGING = process.env.REACT_APP_VERBOSE_LOGGING === 'true';
 
 // Track component rendering for performance monitoring
 const componentRenderCounts = {};
@@ -94,32 +94,21 @@ export const logError = (component, message, error, additionalData = null) => {
  * @param {string} componentName - The name of the component
  * @param {object} props - The component props (optional)
  */
-export const logRender = (componentName, props = null) => {
-  // Skip in production to avoid performance issues
-  if (isProduction) return;
-  
+export const logRender = (componentName, props = {}) => {
   try {
-    // Track render count
-    componentRenderCounts[componentName] = (componentRenderCounts[componentName] || 0) + 1;
-    
-    // Only log excessive renders to avoid console spam
-    const count = componentRenderCounts[componentName];
-    if (count <= 3 || count % 10 === 0) { // Log 1st, 2nd, 3rd, 10th, 20th, etc.
-      const renderCountInfo = count > 3 ? ` (Render #${count})` : '';
-      
-      if (props) {
-        // Filter out functions and large objects from props for cleaner logs
+    if (!isProduction) {
+      componentRenderCounts[componentName] = (componentRenderCounts[componentName] || 0) + 1;
+      const renderCountInfo = ` (${componentRenderCounts[componentName]})`;
+
+      if (Object.keys(props).length > 0) {
+        // Filter out undefined and function props
         const filteredProps = Object.entries(props).reduce((acc, [key, value]) => {
-          if (typeof value === 'function') {
-            acc[key] = '[Function]';
-          } else if (value && typeof value === 'object' && Object.keys(value).length > 10) {
-            acc[key] = '[Large Object]';
-          } else {
+          if (value !== undefined && typeof value !== 'function') {
             acc[key] = value;
           }
           return acc;
         }, {});
-        
+
         log(componentName, `Rendering${renderCountInfo}`, filteredProps);
       } else {
         log(componentName, `Rendering${renderCountInfo}`);
@@ -210,4 +199,4 @@ export default {
   timeOperation,
   getEnvironmentInfo,
   monitorApiCall
-}; 
+};

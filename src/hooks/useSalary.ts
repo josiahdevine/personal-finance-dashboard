@@ -1,7 +1,24 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { SalaryEntry } from '../models/types';
 import { useNotifications } from '../context/NotificationContext';
+
+// Define SalaryEntry type locally
+interface SalaryEntry {
+  id: string;
+  userId: string;
+  date: string;
+  amount: number;
+  description: string;
+  category: string;
+  deductions: {
+    tax: number;
+    retirement: number;
+    insurance: number;
+    other: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface SalaryAnalytics {
   currentSalary: SalaryEntry | null;

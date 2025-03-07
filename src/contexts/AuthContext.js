@@ -4,12 +4,12 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  signInAnonymously,
+  signInAnonymously as _signInAnonymously,
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
 // Import Firebase initialization
-import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth, loginUser, registerUser } from '../services/firebase';
+import { auth, signInWithGoogle as firebaseSignInWithGoogle, ensureAuth } from '../services/firebase';
 import { toast } from 'react-toastify';
 import apiService from '../services/liveApi';
 import { useNavigate } from 'react-router-dom';
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
   const navigate = useNavigate();
-  const authStateListenerSet = useRef(false);
+  const _authStateListenerSet = useRef(false);
   
   log('AuthContext', 'AuthProvider state initialized', { 
     currentUserExists: currentUser !== null,

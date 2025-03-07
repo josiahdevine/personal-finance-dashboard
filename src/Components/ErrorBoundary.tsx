@@ -8,8 +8,15 @@ interface ErrorMessage {
 }
 
 interface ThemeContextValue {
-  isDarkMode: boolean;
+  state: {
+    theme: 'light' | 'dark';
+    isDarkMode: boolean;
+    isLoading: boolean;
+    error: string | null;
+  };
+  setTheme: (theme: 'light' | 'dark') => void;
   toggleTheme: () => void;
+  toggleDarkMode: () => void;
 }
 
 interface Props {
@@ -24,7 +31,7 @@ interface State {
 
 // Wrapper to use hooks in class component
 const ErrorBoundaryWithTheme: React.FC<Props> = (props) => {
-  const { isDarkMode } = useTheme() as ThemeContextValue;
+  const { state: { isDarkMode } } = useTheme() as ThemeContextValue;
   return <ErrorBoundaryClass {...props} isDarkMode={isDarkMode} />;
 };
 
@@ -158,4 +165,4 @@ class ErrorBoundaryClass extends Component<Props & { isDarkMode: boolean }, Stat
   }
 }
 
-export const ErrorBoundary = ErrorBoundaryWithTheme;
+export default ErrorBoundaryWithTheme;

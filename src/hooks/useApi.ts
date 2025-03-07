@@ -1,5 +1,13 @@
 import { useState, useCallback } from 'react';
-import { ApiError, ApiResponse } from '../services/api';
+import { ApiError } from '../services/api';
+
+// Define our own ApiResponse type
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+}
 
 interface UseApiResponse<T> {
   data: T | null;

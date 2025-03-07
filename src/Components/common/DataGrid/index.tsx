@@ -96,8 +96,8 @@ export function DataGrid<T extends Record<string, any>>({
   , [rowKey]);
   
   // Fetch data from server if serverSide is true
-  const { execute: fetchData, data: fetchedData, loading: fetchLoading, error } = 
-    useAsyncAction<DataGridResponse<T>>(
+  const { execute: fetchData, data: fetchedData, isLoading: fetchLoading, error } = 
+    useAsyncAction<[DataGridFetchParams], DataGridResponse<T>>(
       async (params: DataGridFetchParams) => {
         if (typeof dataSource === 'function') {
           return await dataSource(params);
@@ -672,7 +672,7 @@ export function DataGrid<T extends Record<string, any>>({
                 
                 {/* Generate page buttons */}
                 {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                  let pageNum;
+                  let pageNum: number;
                   
                   if (totalPages <= 5) {
                     pageNum = i + 1;

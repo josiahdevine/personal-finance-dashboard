@@ -71,7 +71,7 @@ export class ExportService {
     downloadUrl?: string;
   }[]> {
     const response = await api.get('/export/history');
-    return response;
+    return response.data;
   }
 
   static async scheduleExport(

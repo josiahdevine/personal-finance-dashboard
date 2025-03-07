@@ -10,9 +10,13 @@ export const BackupSettings: React.FC = () => {
     createBackup,
     restoreBackup,
     deleteBackup,
-    isCreating,
-    isRestoring
+    creatingBackup,
+    restoringBackup
   } = useBackups();
+
+  const handleCreateBackup = () => {
+    createBackup('full', 'Manual Backup');
+  };
 
   return (
     <Card>
@@ -20,8 +24,8 @@ export const BackupSettings: React.FC = () => {
         <h2 className="text-xl font-semibold">Data Backups</h2>
         <Button
           variant="primary"
-          onClick={createBackup}
-          disabled={isCreating}
+          onClick={handleCreateBackup}
+          disabled={creatingBackup}
           className="flex items-center"
         >
           <CloudArrowUpIcon className="h-5 w-5 mr-2" />
@@ -63,7 +67,7 @@ export const BackupSettings: React.FC = () => {
                     <Button
                       variant="secondary"
                       onClick={() => restoreBackup(backup.id)}
-                      disabled={isRestoring}
+                      disabled={restoringBackup}
                       className="flex items-center"
                     >
                       <CloudArrowDownIcon className="h-5 w-5 mr-2" />

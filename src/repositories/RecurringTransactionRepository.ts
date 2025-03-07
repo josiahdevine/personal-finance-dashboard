@@ -1,104 +1,88 @@
-import { db } from '../db';
+import { query } from '../db';
 import { RecurringTransaction, FrequencyType } from '../types/CashFlowPrediction';
 
 export class RecurringTransactionRepository {
     /**
-     * Find recurring transactions for a user
+     * Find all recurring transactions for a user
      */
     async findByUserId(userId: string): Promise<RecurringTransaction[]> {
-        const query = `
-            SELECT *
-            FROM recurring_transactions
-            WHERE user_id = $1 AND is_active = true
-            ORDER BY next_predicted_date ASC
+        const sqlQuery = `
+            SELECT * FROM recurring_transactions
+            WHERE user_id = $1
+            ORDER BY next_date ASC
         `;
         
-        const result = await db.query(query, [userId]);
-        return result.rows.map(this.mapRowToRecurringTransaction);
+        const result = await query(sqlQuery, [userId]);
+        return result.map(this.mapRowToRecurringTransaction);
     }
 
     /**
      * Create a new recurring transaction
      */
-    async create(transaction: Omit<RecurringTransaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<RecurringTransaction> {
-        const query = `
-            INSERT INTO recurring_transactions (
-                user_id, merchant_name, amount, frequency, day_of_month,
-                last_date, next_predicted_date, category, confidence, is_active
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    async create(transaction: Omit<RecurringTransaction, 'id' | 'createdAt'>): Promise<RecurringTransaction> {
+        const columns = Object.keys(transaction).join(', ');
+        const placeholders = Object.keys(transaction).map((_, i) => `$${i + 1}`).join(', ');
+        
+        const sqlQuery = `
+            INSERT INTO recurring_transactions (${columns})
+            VALUES (${placeholders})
             RETURNING *
         `;
 
-        const values = [
-            transaction.userId,
-            transaction.merchantName,
-            transaction.amount,
-            transaction.frequency,
-            transaction.dayOfMonth,
-            transaction.lastDate,
-            transaction.nextPredictedDate,
-            transaction.category,
-            transaction.confidence,
-            transaction.isActive
-        ];
-
-        const result = await db.query(query, values);
-        return this.mapRowToRecurringTransaction(result.rows[0]);
+        const values = Object.values(transaction);
+        const result = await query(sqlQuery, values);
+        return this.mapRowToRecurringTransaction(result[0]);
     }
 
     /**
-     * Update a recurring transaction
+     * Update an existing recurring transaction
      */
     async update(id: string, transaction: Partial<RecurringTransaction>): Promise<RecurringTransaction> {
-        const setClause = Object.keys(transaction)
-            .map((key, index) => `${this.toSnakeCase(key)} = $${index + 2}`)
+        const updates = Object.keys(transaction)
+            .map((key, i) => `${key} = $${i + 2}`)
             .join(', ');
-
-        const query = `
+        
+        const sqlQuery = `
             UPDATE recurring_transactions
-            SET ${setClause}
+            SET ${updates}
             WHERE id = $1
             RETURNING *
         `;
 
         const values = [id, ...Object.values(transaction)];
-        const result = await db.query(query, values);
-        return this.mapRowToRecurringTransaction(result.rows[0]);
+        const result = await query(sqlQuery, values);
+        return this.mapRowToRecurringTransaction(result[0]);
     }
 
     /**
-     * Deactivate a recurring transaction
+     * Delete a recurring transaction
      */
-    async deactivate(id: string): Promise<void> {
-        const query = `
-            UPDATE recurring_transactions
-            SET is_active = false
+    async delete(id: string): Promise<void> {
+        const sqlQuery = `
+            DELETE FROM recurring_transactions
             WHERE id = $1
         `;
 
-        await db.query(query, [id]);
+        await query(sqlQuery, [id]);
     }
 
     /**
-     * Find recurring transactions by next predicted date range
+     * Find recurring transactions due in a date range
      */
-    async findByDateRange(userId: string, startDate: string, endDate: string): Promise<RecurringTransaction[]> {
-        const query = `
-            SELECT *
-            FROM recurring_transactions
+    async findDueInRange(userId: string, startDate: string, endDate: string): Promise<RecurringTransaction[]> {
+        const sqlQuery = `
+            SELECT * FROM recurring_transactions
             WHERE user_id = $1
-            AND is_active = true
-            AND next_predicted_date BETWEEN $2 AND $3
-            ORDER BY next_predicted_date ASC
+            AND next_date BETWEEN $2 AND $3
+            ORDER BY next_date ASC
         `;
 
-        const result = await db.query(query, [userId, startDate, endDate]);
-        return result.rows.map(this.mapRowToRecurringTransaction);
+        const result = await query(sqlQuery, [userId, startDate, endDate]);
+        return result.map(this.mapRowToRecurringTransaction);
     }
 
     /**
-     * Map database row to RecurringTransaction type
+     * Map a database row to a RecurringTransaction object
      */
     private mapRowToRecurringTransaction(row: any): RecurringTransaction {
         return {
@@ -116,12 +100,5 @@ export class RecurringTransactionRepository {
             createdAt: row.created_at,
             updatedAt: row.updated_at
         };
-    }
-
-    /**
-     * Convert camelCase to snake_case
-     */
-    private toSnakeCase(str: string): string {
-        return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
     }
 } 

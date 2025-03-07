@@ -7,9 +7,9 @@ import { EyeIcon, EyeSlashIcon, PlusIcon } from '@heroicons/react/24/outline';
 export const APIKeySettings: React.FC = () => {
   const { 
     apiKeys, 
-    generateAPIKey, 
+    createAPIKey, 
     revokeAPIKey,
-    isGenerating 
+    creatingAPIKey 
   } = useAPIKeys();
   
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -27,8 +27,8 @@ export const APIKeySettings: React.FC = () => {
         <h2 className="text-xl font-semibold">API Keys</h2>
         <Button
           variant="primary"
-          onClick={generateAPIKey}
-          disabled={isGenerating}
+          onClick={() => createAPIKey({ name: 'New API Key' })}
+          disabled={creatingAPIKey}
           className="flex items-center"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
@@ -81,7 +81,6 @@ export const APIKeySettings: React.FC = () => {
 
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                   <span>Last used: {key.lastUsed || 'Never'}</span>
-                  <span>Calls: {key.callCount}</span>
                 </div>
               </div>
             ))

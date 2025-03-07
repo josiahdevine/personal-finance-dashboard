@@ -22,7 +22,7 @@ export const GeminiProvider: React.FC<GeminiProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { currentUser } = useAuth();
+  const { state } = useAuth();
 
   const geminiConfig: GeminiConfig = {
     apiKey: process.env.REACT_APP_GEMINI_API_KEY || '',
@@ -111,10 +111,10 @@ export const GeminiProvider: React.FC<GeminiProviderProps> = ({ children }) => {
 
   // Load chat history from Firebase when user changes
   useEffect(() => {
-    if (currentUser) {
+    if (state) {
       // TODO: Implement chat history loading from Firebase
     }
-  }, [currentUser]);
+  }, [state]);
 
   const value: GeminiContextType = {
     messages,

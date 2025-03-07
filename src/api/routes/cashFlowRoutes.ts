@@ -8,8 +8,8 @@ const router = Router();
 router.use(authenticate);
 
 // Cash flow prediction routes
-router.get('/predictions', CashFlowPredictionController.generatePredictions);
+router.get('/predictions', ...CashFlowPredictionController.generatePredictions);
 router.get('/recurring-transactions', CashFlowPredictionController.getRecurringTransactions);
-router.get('/model-validation', CashFlowPredictionController.getModelValidation);
+router.get('/model-validation', ...CashFlowPredictionController.getModelValidation);
 
 export default router; 

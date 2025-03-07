@@ -4,7 +4,7 @@ import { useGoals } from '../../../hooks/useGoals';
 import { formatCurrency } from '../../../utils/formatters';
 
 export const GoalsProgress: React.FC = () => {
-  const { goals, loading } = useGoals();
+  const { goals, isLoading } = useGoals();
 
   return (
     <Card>
@@ -17,7 +17,7 @@ export const GoalsProgress: React.FC = () => {
         </div>
       </Card.Header>
       <Card.Body>
-        {loading ? (
+        {isLoading ? (
           <div className="space-y-4">
             {[1, 2].map((i) => (
               <div key={i} className="animate-pulse space-y-2">
@@ -32,7 +32,7 @@ export const GoalsProgress: React.FC = () => {
             {goals.map((goal) => {
               const progress = (goal.currentAmount / goal.targetAmount) * 100;
               const daysLeft = Math.ceil(
-                (new Date(goal.targetDate).getTime() - new Date().getTime()) / 
+                (new Date(goal.deadline).getTime() - new Date().getTime()) / 
                 (1000 * 60 * 60 * 24)
               );
 

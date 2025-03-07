@@ -38,14 +38,14 @@ describe('Portfolio Encryption System', () => {
 
   describe('Field-Level Encryption', () => {
     test('should encrypt sensitive fields only', async () => {
-      const encrypted = await encryptPortfolioFields(testData) as EncryptedData;
+      const encrypted = await encryptPortfolioFields(testData);
       
       // Check sensitive fields are encrypted
-      expect(encrypted.accountNumber.isEncrypted).toBe(true);
-      expect(encrypted.routingNumber.isEncrypted).toBe(true);
-      expect(encrypted.balance.isEncrypted).toBe(true);
-      expect(encrypted.transactions.isEncrypted).toBe(true);
-      expect(encrypted.positions.isEncrypted).toBe(true);
+      expect((encrypted.accountNumber as any).isEncrypted).toBe(true);
+      expect((encrypted.routingNumber as any).isEncrypted).toBe(true);
+      expect((encrypted.balance as any).isEncrypted).toBe(true);
+      expect((encrypted.transactions as any).isEncrypted).toBe(true);
+      expect((encrypted.positions as any).isEncrypted).toBe(true);
       
       // Check non-sensitive fields remain unchanged
       expect(encrypted.nonSensitiveField).toBe(testData.nonSensitiveField);
@@ -87,6 +87,18 @@ describe('Portfolio Encryption System', () => {
       const decrypted = await decryptPortfolioFields(encrypted);
       
       expect(decrypted.transactions.length).toBe(1000);
+    });
+
+    test('should decrypt encrypted fields correctly', async () => {
+      const encrypted = await encryptPortfolioFields(testData);
+      const decrypted = await decryptPortfolioFields(encrypted);
+      
+      expect(decrypted.accountNumber).toBe(testData.accountNumber);
+      expect(decrypted.routingNumber).toBe(testData.routingNumber);
+      expect(decrypted.balance).toBe(testData.balance);
+      expect(JSON.stringify(decrypted.transactions)).toBe(JSON.stringify(testData.transactions));
+      expect(JSON.stringify(decrypted.positions)).toBe(JSON.stringify(testData.positions));
+      expect(decrypted.nonSensitiveField).toBe(testData.nonSensitiveField);
     });
   });
 

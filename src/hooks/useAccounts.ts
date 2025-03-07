@@ -13,6 +13,21 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // NEW: Add modal state and controls for editing and adding accounts
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // NEW: Add state for the account currently being edited
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+
+  const openEditModal = useCallback((account: Account) => {
+    setEditingAccount(account);
+    setIsEditModalOpen(true);
+  }, []);
+  const closeEditModal = useCallback(() => setIsEditModalOpen(false), []);
+  const openAddModal = useCallback(() => setIsAddModalOpen(true), []);
+  const closeAddModal = useCallback(() => setIsAddModalOpen(false), []);
+
   const fetchAccounts = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -126,6 +141,13 @@ export const useAccounts = (initialFilters?: AccountFilters) => {
     addAccount,
     updateAccount,
     deleteAccount,
-    refreshAccounts: fetchAccounts
+    refreshAccounts: fetchAccounts,
+    openEditModal,
+    openAddModal,
+    isEditModalOpen,
+    isAddModalOpen,
+    closeEditModal,
+    closeAddModal,
+    editingAccount
   };
 }; 

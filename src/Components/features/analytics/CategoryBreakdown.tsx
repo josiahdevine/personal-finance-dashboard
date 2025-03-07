@@ -12,7 +12,17 @@ interface CategoryData {
 }
 
 export const CategoryBreakdown: React.FC = () => {
-  const { categoryData, loading } = useAnalytics();
+  const { loadingAnalytics } = useAnalytics();
+  
+  // Mock category data
+  const categoryData: CategoryData[] = [
+    { name: 'Housing', amount: 1500, percentage: 35 },
+    { name: 'Food', amount: 800, percentage: 18 },
+    { name: 'Transportation', amount: 600, percentage: 14 },
+    { name: 'Entertainment', amount: 400, percentage: 9 },
+    { name: 'Utilities', amount: 350, percentage: 8 },
+    { name: 'Other', amount: 700, percentage: 16 }
+  ];
 
   const chartData = {
     labels: categoryData?.map((c: CategoryData) => c.name) || [],
@@ -61,7 +71,7 @@ export const CategoryBreakdown: React.FC = () => {
         </div>
       </Card.Header>
       <Card.Body>
-        {loading ? (
+        {loadingAnalytics ? (
           <div className="animate-pulse h-64 bg-gray-200 rounded" />
         ) : (
           <div className="h-64">

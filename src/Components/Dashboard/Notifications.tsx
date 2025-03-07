@@ -2,8 +2,8 @@ import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export const Notifications: React.FC = () => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { state } = useTheme();
+  const isDark = state.theme === 'dark';
 
   return (
     <div className="p-6">

@@ -3,9 +3,9 @@ import { Card } from '../../common/Card';
 
 interface CashFlowSummaryProps {
     prediction?: {
-        cashFlow: number;
-        confidenceLow: number;
-        confidenceHigh: number;
+        balance: number;
+        trend: 'up' | 'down' | 'stable';
+        percentageChange: number;
     };
     isLoading: boolean;
 }
@@ -33,26 +33,30 @@ export const CashFlowSummary: React.FC<CashFlowSummaryProps> = ({
                     <div className="space-y-4">
                         <div>
                             <div className="text-sm text-gray-600">Net Cash Flow</div>
-                            <div className={`text-2xl font-bold ${prediction.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {prediction.cashFlow >= 0 ? '+' : '-'}{formatCurrency(prediction.cashFlow)}
+                            <div className={`text-2xl font-bold ${prediction.trend === 'up' ? 'text-green-600' : prediction.trend === 'down' ? 'text-red-600' : 'text-gray-600'}`}>
+                                {prediction.trend === 'up' ? '+' : prediction.trend === 'down' ? '-' : ''}{formatCurrency(prediction.balance)}
                             </div>
                         </div>
 
                         <div>
-                            <div className="text-sm text-gray-600">Confidence Range</div>
+                            <div className="text-sm text-gray-600">Percentage Change</div>
                             <div className="text-base">
-                                {formatCurrency(prediction.confidenceLow)} - {formatCurrency(prediction.confidenceHigh)}
+                                {prediction.percentageChange >= 0 ? '+' : ''}{(prediction.percentageChange * 100).toFixed(2)}%
                             </div>
                         </div>
 
                         <div className="text-sm text-gray-500">
-                            {prediction.cashFlow >= 0 ? (
+                            {prediction.trend === 'up' ? (
                                 <p>
                                     You are projected to have a positive cash flow. Consider investing or saving the surplus.
                                 </p>
-                            ) : (
+                            ) : prediction.trend === 'down' ? (
                                 <p>
                                     You are projected to have a negative cash flow. Consider reviewing your expenses or finding additional income sources.
+                                </p>
+                            ) : (
+                                <p>
+                                    You are projected to have a stable cash flow.
                                 </p>
                             )}
                         </div>

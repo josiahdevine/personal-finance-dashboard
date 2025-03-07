@@ -1,29 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { SunIcon, MoonIcon, BellIcon, Bars3Icon } from '@heroicons/react/24/outline';
-import { useNotifications } from '../../hooks/useNotifications';
+import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 
 export interface HeaderProps {
   theme: 'dark' | 'light';
   onThemeToggle: () => void;
-  onMenuClick: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, onMenuClick }) => {
+export const Header = ({ theme, onThemeToggle }: HeaderProps) => {
   const navigate = useNavigate();
-  const { signInWithEmail, signInWithGoogle, signOut, user } = useAuth();
-  const { } = useTheme();
+  const { state, login, logout } = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { unreadCount } = useNotifications();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signInWithEmail(email, password);
+      await login(email, password);
       setShowLoginMenu(false);
       navigate('/dashboard');
     } catch (error) {
@@ -31,19 +26,9 @@ export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, onMenuClic
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      await signInWithGoogle();
-      setShowLoginMenu(false);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Google login error:', error);
-    }
-  };
-
   const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
@@ -101,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, onMenuClic
             </button>
 
             {/* User Menu */}
-            {user ? (
+            {state.user ? (
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => navigate('/dashboard')}
@@ -178,17 +163,6 @@ export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, onMenuClic
                             className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                           >
                             Sign In
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleGoogleLogin}
-                            className={`w-full px-4 py-2 text-sm font-medium rounded-md ${
-                              isDark
-                                ? 'bg-gray-700 text-white hover:bg-gray-600'
-                                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                            }`}
-                          >
-                            Sign in with Google
                           </button>
                         </div>
                       </form>

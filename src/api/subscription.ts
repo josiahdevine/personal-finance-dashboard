@@ -3,10 +3,10 @@ import { db, auth } from '../config/firebase-admin';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-02-24.acacia',
 });
 
-export const handler: Handler = async (event, context) => {
+export const handler: Handler = async (event, _context) => {
   // Enable CORS
   if (event.httpMethod === 'OPTIONS') {
     return {

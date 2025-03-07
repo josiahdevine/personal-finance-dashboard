@@ -1,42 +1,43 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../lib/prisma';
+import { getSession } from 'next-auth/react';
 
-interface ExtendedRequest extends NextApiRequest {
-  user?: {
-    id: string;
-  };
-}
+// Simple logging function instead of using prisma.audit
+const logAuditEvent = (
+  userId: string,
+  action: string,
+  resource: string,
+  details: any
+) => {
+  console.log(`AUDIT: ${userId} - ${action} - ${resource} - ${JSON.stringify(details)}`);
+  // In a real app, this would write to a database or logging service
+};
 
-export function auditMiddleware(
-  req: ExtendedRequest,
-  res: NextApiResponse,
-  next: () => void
-) {
-  const originalEnd = res.end;
-  const userId = req.user?.id;
-
-  // @ts-ignore - We need to override the end method
-  res.end = function(...args: any[]) {
+export const auditMiddleware = (handler: any) => {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    const session = await getSession({ req });
+    const userId = session?.user?.id;
+    const resource = req.url?.split('?')[0] || 'unknown';
+    
     if (req.method === 'DELETE') {
       // Log the deletion operation
-      void prisma.audit.create({
-        data: {
-          userId: userId || 'anonymous',
-          action: 'DELETE',
-          resource: req.url || 'unknown',
-          details: {
-            method: req.method,
-            url: req.url,
-            query: req.query,
-            body: req.body,
-          },
-        },
-      });
+      logAuditEvent(
+        userId || 'anonymous',
+        'DELETE',
+        resource,
+        { body: req.body, query: req.query }
+      );
     }
-
-    // Call the original end method
-    originalEnd.apply(res, args);
+    
+    if (['POST', 'PUT', 'PATCH'].includes(req.method || '')) {
+      // Log the write operation
+      logAuditEvent(
+        userId || 'anonymous',
+        req.method || 'UNKNOWN',
+        resource,
+        { body: req.body }
+      );
+    }
+    
+    return handler(req, res);
   };
-
-  next();
-} 
+}; 

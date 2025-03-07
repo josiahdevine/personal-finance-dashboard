@@ -21,7 +21,7 @@ class TaxOptimizationService {
 
         for (const security of securities) {
             const securityLots = taxLots.filter(lot => lot.securityId === security.securityId);
-            const totalLoss = this.calculateTotalLoss(securityLots);
+            const totalLoss = this.calculateTotalLoss(securityLots, security.price);
 
             if (Math.abs(totalLoss) >= this.MIN_LOSS_THRESHOLD) {
                 const taxSavingsEstimate = Math.abs(totalLoss) * taxRate;
@@ -31,18 +31,21 @@ class TaxOptimizationService {
                         securityId: security.securityId,
                         ticker: security.ticker,
                         name: security.name,
-                        totalLoss: totalLoss,
+                        totalQuantity: security.quantity,
+                        totalValue: security.value,
+                        totalCostBasis: security.costBasis,
+                        unrealizedLoss: totalLoss,
+                        unrealizedLossPercent: (totalLoss / security.costBasis) * 100,
                         lots: securityLots,
-                        taxSavingsEstimate,
-                        suggestedAction: 'harvest',
-                        suggestedAlternatives: await this.findAlternatives(security),
+                        recommendedAction: 'harvest',
+                        alternativeInvestments: await this.findAlternatives(security)
                     });
                 }
             }
         }
 
         // Sort opportunities by potential tax savings
-        return opportunities.sort((a, b) => Math.abs(b.taxSavingsEstimate) - Math.abs(a.taxSavingsEstimate));
+        return opportunities.sort((a, b) => Math.abs(b.unrealizedLossPercent) - Math.abs(a.unrealizedLossPercent));
     }
 
     /**
@@ -70,27 +73,24 @@ class TaxOptimizationService {
                 acquisitionDate.setDate(acquisitionDate.getDate() - daysAgo);
 
                 // Random cost basis variation
-                const costBasisPerShare = security.price * (0.9 + Math.random() * 0.4);
+                const _costBasisPerShare = security.price * (0.9 + Math.random() * 0.4);
                 const lotQuantity = lotSize;
-                const lotCostBasis = costBasisPerShare * lotQuantity;
-                const lotValue = security.price * lotQuantity;
+                const lotValue = lotQuantity * security.price;
+                const lotCostBasis = lotQuantity * (security.costBasis / security.quantity);
                 const lotGain = lotValue - lotCostBasis;
-                const lotGainPercentage = (lotGain / lotCostBasis) * 100;
+                const _lotGainPercentage = (lotGain / lotCostBasis) * 100;
 
-                lots.push({
+                const taxLot: TaxLotData = {
                     id: `lot-${security.securityId}-${i}`,
                     holdingId: security.securityId,
                     securityId: security.securityId,
-                    acquisitionDate: acquisitionDate.toISOString(),
                     quantity: lotQuantity,
                     costBasis: lotCostBasis,
-                    price: security.price,
-                    currentValue: lotValue,
-                    gain: lotGain,
-                    gainPercentage: lotGainPercentage,
-                    holdingPeriod: daysAgo,
-                    isLongTerm: daysAgo > this.LONG_TERM_DAYS,
-                });
+                    acquiredAt: acquisitionDate.toISOString(),
+                    isWashSale: false
+                };
+
+                lots.push(taxLot);
             }
         });
 
@@ -98,12 +98,14 @@ class TaxOptimizationService {
     }
 
     /**
-     * Calculate total loss for tax lots
+     * Calculate the total unrealized loss for a set of tax lots
      */
-    private calculateTotalLoss(lots: TaxLotData[]): number {
+    private calculateTotalLoss(lots: TaxLotData[], currentPrice: number): number {
         return lots.reduce((total, lot) => {
-            // Only include losses (negative gains)
-            return total + (lot.gain < 0 ? lot.gain : 0);
+            const currentValue = lot.quantity * currentPrice;
+            const unrealizedGain = currentValue - lot.costBasis;
+            // Only include lots with losses
+            return unrealizedGain < 0 ? total + unrealizedGain : total;
         }, 0);
     }
 
@@ -111,11 +113,9 @@ class TaxOptimizationService {
      * Find alternative securities for tax loss harvesting
      */
     private async findAlternatives(security: SecurityAllocation): Promise<Array<{
-        securityId: string;
-        ticker?: string;
+        ticker: string;
         name: string;
         correlation: number;
-        expense_ratio?: number;
     }>> {
         // In a real implementation, we would:
         // 1. Use a security database to find similar securities
@@ -127,44 +127,29 @@ class TaxOptimizationService {
         if (security.ticker?.includes('ETF')) {
             return [
                 {
-                    securityId: 'alt-1',
                     ticker: 'VTI',
                     name: 'Vanguard Total Stock Market ETF',
-                    correlation: 0.95,
-                    expense_ratio: 0.03,
+                    correlation: 0.92
                 },
                 {
-                    securityId: 'alt-2',
                     ticker: 'ITOT',
                     name: 'iShares Core S&P Total U.S. Stock Market ETF',
-                    correlation: 0.94,
-                    expense_ratio: 0.03,
-                },
-                {
-                    securityId: 'alt-3',
-                    ticker: 'SCHB',
-                    name: 'Schwab U.S. Broad Market ETF',
-                    correlation: 0.93,
-                    expense_ratio: 0.03,
-                },
+                    correlation: 0.94
+                }
             ];
         }
 
         // For individual stocks, suggest sector ETFs
         return [
             {
-                securityId: 'alt-1',
                 ticker: 'XLK',
                 name: 'Technology Select Sector SPDR Fund',
                 correlation: 0.85,
-                expense_ratio: 0.12,
             },
             {
-                securityId: 'alt-2',
                 ticker: 'VGT',
                 name: 'Vanguard Information Technology ETF',
                 correlation: 0.84,
-                expense_ratio: 0.10,
             },
         ];
     }

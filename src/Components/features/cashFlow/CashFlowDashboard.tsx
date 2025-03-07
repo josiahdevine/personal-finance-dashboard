@@ -3,7 +3,7 @@ import { Card } from '../../common/Card';
 import { Select } from '../../common/Select';
 import { Toggle } from '../../common/Toggle';
 import { CashFlowChart } from './CashFlowChart';
-import { RecurringTransactionsList } from './RecurringTransactionsList';
+import { RecurringTransactionsList } from './RecurringTransactions';
 import { ModelValidationStats } from './ModelValidationStats';
 import { PredictionAlerts } from './PredictionAlerts';
 import { ScenarioAnalysis } from './ScenarioAnalysis';
@@ -220,13 +220,43 @@ export const CashFlowDashboard: React.FC = () => {
               <h2 className="text-lg font-semibold mb-4">Cash Flow Predictions</h2>
               {predictions && (
                 <CashFlowChart
-                  predictions={
-                    timeframe === 'daily'
-                      ? predictions.dailyPredictions
-                      : timeframe === 'weekly'
-                      ? predictions.weeklyPredictions
-                      : predictions.monthlyPredictions
-                  }
+                  predictions={{
+                    totalPrediction: {
+                      balance: predictions.totalPrediction.cashFlow,
+                      trend: predictions.totalPrediction.cashFlow > 0 ? 'up' : 
+                             predictions.totalPrediction.cashFlow < 0 ? 'down' : 'stable',
+                      percentageChange: 0 // We don't have this data, so defaulting to 0
+                    },
+                    dailyPredictions: predictions.dailyPredictions.map(p => ({
+                      date: p.date,
+                      cashFlow: p.cashFlow,
+                      confidenceLow: p.confidenceLow,
+                      confidenceHigh: p.confidenceHigh
+                    })),
+                    weeklyPredictions: predictions.weeklyPredictions.map(p => ({
+                      startDate: p.date,
+                      endDate: p.date,
+                      cashFlow: p.cashFlow,
+                      confidenceLow: p.confidenceLow,
+                      confidenceHigh: p.confidenceHigh
+                    })),
+                    monthlyPredictions: predictions.monthlyPredictions.map(p => ({
+                      month: p.date,
+                      cashFlow: p.cashFlow,
+                      confidenceLow: p.confidenceLow,
+                      confidenceHigh: p.confidenceHigh
+                    })),
+                    alerts: predictions.alerts.map(alert => ({
+                      type: alert.severity === 'high' ? 'danger' : 
+                            alert.severity === 'medium' ? 'warning' : 'info',
+                      message: alert.message,
+                      date: alert.date
+                    })),
+                    recurringTransactions: {
+                      income: [],
+                      expenses: []
+                    }
+                  }}
                   timeframe={timeframe}
                   onTimeframeChange={setTimeframe}
                   isLoading={isLoading}
@@ -283,13 +313,27 @@ export const CashFlowDashboard: React.FC = () => {
               <Card.Body>
                 <h2 className="text-lg font-semibold mb-4">Recurring Transactions</h2>
                 <RecurringTransactionsList
-                  transactions={
-                    predictions.dailyPredictions
-                      .flatMap(p => p.recurringTransactions)
-                      .filter((tx, index, self) =>
-                        index === self.findIndex(t => t.merchantName === tx.merchantName)
-                      )
-                  }
+                  income={predictions.dailyPredictions
+                    .flatMap(p => p.recurringTransactions)
+                    .filter(tx => tx.isIncome)
+                    .map(tx => ({
+                      id: tx.merchantName,
+                      name: tx.merchantName,
+                      amount: tx.amount,
+                      frequency: 'Monthly',
+                      nextDate: new Date().toISOString()
+                    }))}
+                  expenses={predictions.dailyPredictions
+                    .flatMap(p => p.recurringTransactions)
+                    .filter(tx => !tx.isIncome)
+                    .map(tx => ({
+                      id: tx.merchantName,
+                      name: tx.merchantName,
+                      amount: tx.amount,
+                      frequency: 'Monthly',
+                      nextDate: new Date().toISOString()
+                    }))}
+                  isLoading={isLoading}
                 />
               </Card.Body>
             </Card>

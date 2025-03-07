@@ -60,4 +60,8 @@ npm-debug.log*
 .vscode/
 
 # Documentation
-C:\Users\josia\OneDrive\Desktop\Website\new-dashboard\trypersonalfinance.com_2025-03-02_12-20-15.report.html
+trypersonalfinance.com_2025-03-02_12-20-15.report.html
+
+# Markdown files
+*.md
+!README.md

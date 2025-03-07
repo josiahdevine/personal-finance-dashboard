@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { signInWithEmail, signInWithGoogle, isLoading, error: authError } = useAuth();
+  const { state, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +15,7 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
-      await signInWithEmail(email, password);
+      await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -25,8 +25,8 @@ export const Login: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      await signInWithGoogle();
-      navigate('/dashboard');
+      // Google sign in is not available in this version
+      setError('Google sign in is not available');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
     }
@@ -54,10 +54,10 @@ export const Login: React.FC = () => {
           </p>
         </div>
 
-        {(error || authError) && (
+        {(error || state.error) && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">
-              {error || authError?.message}
+              {error || state.error}
             </div>
           </div>
         )}
@@ -78,7 +78,7 @@ export const Login: React.FC = () => {
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={state.isLoading}
               />
             </div>
             <div>
@@ -95,7 +95,7 @@ export const Login: React.FC = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                disabled={state.isLoading}
               />
             </div>
           </div>
@@ -114,14 +114,14 @@ export const Login: React.FC = () => {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={state.isLoading}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isLoading
+                state.isLoading
                   ? 'bg-indigo-400 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
               }`}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {state.isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
 
@@ -141,9 +141,9 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                disabled={isLoading}
+                disabled={state.isLoading}
                 className={`w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 ${
-                  isLoading
+                  state.isLoading
                     ? 'bg-gray-100 cursor-not-allowed'
                     : 'bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
                 }`}

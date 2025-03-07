@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { query } from '../db';
 import { CashFlowPrediction, ModelType, TimeframeType } from '../types/CashFlowPrediction';
 
 export class CashFlowPredictionRepository {
@@ -6,34 +6,39 @@ export class CashFlowPredictionRepository {
      * Save a batch of predictions
      */
     async savePredictions(predictions: Array<Omit<CashFlowPrediction, 'id' | 'createdAt'>>): Promise<CashFlowPrediction[]> {
-        const query = `
+        const sqlQuery = `
             INSERT INTO cash_flow_predictions (
-                user_id, prediction_date, amount, confidence_low,
-                confidence_high, model_type, timeframe
+                user_id,
+                prediction_date,
+                amount,
+                confidence_low,
+                confidence_high,
+                model_type,
+                timeframe
             )
-            SELECT * FROM UNNEST (
-                $1::uuid[], $2::date[], $3::decimal[], $4::decimal[],
-                $5::decimal[], $6::varchar[], $7::varchar[]
-            )
+            VALUES
+            ${predictions.map((_, i) => 
+                `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, $${i * 7 + 4}, $${i * 7 + 5}, $${i * 7 + 6}, $${i * 7 + 7})`
+            ).join(', ')}
             RETURNING *
         `;
 
-        const values = [
-            predictions.map(p => p.userId),
-            predictions.map(p => p.predictionDate),
-            predictions.map(p => p.amount),
-            predictions.map(p => p.confidenceLow),
-            predictions.map(p => p.confidenceHigh),
-            predictions.map(p => p.modelType),
-            predictions.map(p => p.timeframe)
-        ];
+        const values = predictions.flatMap(p => [
+            p.userId,
+            p.predictionDate,
+            p.amount,
+            p.confidenceLow,
+            p.confidenceHigh,
+            p.modelType,
+            p.timeframe
+        ]);
 
-        const result = await db.query(query, values);
-        return result.rows.map(this.mapRowToPrediction);
+        const result = await query(sqlQuery, values);
+        return result.map(this.mapRowToPrediction);
     }
 
     /**
-     * Get predictions for a user within a date range
+     * Find predictions by date range
      */
     async findByDateRange(
         userId: string,
@@ -41,58 +46,55 @@ export class CashFlowPredictionRepository {
         endDate: string,
         timeframe: TimeframeType = 'daily'
     ): Promise<CashFlowPrediction[]> {
-        const query = `
-            SELECT *
-            FROM cash_flow_predictions
+        const sqlQuery = `
+            SELECT * FROM cash_flow_predictions
             WHERE user_id = $1
             AND prediction_date BETWEEN $2 AND $3
             AND timeframe = $4
             ORDER BY prediction_date ASC
         `;
 
-        const result = await db.query(query, [userId, startDate, endDate, timeframe]);
-        return result.rows.map(this.mapRowToPrediction);
+        const result = await query(sqlQuery, [userId, startDate, endDate, timeframe]);
+        return result.map(this.mapRowToPrediction);
     }
 
     /**
-     * Delete old predictions for a user
+     * Delete predictions older than a certain date
      */
     async deleteOldPredictions(userId: string, beforeDate: string): Promise<void> {
-        const query = `
+        const sqlQuery = `
             DELETE FROM cash_flow_predictions
             WHERE user_id = $1
             AND prediction_date < $2
         `;
 
-        await db.query(query, [userId, beforeDate]);
+        await query(sqlQuery, [userId, beforeDate]);
     }
 
     /**
-     * Get latest predictions for a user
+     * Get the latest predictions for a user
      */
     async getLatestPredictions(
         userId: string,
         modelType: ModelType,
         timeframe: TimeframeType,
-        limit: number = 30
+        limit = 30
     ): Promise<CashFlowPrediction[]> {
-        const query = `
-            SELECT *
-            FROM cash_flow_predictions
+        const sqlQuery = `
+            SELECT * FROM cash_flow_predictions
             WHERE user_id = $1
             AND model_type = $2
             AND timeframe = $3
-            AND prediction_date >= CURRENT_DATE
-            ORDER BY prediction_date ASC
+            ORDER BY prediction_date DESC
             LIMIT $4
         `;
 
-        const result = await db.query(query, [userId, modelType, timeframe, limit]);
-        return result.rows.map(this.mapRowToPrediction);
+        const result = await query(sqlQuery, [userId, modelType, timeframe, limit]);
+        return result.map(this.mapRowToPrediction);
     }
 
     /**
-     * Map database row to CashFlowPrediction type
+     * Map a database row to a CashFlowPrediction object
      */
     private mapRowToPrediction(row: any): CashFlowPrediction {
         return {

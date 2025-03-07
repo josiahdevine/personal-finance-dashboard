@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { LineChart } from '../../charts/LineChart';
-import { formatCurrency } from '../../../utils/formatters';
+import { LineChart } from 'components/Charts/LineChart';
+import { currencyFormatter } from '../../../utils/formatters';
 
 export const PerformanceChart: React.FC = () => {
   const { portfolio, loading, error } = usePortfolio();
@@ -36,7 +36,7 @@ export const PerformanceChart: React.FC = () => {
           data={performanceData}
           xKey="date"
           yKey="value"
-          yFormatter={formatCurrency}
+          yFormatter={currencyFormatter}
         />
       </div>
     </div>

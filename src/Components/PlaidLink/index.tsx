@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
-import { PlaidService } from '../../services/PlaidService';
+import PlaidService from '../../services/PlaidService';
 import { useAuth } from '../../hooks/useAuth';
 
 interface PlaidLinkButtonProps {
@@ -16,14 +16,13 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const plaidService = new PlaidService();
 
   const onSuccessCallback = useCallback(
     async (publicToken: string) => {
       try {
         setLoading(true);
         setError(null);
-        await plaidService.exchangePublicToken(publicToken);
+        await PlaidService.exchangePublicToken(publicToken, user?.id || '');
         onSuccess?.();
       } catch (err) {
         console.error('Error linking account:', err);
@@ -32,7 +31,7 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
         setLoading(false);
       }
     },
-    [plaidService, onSuccess]
+    [user?.id, onSuccess]
   );
 
   const config = {
@@ -53,7 +52,7 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
       try {
         setLoading(true);
         setError(null);
-        const token = await plaidService.createLinkToken(user.id);
+        const { linkToken: token } = await PlaidService.createLinkToken(user.id);
         setLinkToken(token);
       } catch (err) {
         console.error('Error getting link token:', err);
@@ -64,7 +63,7 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
     };
 
     getToken();
-  }, [user, plaidService]);
+  }, [user?.id]);
 
   if (error) {
     return (

@@ -8,7 +8,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  connectAuthEmulator,
+  connectAuthEmulator as _connectAuthEmulator,
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
@@ -61,19 +61,19 @@ console.log('[Firebase Debug] Full Firebase Config:', {
 
 
 // Type check firebaseConfig to ensure it's valid
-let configValid = true;
+const _configValid = true;
 const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
 const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 
 if (missingKeys.length > 0) {
-  configValid = false;
+  _configValid = false;
   logError('Firebase', 'Missing required Firebase configuration keys', new Error('Invalid config'), { missingKeys });
   
 }
 
 for (const [key, value] of Object.entries(firebaseConfig)) {
   if (value === undefined || value === null || value === '') {
-    configValid = false;
+    _configValid = false;
     logError('Firebase', `Firebase config key ${key} has invalid value`, new Error('Invalid config value'), { key });
     
   }
@@ -326,6 +326,13 @@ export const logoutUser = async () => {
   });
 };
 
+// Cleanup function for auth state changes
+const cleanupAuthState = () => {
+  console.log('Cleaning up auth state');
+  localStorage.removeItem('auth_timestamp');
+  localStorage.removeItem('last_login_success');
+};
+
 // Improved auth state observer with retry logic
 export const onAuthStateChange = (callback) => {
   if (!isProduction) {
@@ -335,8 +342,6 @@ export const onAuthStateChange = (callback) => {
   try {
     // First check if auth is initialized
     if (!auth) {
-      
-      
       // Set up retry mechanism for auth state listener
       let retryCount = 0;
       const maxRetries = 3;
@@ -345,30 +350,26 @@ export const onAuthStateChange = (callback) => {
       const retryIntervalId = setInterval(() => {
         retryCount++;
         
-        
         if (auth) {
           clearInterval(retryIntervalId);
-          
           setupAuthStateListener(callback);
         } else if (retryCount >= maxRetries) {
           clearInterval(retryIntervalId);
-          
           callback(null); // Notify with null user after all retries fail
         }
       }, retryInterval);
       
-      // Return a function to clear the retry interval
+      // Return cleanup function
       return () => {
         clearInterval(retryIntervalId);
-        
+        cleanupAuthState();
       };
     }
     
     return setupAuthStateListener(callback);
   } catch (error) {
     logError('Firebase', 'Error setting up auth state listener', error);
-    // Return a no-op unsubscribe
-    return () => {};
+    return cleanupAuthState;
   }
 };
 
@@ -470,4 +471,12 @@ export const signInWithGoogle = async () => {
       throw error;
     }
   });
+};
+
+const _unsubscribe = () => {
+  console.log('Unsubscribing from auth state changes');
+  // Clear any stored authentication tokens or timestamps
+  localStorage.removeItem('auth_timestamp');
+  localStorage.removeItem('last_login_success');
+  console.log('Auth state cleanup completed');
 }; 

@@ -1,27 +1,33 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/common/Card';
-=======
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
->>>>>>> 234e2586c127906a5f392b4d4ea17df505736af7
+import { Card } from '../../components/common/Card';
 
 interface Bill {
   id: string;
   name: string;
   amount: number;
   dueDate: string;
-<<<<<<< HEAD
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
   category: string;
   autoPay: boolean;
   reminderDays: number;
+  isPaid: boolean;
 }
 
 const BillsAnalysis: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [newBill, setNewBill] = useState<Omit<Bill, 'id'>>({
+    name: '',
+    amount: 0,
+    dueDate: '',
+    category: '',
+    frequency: 'monthly',
+    autoPay: false,
+    reminderDays: 7,
+    isPaid: false,
+  });
 
   useEffect(() => {
     const fetchBills = async () => {
@@ -40,6 +46,27 @@ const BillsAnalysis: React.FC = () => {
 
     fetchBills();
   }, []);
+
+  const handleAddBill = (e: React.FormEvent) => {
+    e.preventDefault();
+    setBills([...bills, { ...newBill, id: Date.now().toString() }]);
+    setNewBill({
+      name: '',
+      amount: 0,
+      dueDate: '',
+      category: '',
+      frequency: 'monthly',
+      autoPay: false,
+      reminderDays: 7,
+      isPaid: false,
+    });
+  };
+
+  const togglePaidStatus = (id: string) => {
+    setBills(bills.map(bill => 
+      bill.id === id ? { ...bill, isPaid: !bill.isPaid } : bill
+    ));
+  };
 
   if (loading) {
     return (
@@ -73,6 +100,10 @@ const BillsAnalysis: React.FC = () => {
     return total + monthlyAmount;
   }, 0);
 
+  const totalBills = bills.reduce((sum, bill) => sum + bill.amount, 0);
+  const paidBills = bills.filter(bill => bill.isPaid).reduce((sum, bill) => sum + bill.amount, 0);
+  const unpaidBills = totalBills - paidBills;
+
   const upcomingBills = bills
     .filter(bill => {
       const dueDate = new Date(bill.dueDate);
@@ -83,21 +114,135 @@ const BillsAnalysis: React.FC = () => {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+    <div className="container mx-auto px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Bills Analysis</h1>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <Card.Header>
+              <h2 className="text-lg font-semibold text-gray-900">Monthly Bills Summary</h2>
+            </Card.Header>
+            <Card.Body>
+              <div className="text-3xl font-bold text-indigo-600">
+                ${totalMonthlyBills.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-gray-500 mt-2">Total monthly bills</p>
+            </Card.Body>
+          </Card>
+
+          <Card>
+            <Card.Header>
+              <h2 className="text-lg font-semibold text-gray-900">Paid Bills</h2>
+            </Card.Header>
+            <Card.Body>
+              <div className="text-3xl font-bold text-green-600">
+                ${paidBills.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-gray-500 mt-2">Total paid</p>
+            </Card.Body>
+          </Card>
+
+          <Card>
+            <Card.Header>
+              <h2 className="text-lg font-semibold text-gray-900">Unpaid Bills</h2>
+            </Card.Header>
+            <Card.Body>
+              <div className="text-3xl font-bold text-red-600">
+                ${unpaidBills.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-gray-500 mt-2">Total unpaid</p>
+            </Card.Body>
+          </Card>
+        </div>
+
+        {/* Add New Bill Form */}
+        <Card className="mb-8">
           <Card.Header>
-            <h2 className="text-lg font-semibold text-gray-900">Monthly Bills Summary</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Add New Bill</h2>
           </Card.Header>
           <Card.Body>
-            <div className="text-3xl font-bold text-indigo-600">
-              ${totalMonthlyBills.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-gray-500 mt-2">Total monthly bills</p>
+            <form onSubmit={handleAddBill} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Bill Name"
+                value={newBill.name}
+                onChange={e => setNewBill({ ...newBill, name: e.target.value })}
+                className="rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+              <input
+                type="number"
+                placeholder="Amount"
+                value={newBill.amount || ''}
+                onChange={e => setNewBill({ ...newBill, amount: parseFloat(e.target.value) })}
+                className="rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+                min="0"
+                step="0.01"
+              />
+              <input
+                type="date"
+                value={newBill.dueDate}
+                onChange={e => setNewBill({ ...newBill, dueDate: e.target.value })}
+                className="rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Category"
+                value={newBill.category}
+                onChange={e => setNewBill({ ...newBill, category: e.target.value })}
+                className="rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+              <select
+                value={newBill.frequency}
+                onChange={e => setNewBill({ ...newBill, frequency: e.target.value as Bill['frequency'] })}
+                className="rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={newBill.autoPay}
+                    onChange={e => setNewBill({ ...newBill, autoPay: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Auto Pay</span>
+                </label>
+                <input
+                  type="number"
+                  placeholder="Reminder Days"
+                  value={newBill.reminderDays}
+                  onChange={e => setNewBill({ ...newBill, reminderDays: parseInt(e.target.value) })}
+                  className="w-24 rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  min="0"
+                />
+              </div>
+              <button
+                type="submit"
+                className="md:col-span-2 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                Add Bill
+              </button>
+            </form>
           </Card.Body>
         </Card>
 
-        <Card>
+        {/* Bills by Category */}
+        <Card className="mb-8">
           <Card.Header>
             <h2 className="text-lg font-semibold text-gray-900">Bills by Category</h2>
           </Card.Header>
@@ -119,234 +264,30 @@ const BillsAnalysis: React.FC = () => {
             </div>
           </Card.Body>
         </Card>
-      </div>
 
-      <Card>
-        <Card.Header>
-          <h2 className="text-lg font-semibold text-gray-900">Upcoming Bills</h2>
-        </Card.Header>
-        <Card.Body>
-          <div className="divide-y divide-gray-200">
-            {upcomingBills.map(bill => (
-              <div key={bill.id} className="py-4 flex justify-between items-center">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">{bill.name}</h3>
-                  <p className="text-sm text-gray-500">Due: {new Date(bill.dueDate).toLocaleDateString()}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">
-                    ${bill.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        {/* Upcoming Bills */}
+        <Card>
+          <Card.Header>
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming Bills</h2>
+          </Card.Header>
+          <Card.Body>
+            <div className="divide-y divide-gray-200">
+              {upcomingBills.map(bill => (
+                <div key={bill.id} className="py-4 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">{bill.name}</h3>
+                    <p className="text-sm text-gray-500">Due: {new Date(bill.dueDate).toLocaleDateString()}</p>
                   </div>
-                  <div className="text-xs text-gray-500">{bill.frequency}</div>
-                </div>
-              </div>
-            ))}
-            {upcomingBills.length === 0 && (
-              <p className="py-4 text-gray-500 text-center">No upcoming bills in the next 7 days</p>
-            )}
-          </div>
-        </Card.Body>
-      </Card>
-=======
-  category: string;
-  isRecurring: boolean;
-  frequency?: 'monthly' | 'yearly' | 'weekly';
-  isPaid: boolean;
-}
-
-const BillsAnalysis: React.FC = () => {
-  const [bills, setBills] = useState<Bill[]>([
-    {
-      id: '1',
-      name: 'Rent',
-      amount: 1200,
-      dueDate: '2024-03-15',
-      category: 'Housing',
-      isRecurring: true,
-      frequency: 'monthly',
-      isPaid: false,
-    },
-    {
-      id: '2',
-      name: 'Internet',
-      amount: 79.99,
-      dueDate: '2024-03-10',
-      category: 'Utilities',
-      isRecurring: true,
-      frequency: 'monthly',
-      isPaid: true,
-    },
-  ]);
-
-  const [newBill, setNewBill] = useState<Omit<Bill, 'id'>>({
-    name: '',
-    amount: 0,
-    dueDate: '',
-    category: '',
-    isRecurring: false,
-    isPaid: false,
-  });
-
-  const handleAddBill = (e: React.FormEvent) => {
-    e.preventDefault();
-    setBills([...bills, { ...newBill, id: Date.now().toString() }]);
-    setNewBill({
-      name: '',
-      amount: 0,
-      dueDate: '',
-      category: '',
-      isRecurring: false,
-      isPaid: false,
-    });
-  };
-
-  const togglePaidStatus = (id: string) => {
-    setBills(bills.map(bill => 
-      bill.id === id ? { ...bill, isPaid: !bill.isPaid } : bill
-    ));
-  };
-
-  const totalBills = bills.reduce((sum, bill) => sum + bill.amount, 0);
-  const paidBills = bills.filter(bill => bill.isPaid).reduce((sum, bill) => sum + bill.amount, 0);
-  const unpaidBills = totalBills - paidBills;
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Bills Analysis</h1>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Total Bills</h2>
-            <p className="text-2xl font-bold text-indigo-600">
-              ${totalBills.toFixed(2)}
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Paid</h2>
-            <p className="text-2xl font-bold text-green-600">
-              ${paidBills.toFixed(2)}
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Unpaid</h2>
-            <p className="text-2xl font-bold text-red-600">
-              ${unpaidBills.toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        {/* Add New Bill Form */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Add New Bill</h2>
-          <form onSubmit={handleAddBill} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Bill Name"
-              value={newBill.name}
-              onChange={e => setNewBill({ ...newBill, name: e.target.value })}
-              className="px-3 py-2 border rounded-md"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Amount"
-              value={newBill.amount || ''}
-              onChange={e => setNewBill({ ...newBill, amount: parseFloat(e.target.value) })}
-              className="px-3 py-2 border rounded-md"
-              required
-            />
-            <input
-              type="date"
-              value={newBill.dueDate}
-              onChange={e => setNewBill({ ...newBill, dueDate: e.target.value })}
-              className="px-3 py-2 border rounded-md"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Category"
-              value={newBill.category}
-              onChange={e => setNewBill({ ...newBill, category: e.target.value })}
-              className="px-3 py-2 border rounded-md"
-              required
-            />
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={newBill.isRecurring}
-                onChange={e => setNewBill({ ...newBill, isRecurring: e.target.checked })}
-                className="mr-2"
-              />
-              <label>Recurring Bill</label>
-            </div>
-            <button
-              type="submit"
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-            >
-              Add Bill
-            </button>
-          </form>
-        </div>
-
-        {/* Bills List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {bills.map(bill => (
-                <tr key={bill.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
                       <div className="text-sm font-medium text-gray-900">
-                        {bill.name}
+                        ${bill.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </div>
+                      <div className="text-xs text-gray-500">{bill.frequency}</div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      ${bill.amount.toFixed(2)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {new Date(bill.dueDate).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {bill.category}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => togglePaidStatus(bill.id)}
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
                         bill.isPaid
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
@@ -354,14 +295,16 @@ const BillsAnalysis: React.FC = () => {
                     >
                       {bill.isPaid ? 'Paid' : 'Unpaid'}
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+              {upcomingBills.length === 0 && (
+                <p className="py-4 text-gray-500 text-center">No upcoming bills in the next 7 days</p>
+              )}
+            </div>
+          </Card.Body>
+        </Card>
       </motion.div>
->>>>>>> 234e2586c127906a5f392b4d4ea17df505736af7
     </div>
   );
 };

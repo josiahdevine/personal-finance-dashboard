@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { ManualAccount, BaseModel } from '../models/types';
 
 interface ManualAccountFormData {
   account_name: string;
-  account_type: 'checking' | 'savings' | 'credit' | 'investment' | 'other';
+  account_type: 'checking' | 'savings' | 'credit_card' | 'investment' | 'loan' | 'other';
   balance: number;
   currency: string;
-  institution?: string;
+  institution_name: string;
   notes?: string;
 }
 
 interface ManualAccountFormProps {
   onSubmit: (accountData: ManualAccountFormData) => Promise<void>;
-  onCancel: () => void;
+  onCancel?: () => void;
 }
 
 export const ManualAccountForm: React.FC<ManualAccountFormProps> = ({ onSubmit, onCancel }) => {
@@ -23,7 +22,7 @@ export const ManualAccountForm: React.FC<ManualAccountFormProps> = ({ onSubmit, 
     account_type: 'checking',
     balance: 0,
     currency: 'USD',
-    institution: '',
+    institution_name: '',
     notes: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,8 +72,9 @@ export const ManualAccountForm: React.FC<ManualAccountFormProps> = ({ onSubmit, 
           >
             <option value="checking">Checking</option>
             <option value="savings">Savings</option>
-            <option value="credit">Credit</option>
+            <option value="credit_card">Credit Card</option>
             <option value="investment">Investment</option>
+            <option value="loan">Loan</option>
             <option value="other">Other</option>
           </select>
         </div>
@@ -122,14 +122,15 @@ export const ManualAccountForm: React.FC<ManualAccountFormProps> = ({ onSubmit, 
 
         <div>
           <label htmlFor="institution" className="block text-sm font-medium text-gray-700">
-            Institution (Optional)
+            Institution Name
           </label>
           <input
             type="text"
             id="institution"
+            required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            value={formData.institution}
-            onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+            value={formData.institution_name}
+            onChange={(e) => setFormData({ ...formData, institution_name: e.target.value })}
           />
         </div>
 

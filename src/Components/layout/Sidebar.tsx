@@ -33,7 +33,7 @@ const navigation = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { state, logout } = useAuth();
   const { isDarkMode } = useTheme();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -127,16 +127,16 @@ export const Sidebar: React.FC = () => {
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center">
                   <span className="text-white text-lg font-medium">
-                    {user?.display_name?.[0] || user?.email?.[0] || 'U'}
+                    {state.user?.name?.[0] || state.user?.email?.[0] || 'U'}
                   </span>
                 </div>
               </div>
               <div className="ml-3">
-                <p className={`text-sm font-medium truncate max-w-[120px] ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {user?.display_name || user?.email}
+                <p className="text-sm font-medium text-gray-700">
+                  {state.user?.name || state.user?.email}
                 </p>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => logout()}
                   className={`text-xs font-medium flex items-center mt-1 ${
                     isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'
                   }`}

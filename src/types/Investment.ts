@@ -104,39 +104,50 @@ export interface InvestmentAccount {
 
 export interface Security {
   id: string;
-  symbol: string;
+  tickerSymbol: string;
   name: string;
   type: string;
-  exchange: string;
-  currency: string;
-  price: number;
-  priceDate: string;
-  priceChange: number;
-  priceChangePercent: number;
+  closePrice: number;
+  closePriceAsOf: string;
+  isin: string;
+  cusip: string;
+  currencyCode: string;
+  isCashEquivalent: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface InvestmentHolding {
   id: string;
-  accountId: string;
+  investmentAccountId: string;
   securityId: string;
   quantity: number;
   costBasis: number;
   value: number;
-  lastUpdated: string;
-  security: Security;
+  institutionValue: number;
+  institutionPrice: number;
+  institutionPriceAsOf: string;
+  isManual: boolean;
+  createdAt: string;
+  updatedAt: string;
+  security?: Security;
 }
 
 export interface InvestmentTransaction {
   id: string;
-  accountId: string;
+  investmentAccountId: string;
   securityId: string;
-  type: 'buy' | 'sell';
+  transactionType: 'buy' | 'sell';
   quantity: number;
   price: number;
   amount: number;
   fees: number;
   date: string;
-  security: Security;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  security?: Security;
 }
 
 export interface PortfolioSummary {

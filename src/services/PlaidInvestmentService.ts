@@ -94,18 +94,16 @@ class PlaidInvestmentService {
                 if (account.type === 'investment') {
                     // Create or update investment account
                     const investmentAccount: Partial<InvestmentAccount> = {
-                        user_id: userId,
-                        plaid_item_id: itemResponse.data.item.item_id || undefined,
-                        plaid_account_id: account.account_id,
+                        userId: userId,
                         name: account.name || 'Unnamed Account',
                         type: account.type as any,
-                        subtype: account.subtype || '',
-                        institution_name: institution.name,
-                        institution_logo_url: institution.logo || undefined,
+                        subtype: account.subtype || null,
                         balance: account.balances.current || 0,
-                        available_balance: account.balances.available || undefined,
-                        currency_code: account.balances.iso_currency_code || 'USD',
-                        is_manual: false,
+                        currency: account.balances.iso_currency_code || 'USD',
+                        institution: institution.name,
+                        lastUpdated: new Date().toISOString(),
+                        status: 'active',
+                        holdings: []
                     };
 
                     await investmentAccountRepository.create(investmentAccount);
@@ -115,15 +113,15 @@ class PlaidInvestmentService {
             // Process securities
             for (const security of securities) {
                 const securityData: Partial<Security> = {
-                    ticker_symbol: security.ticker_symbol || undefined,
+                    tickerSymbol: security.ticker_symbol || undefined,
                     name: security.name || '',
                     type: security.type || 'other',
-                    close_price: security.close_price || undefined,
-                    close_price_as_of: security.close_price_as_of || undefined,
+                    closePrice: security.close_price || 0,
+                    closePriceAsOf: security.close_price_as_of || new Date().toISOString(),
                     isin: security.isin || undefined,
                     cusip: security.cusip || undefined,
-                    currency_code: security.iso_currency_code || 'USD',
-                    is_cash_equivalent: security.is_cash_equivalent || false,
+                    currencyCode: security.iso_currency_code || 'USD',
+                    isCashEquivalent: security.is_cash_equivalent || false
                 };
 
                 await securitiesRepository.create(securityData);
@@ -136,15 +134,15 @@ class PlaidInvestmentService {
 
                 if (account && security) {
                     const holdingData: Partial<InvestmentHolding> = {
-                        investment_account_id: account.account_id,
-                        security_id: security.security_id,
-                        cost_basis: holding.cost_basis || undefined,
+                        investmentAccountId: account.account_id,
+                        securityId: security.security_id,
                         quantity: holding.quantity,
+                        costBasis: holding.cost_basis || 0,
                         value: holding.institution_value || 0,
-                        institution_value: holding.institution_value || undefined,
-                        institution_price: holding.institution_price || undefined,
-                        institution_price_as_of: holding.institution_price_as_of || undefined,
-                        is_manual: false,
+                        institutionValue: holding.institution_value || 0,
+                        institutionPrice: holding.institution_price || 0,
+                        institutionPriceAsOf: holding.institution_price_as_of || new Date().toISOString(),
+                        isManual: false
                     };
 
                     await investmentHoldingsRepository.upsert(holdingData);
@@ -172,15 +170,15 @@ class PlaidInvestmentService {
 
                 if (account) {
                     const transactionData: Partial<InvestmentTransaction> = {
-                        investment_account_id: account.account_id,
-                        security_id: security?.security_id,
-                        transaction_type: transaction.type,
+                        investmentAccountId: account.account_id,
+                        securityId: transaction.security_id || '',
+                        transactionType: transaction.type as 'buy' | 'sell',
+                        quantity: transaction.quantity,
+                        price: transaction.price,
                         amount: transaction.amount,
-                        quantity: transaction.quantity || undefined,
-                        price: transaction.price || undefined,
-                        fees: transaction.fees || undefined,
+                        fees: transaction.fees || 0,
                         date: transaction.date,
-                        name: transaction.name || undefined,
+                        name: transaction.name || ''
                     };
 
                     transactionBatch.push(transactionData);

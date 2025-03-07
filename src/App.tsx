@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LandingPage } from './components/LandingPage';
 import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
-import { DashboardLayout } from './components/Layout/DashboardLayout';
+import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Overview } from './components/Dashboard/Overview';
 import { Transactions } from './components/Dashboard/Transactions';
 import { SalaryJournal } from './components/Dashboard/SalaryJournal';
@@ -20,15 +20,16 @@ import { Analytics } from './components/Dashboard/Analytics';
 import { Notifications } from './components/Dashboard/Notifications';
 import { AskAI } from './components/Dashboard/AskAI';
 import { Settings } from './components/Dashboard/Settings';
-import { CashFlowPredictionPage } from './pages/CashFlowPredictionPage';
+import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
 import PublicNavbar from './components/navigation/PublicNavbar';
 import Footer from './components/Footer';
 
 // Hooks
 import { useAccounts } from './hooks/useAccounts';
 import { useTheme } from './hooks/useTheme';
+import type { AggregatedAccount } from './services/AccountAggregationService';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,15 +41,31 @@ const queryClient = new QueryClient({
 });
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { state: { user } } = useAuth();
   return user ? <>{children}</> : <Navigate to="/login" />;
 };
 
 const OverviewContainer: React.FC = () => {
-  const { accounts, refreshAccounts, handleAccountClick } = useAccounts();
+  const { accounts, refreshAccounts } = useAccounts();
+  // Transform accounts into AggregatedAccount format
+  const aggregatedAccounts = accounts.map(account => ({
+    id: account.id,
+    name: account.name,
+    type: account.type,
+    balance: { current: account.balance },
+    currency: account.currency,
+    source: 'manual',
+    institution: account.institution,
+    lastUpdated: new Date(account.updatedAt)
+  })) as AggregatedAccount[];
+  // Define a stub for account click handler
+  const handleAccountClick = (account: AggregatedAccount) => {
+    console.log('Account clicked:', account);
+  };
+
   return (
     <Overview
-      accounts={accounts}
+      accounts={aggregatedAccounts}
       onRefresh={refreshAccounts}
       onAccountClick={handleAccountClick}
     />

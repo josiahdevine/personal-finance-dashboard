@@ -14,8 +14,8 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
         const query = `
             SELECT h.*, s.*
             FROM ${this.tableName} h
-            JOIN securities s ON h.security_id = s.id
-            WHERE h.investment_account_id = $1
+            JOIN securities s ON h.securityId = s.id
+            WHERE h.investmentAccountId = $1
             ORDER BY s.name
         `;
 
@@ -24,32 +24,32 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
         return result.rows.map(row => {
             const holding: InvestmentHolding = {
                 id: row.id,
-                investment_account_id: row.investment_account_id,
-                security_id: row.security_id,
-                cost_basis: row.cost_basis,
+                investmentAccountId: row.investmentAccountId,
+                securityId: row.securityId,
+                costBasis: row.costBasis,
                 quantity: row.quantity,
                 value: row.value,
-                institution_value: row.institution_value,
-                institution_price: row.institution_price,
-                institution_price_as_of: row.institution_price_as_of,
-                is_manual: row.is_manual,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                institutionValue: row.institutionValue,
+                institutionPrice: row.institutionPrice,
+                institutionPriceAsOf: row.institutionPriceAsOf,
+                isManual: row.isManual,
+                createdAt: row.createdAt,
+                updatedAt: row.updatedAt,
             };
 
             const security: Security = {
-                id: row.security_id,
-                ticker_symbol: row.ticker_symbol,
+                id: row.securityId,
+                tickerSymbol: row.tickerSymbol,
                 name: row.name,
                 type: row.type,
-                close_price: row.close_price,
-                close_price_as_of: row.close_price_as_of,
+                closePrice: row.closePrice,
+                closePriceAsOf: row.closePriceAsOf,
                 isin: row.isin,
                 cusip: row.cusip,
-                currency_code: row.currency_code,
-                is_cash_equivalent: row.is_cash_equivalent,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                currencyCode: row.currencyCode,
+                isCashEquivalent: row.isCashEquivalent,
+                createdAt: row.createdAt,
+                updatedAt: row.updatedAt,
             };
 
             return {
@@ -66,7 +66,7 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
         const query = `
             SELECT *
             FROM ${this.tableName}
-            WHERE investment_account_id = $1 AND security_id = $2
+            WHERE investmentAccountId = $1 AND securityId = $2
         `;
 
         const result = await db.query(query, [accountId, securityId]);
@@ -84,8 +84,8 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
 
             // Check if holding exists
             const existingHolding = await this.getByAccountAndSecurity(
-                holding.investment_account_id!,
-                holding.security_id!
+                holding.investmentAccountId!,
+                holding.securityId!
             );
 
             if (existingHolding) {
@@ -93,26 +93,26 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
                 const updateQuery = `
                     UPDATE ${this.tableName}
                     SET
-                        cost_basis = COALESCE($1, cost_basis),
+                        costBasis = COALESCE($1, costBasis),
                         quantity = COALESCE($2, quantity),
                         value = COALESCE($3, value),
-                        institution_value = COALESCE($4, institution_value),
-                        institution_price = COALESCE($5, institution_price),
-                        institution_price_as_of = COALESCE($6, institution_price_as_of),
-                        is_manual = COALESCE($7, is_manual),
-                        updated_at = NOW()
+                        institutionValue = COALESCE($4, institutionValue),
+                        institutionPrice = COALESCE($5, institutionPrice),
+                        institutionPriceAsOf = COALESCE($6, institutionPriceAsOf),
+                        isManual = COALESCE($7, isManual),
+                        updatedAt = NOW()
                     WHERE id = $8
                     RETURNING *
                 `;
 
                 const updateResult = await client.query(updateQuery, [
-                    holding.cost_basis,
+                    holding.costBasis,
                     holding.quantity,
                     holding.value,
-                    holding.institution_value,
-                    holding.institution_price,
-                    holding.institution_price_as_of,
-                    holding.is_manual,
+                    holding.institutionValue,
+                    holding.institutionPrice,
+                    holding.institutionPriceAsOf,
+                    holding.isManual,
                     existingHolding.id
                 ]);
 
@@ -123,30 +123,30 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
             // Create new holding
             const insertQuery = `
                 INSERT INTO ${this.tableName} (
-                    investment_account_id,
-                    security_id,
-                    cost_basis,
+                    investmentAccountId,
+                    securityId,
+                    costBasis,
                     quantity,
                     value,
-                    institution_value,
-                    institution_price,
-                    institution_price_as_of,
-                    is_manual
+                    institutionValue,
+                    institutionPrice,
+                    institutionPriceAsOf,
+                    isManual
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *
             `;
 
             const insertResult = await client.query(insertQuery, [
-                holding.investment_account_id,
-                holding.security_id,
-                holding.cost_basis,
+                holding.investmentAccountId,
+                holding.securityId,
+                holding.costBasis,
                 holding.quantity,
                 holding.value,
-                holding.institution_value,
-                holding.institution_price,
-                holding.institution_price_as_of,
-                holding.is_manual || false
+                holding.institutionValue,
+                holding.institutionPrice,
+                holding.institutionPriceAsOf,
+                holding.isManual || false
             ]);
 
             await client.query('COMMIT');
@@ -165,9 +165,9 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
     async updateValues(updates: Array<{
         id: string;
         value: number;
-        institution_value?: number;
-        institution_price?: number;
-        institution_price_as_of?: string;
+        institutionValue?: number;
+        institutionPrice?: number;
+        institutionPriceAsOf?: string;
     }>): Promise<void> {
         const client = await db.getClient();
 
@@ -180,17 +180,17 @@ class InvestmentHoldingsRepository extends BaseRepository<InvestmentHolding> {
                     UPDATE ${this.tableName}
                     SET
                         value = $1,
-                        institution_value = COALESCE($2, institution_value),
-                        institution_price = COALESCE($3, institution_price),
-                        institution_price_as_of = COALESCE($4, institution_price_as_of),
-                        updated_at = NOW()
+                        institutionValue = COALESCE($2, institutionValue),
+                        institutionPrice = COALESCE($3, institutionPrice),
+                        institutionPriceAsOf = COALESCE($4, institutionPriceAsOf),
+                        updatedAt = NOW()
                     WHERE id = $5
                     `,
                     [
                         update.value,
-                        update.institution_value,
-                        update.institution_price,
-                        update.institution_price_as_of,
+                        update.institutionValue,
+                        update.institutionPrice,
+                        update.institutionPriceAsOf,
                         update.id
                     ]
                 );

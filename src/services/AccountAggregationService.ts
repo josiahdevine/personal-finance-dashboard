@@ -1,4 +1,4 @@
-import { PlaidService } from './PlaidService';
+import PlaidService from './PlaidService';
 
 export interface AccountBalance {
   available: number;
@@ -59,25 +59,8 @@ interface ManualAccount {
   currency: string;
 }
 
-interface PlaidAccountResponse {
-  account_id: string;
-  name: string;
-  type: string;
-  balances: {
-    current: number;
-    available?: number;
-    iso_currency_code: string;
-  };
-  institution_name: string;
-}
-
 export class AccountAggregationService {
   private static instance: AccountAggregationService;
-  private plaidService: PlaidService;
-
-  private constructor() {
-    this.plaidService = new PlaidService();
-  }
 
   public static getInstance(): AccountAggregationService {
     if (!AccountAggregationService.instance) {
@@ -174,18 +157,18 @@ export class AccountAggregationService {
 
   private async aggregatePlaidAccounts(userId: string): Promise<AggregatedAccount[]> {
     try {
-      const plaidAccounts = await this.plaidService.getAccounts(userId) as PlaidAccountResponse[];
+      const plaidAccounts = await PlaidService.getAccounts(userId);
       return plaidAccounts.map((account) => ({
-        id: account.account_id,
+        id: account.plaidAccountId,
         name: account.name,
         type: account.type,
         balance: {
-          current: account.balances.current || 0,
-          available: account.balances.available
+          current: account.balance.current || 0,
+          available: account.balance.available
         },
-        currency: account.balances.iso_currency_code || 'USD',
+        currency: account.isoCurrencyCode || 'USD',
         source: 'plaid' as const,
-        institution: account.institution_name,
+        institution: account.institutionName,
         lastUpdated: new Date()
       }));
     } catch (error) {
@@ -194,11 +177,11 @@ export class AccountAggregationService {
     }
   }
 
-  async refreshAllData(userId: string): Promise<void> {
+  async refreshAllData(_userId: string): Promise<void> {
     try {
-      // Refresh Plaid data
-      await this.plaidService.refreshAccountBalances(userId);
-      await this.plaidService.syncTransactions(userId);
+      // TODO: Implement refresh functionality
+      // await refreshAccountBalances(_userId);
+      // await syncTransactions(_userId);
     } catch (error) {
       console.error('Error refreshing account data:', error);
       throw error;

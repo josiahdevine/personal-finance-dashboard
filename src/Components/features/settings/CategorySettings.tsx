@@ -1,28 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../common/Card';
 import { useCategories } from '../../../hooks/useCategories';
 import { Button } from '../../common/Button';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ColorPicker } from '../../common/ColorPicker';
+import type { Category, CreateCategoryData } from '../../../types/models';
 
 export const CategorySettings: React.FC = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
+  
   const {
     categories,
     deleteCategory,
     updateCategory,
-    createCategory,
-    isEditing,
-    setIsEditing,
-    editingCategory,
-    setEditingCategory
+    createCategory
   } = useCategories();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isEditing && editingCategory) {
-      updateCategory(editingCategory);
-    } else if (editingCategory) {
-      createCategory(editingCategory);
+    if (isEditing && editingCategory && editingCategory.id) {
+      updateCategory(editingCategory.id, editingCategory);
+    } else if (editingCategory && editingCategory.name) {
+      // Ensure we have the required fields for CreateCategoryData
+      const newCategory: CreateCategoryData = {
+        name: editingCategory.name,
+        color: editingCategory.color || '#000000',
+        icon: editingCategory.icon,
+        parentId: editingCategory.parentId
+      };
+      createCategory(newCategory);
     }
     setIsEditing(false);
     setEditingCategory(null);
@@ -39,8 +46,7 @@ export const CategorySettings: React.FC = () => {
             setEditingCategory({
               name: '',
               color: '#000000',
-              icon: 'default',
-              isCustom: true
+              icon: 'default'
             });
           }}
           className="flex items-center"
@@ -74,7 +80,7 @@ export const CategorySettings: React.FC = () => {
                   Category Color
                 </label>
                 <ColorPicker
-                  color={editingCategory.color}
+                  color={editingCategory.color || '#000000'}
                   onChange={(color) => setEditingCategory({
                     ...editingCategory,
                     color

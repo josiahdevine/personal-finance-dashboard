@@ -19,13 +19,27 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
         `;
 
         const result = await db.query(query, [userId]);
-        return result.rows;
+        return result.rows.map(this.mapRowToAccount);
     }
 
     /**
      * Find investment account by ID
      */
-    async findById(id: string, userId: string): Promise<InvestmentAccount | null> {
+    async findById(id: string): Promise<InvestmentAccount | null> {
+        const query = `
+            SELECT *
+            FROM ${this.tableName}
+            WHERE id = $1 AND deleted_at IS NULL
+        `;
+
+        const result = await db.query(query, [id]);
+        return result.rows[0] ? this.mapRowToAccount(result.rows[0]) : null;
+    }
+
+    /**
+     * Find investment account by ID and user ID
+     */
+    async findByIdAndUserId(id: string, userId: string): Promise<InvestmentAccount | null> {
         const query = `
             SELECT *
             FROM ${this.tableName}
@@ -33,7 +47,87 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
         `;
 
         const result = await db.query(query, [id, userId]);
-        return result.rows[0] || null;
+        return result.rows[0] ? this.mapRowToAccount(result.rows[0]) : null;
+    }
+
+    /**
+     * Map a database row to an InvestmentAccount object
+     */
+    private mapRowToAccount(row: any): InvestmentAccount {
+        return {
+            id: row.id,
+            userId: row.user_id,
+            name: row.name,
+            type: row.type,
+            subtype: row.subtype,
+            balance: row.balance,
+            currency: row.currency_code,
+            institution: row.institution_name,
+            lastUpdated: row.last_updated,
+            status: row.is_closed ? 'inactive' : 'active',
+            holdings: []
+        };
+    }
+
+    /**
+     * Map a database row to an InvestmentHolding object
+     */
+    private mapRowToHolding(row: any): InvestmentHolding {
+        return {
+            id: row.id,
+            investmentAccountId: row.investment_account_id,
+            securityId: row.security_id,
+            quantity: row.quantity,
+            costBasis: row.cost_basis,
+            value: row.value,
+            institutionValue: row.institution_value,
+            institutionPrice: row.institution_price,
+            institutionPriceAsOf: row.institution_price_as_of,
+            isManual: row.is_manual,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+
+    /**
+     * Map a database row to a Security object
+     */
+    private mapRowToSecurity(row: any): Security {
+        return {
+            id: row.id,
+            tickerSymbol: row.ticker_symbol,
+            name: row.name,
+            type: row.type,
+            closePrice: row.close_price,
+            closePriceAsOf: row.close_price_as_of,
+            isin: row.isin,
+            cusip: row.cusip,
+            currencyCode: row.currency_code,
+            isCashEquivalent: row.is_cash_equivalent,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+
+    /**
+     * Map a database row to an InvestmentTransaction object
+     */
+    private mapRowToTransaction(row: any): InvestmentTransaction {
+        return {
+            id: row.id,
+            investmentAccountId: row.investment_account_id,
+            securityId: row.security_id,
+            transactionType: row.transaction_type,
+            quantity: row.quantity,
+            price: row.price,
+            amount: row.amount,
+            fees: row.fees,
+            date: row.date,
+            name: row.name,
+            description: row.description,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
     }
 
     /**
@@ -66,32 +160,32 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
         return result.rows.map(row => {
             const holding: InvestmentHolding = {
                 id: row.id,
-                investment_account_id: row.investment_account_id,
-                security_id: row.security_id,
-                cost_basis: row.cost_basis,
+                investmentAccountId: row.investment_account_id,
+                securityId: row.security_id,
                 quantity: row.quantity,
+                costBasis: row.cost_basis,
                 value: row.value,
-                institution_value: row.institution_value,
-                institution_price: row.institution_price,
-                institution_price_as_of: row.institution_price_as_of,
-                is_manual: row.is_manual,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                institutionValue: row.institution_value,
+                institutionPrice: row.institution_price,
+                institutionPriceAsOf: row.institution_price_as_of,
+                isManual: row.is_manual,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at,
             };
 
             const security: Security = {
                 id: row.security_id,
-                ticker_symbol: row.ticker_symbol,
+                tickerSymbol: row.ticker_symbol,
                 name: row.name,
                 type: row.type,
-                close_price: row.close_price,
-                close_price_as_of: row.close_price_as_of,
+                closePrice: row.close_price,
+                closePriceAsOf: row.close_price_as_of,
                 isin: row.isin,
                 cusip: row.cusip,
-                currency_code: row.currency_code,
-                is_cash_equivalent: row.is_cash_equivalent,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                currencyCode: row.currency_code,
+                isCashEquivalent: row.is_cash_equivalent,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at,
             };
 
             return {
@@ -137,18 +231,18 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
         return result.rows.map(row => {
             const transaction: InvestmentTransaction = {
                 id: row.id,
-                investment_account_id: row.investment_account_id,
-                security_id: row.security_id,
-                transaction_type: row.transaction_type,
-                amount: row.amount,
+                investmentAccountId: row.investment_account_id,
+                securityId: row.security_id,
+                transactionType: row.transaction_type,
                 quantity: row.quantity,
                 price: row.price,
+                amount: row.amount,
                 fees: row.fees,
                 date: row.date,
                 name: row.name,
                 description: row.description,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at,
             };
 
             let security: Security | undefined;
@@ -156,17 +250,17 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
             if (row.security_id) {
                 security = {
                     id: row.security_id,
-                    ticker_symbol: row.ticker_symbol,
+                    tickerSymbol: row.ticker_symbol,
                     name: row.name,
                     type: row.type,
-                    close_price: row.close_price,
-                    close_price_as_of: row.close_price_as_of,
+                    closePrice: row.close_price,
+                    closePriceAsOf: row.close_price_as_of,
                     isin: row.isin,
                     cusip: row.cusip,
-                    currency_code: row.currency_code,
-                    is_cash_equivalent: row.is_cash_equivalent,
-                    created_at: row.created_at,
-                    updated_at: row.updated_at,
+                    currencyCode: row.currency_code,
+                    isCashEquivalent: row.is_cash_equivalent,
+                    createdAt: row.created_at,
+                    updatedAt: row.updated_at,
                 };
             }
 
@@ -195,16 +289,16 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
             account.name,
             account.type,
             account.subtype,
-            account.institution_name,
+            account.institution,
             account.balance || 0,
-            account.currency_code || 'USD',
+            account.currency || 'USD',
             true, // is_manual
-            account.is_hidden || false,
-            account.is_closed || false,
+            false, // is_hidden
+            account.status === 'inactive' || false,
         ];
 
         const result = await db.query(query, values);
-        return result.rows[0];
+        return this.mapRowToAccount(result.rows[0]);
     }
 
     /**
@@ -237,14 +331,14 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
             // Check if the security already exists
             let securityId: string;
 
-            if (security.ticker_symbol) {
+            if (security.tickerSymbol) {
                 // Try to find by ticker
                 const existingSecurityQuery = `
                     SELECT id FROM securities
                     WHERE ticker_symbol = $1
                 `;
 
-                const existingSecurityResult = await client.query(existingSecurityQuery, [security.ticker_symbol]);
+                const existingSecurityResult = await client.query(existingSecurityQuery, [security.tickerSymbol]);
 
                 if (existingSecurityResult.rows.length > 0) {
                     securityId = existingSecurityResult.rows[0].id;
@@ -259,11 +353,11 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
                     `;
 
                     const newSecurityResult = await client.query(newSecurityQuery, [
-                        security.ticker_symbol,
+                        security.tickerSymbol,
                         security.name,
                         security.type || 'equity',
-                        security.currency_code || 'USD',
-                        security.is_cash_equivalent || false,
+                        security.currencyCode || 'USD',
+                        security.isCashEquivalent || false,
                     ]);
 
                     securityId = newSecurityResult.rows[0].id;
@@ -281,18 +375,18 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
                 const newSecurityResult = await client.query(newSecurityQuery, [
                     security.name,
                     security.type || 'other',
-                    security.currency_code || 'USD',
-                    security.is_cash_equivalent || false,
+                    security.currencyCode || 'USD',
+                    security.isCashEquivalent || false,
                 ]);
 
                 securityId = newSecurityResult.rows[0].id;
             }
 
-            // Create holding
+            // Create the holding
             const holdingQuery = `
                 INSERT INTO investment_holdings (
-                    investment_account_id, security_id, cost_basis, 
-                    quantity, value, is_manual
+                    investment_account_id, security_id, quantity, cost_basis,
+                    value, is_manual
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
@@ -301,34 +395,27 @@ class InvestmentAccountRepository extends BaseRepository<InvestmentAccount> {
             const holdingResult = await client.query(holdingQuery, [
                 accountId,
                 securityId,
-                holding.cost_basis,
                 holding.quantity,
+                holding.costBasis,
                 holding.value,
-                true, // is_manual
+                true // is_manual
             ]);
 
-            // Get the full security
+            // Get the security details
             const securityQuery = `
                 SELECT * FROM securities WHERE id = $1
             `;
 
             const securityResult = await client.query(securityQuery, [securityId]);
 
-            // Update account balance
-            const updateBalanceQuery = `
-                UPDATE ${this.tableName}
-                SET balance = balance + $1,
-                    updated_at = NOW()
-                WHERE id = $2
-            `;
-
-            await client.query(updateBalanceQuery, [holding.value, accountId]);
-
             await client.query('COMMIT');
 
+            const holdingData = this.mapRowToHolding(holdingResult.rows[0]);
+            const securityData = this.mapRowToSecurity(securityResult.rows[0]);
+
             return {
-                ...holdingResult.rows[0],
-                security: securityResult.rows[0],
+                ...holdingData,
+                security: securityData
             };
         } catch (error) {
             await client.query('ROLLBACK');

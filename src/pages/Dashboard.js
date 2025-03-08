@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Dashboard from '../components/Dashboard';
+import Dashboard from '../Components/Dashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { log } from '../utils/logger';

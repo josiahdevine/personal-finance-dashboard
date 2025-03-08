@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PortfolioDashboard } from '../components/features/investment/PortfolioDashboard';
+import { PortfolioDashboard } from '../Components/features/investment/PortfolioDashboard';
 
 interface Account {
     id: string;

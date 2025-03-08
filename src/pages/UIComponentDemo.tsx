@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Badge } from '../components/ui/Badge';
-import { Toggle } from '../components/ui/Toggle';
-import { Tabs } from '../components/ui/Tabs';
-import { Checkbox } from '../components/ui/Checkbox';
-import { Alert } from '../components/ui/Alert';
-import { ProgressBar } from '../components/ui/ProgressBar';
+import { Badge } from '../Components/ui/Badge';
+import { Toggle } from '../Components/ui/Toggle';
+import { Tabs } from '../Components/ui/Tabs';
+import { Checkbox } from '../Components/ui/Checkbox';
+import { Alert } from '../Components/ui/Alert';
+import { ProgressBar } from '../Components/ui/ProgressBar';
 
 export const UIComponentDemo: React.FC = () => {
   const [activeTab, setActiveTab] = useState('form');

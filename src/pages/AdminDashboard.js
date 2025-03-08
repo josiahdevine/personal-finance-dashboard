@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import SystemHealthStatus from '../components/SystemHealthStatus';
+import SystemHealthStatus from '../Components/SystemHealthStatus';
 import { 
   HiOutlineUserGroup,
   HiOutlineDatabase,

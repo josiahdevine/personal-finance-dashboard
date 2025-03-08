@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CashFlowChart } from '../components/features/cashFlow/CashFlowChart';
-import { CashFlowAlerts } from '../components/features/cashFlow/CashFlowAlerts';
-import { RecurringTransactionsList } from '../components/features/cashFlow/RecurringTransactions';
-import { CashFlowSummary } from '../components/features/cashFlow/CashFlowSummary';
-import { Card } from '../components/common/Card';
-import { Select } from '../components/common/Select';
-import { Toggle } from '../components/common/Toggle';
-import { Button } from '../components/common/Button';
+import { CashFlowChart } from '../Components/features/cashFlow/CashFlowChart';
+import { CashFlowAlerts } from '../Components/features/cashFlow/CashFlowAlerts';
+import { RecurringTransactionsList } from '../Components/features/cashFlow/RecurringTransactions';
+import { CashFlowSummary } from '../Components/features/cashFlow/CashFlowSummary';
+import { Card } from '../Components/common/Card';
+import { Select } from '../Components/common/Select';
+import { Toggle } from '../Components/common/Toggle';
+import { Button } from '../Components/common/Button';
 import api from '../services/api';
 
 interface CashFlowPrediction {

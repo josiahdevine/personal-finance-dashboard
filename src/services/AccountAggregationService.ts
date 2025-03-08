@@ -1,4 +1,4 @@
-import PlaidService from './PlaidService';
+import PlaidService from './plaidService';
 
 export interface AccountBalance {
   available: number;
@@ -176,15 +176,4 @@ export class AccountAggregationService {
       return [];
     }
   }
-
-  async refreshAllData(_userId: string): Promise<void> {
-    try {
-      // TODO: Implement refresh functionality
-      // await refreshAccountBalances(_userId);
-      // await syncTransactions(_userId);
-    } catch (error) {
-      console.error('Error refreshing account data:', error);
-      throw error;
-    }
-  }
-} 
+}

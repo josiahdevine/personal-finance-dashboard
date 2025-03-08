@@ -2,9 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { TimeFrameProvider } from './contexts/TimeFrameContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useTheme } from './contexts/ThemeContext';
 
 // Pages and Components
 import { LandingPage } from './components/LandingPage';
@@ -28,7 +28,6 @@ import Footer from './components/Footer';
 
 // Hooks
 import { useAccounts } from './hooks/useAccounts';
-import { useTheme } from './hooks/useTheme';
 import type { AggregatedAccount } from './services/AccountAggregationService';
 
 const queryClient = new QueryClient({
@@ -80,50 +79,48 @@ export const App: React.FC = () => {
       <Router>
         <HelmetProvider>
           <AuthProvider>
-            <ThemeProvider>
-              <TimeFrameProvider>
-                <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
-                  <ErrorBoundary>
-                    <PublicNavbar />
-                    <main className="flex-grow">
-                      <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<LandingPage />} />
-                        <Route path="/register" element={<Register />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/features" element={<LandingPage />} />
+            <TimeFrameProvider>
+              <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-gray-900' : 'bg-gray-50'} transition-colors duration-200`}>
+                <ErrorBoundary>
+                  <PublicNavbar />
+                  <main className="flex-grow">
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/features" element={<LandingPage />} />
 
-                        {/* Protected Dashboard Routes */}
-                        <Route
-                          path="/dashboard"
-                          element={
-                            <ProtectedRoute>
-                              <DashboardLayout />
-                            </ProtectedRoute>
-                          }
-                        >
-                          <Route index element={<OverviewContainer />} />
-                          <Route path="transactions" element={<Transactions />} />
-                          <Route path="salary" element={<SalaryJournal />} />
-                          <Route path="bills" element={<Bills />} />
-                          <Route path="budget" element={<BudgetPlanning />} />
-                          <Route path="analytics" element={<Analytics />} />
-                          <Route path="cash-flow" element={<CashFlowPredictionPage />} />
-                          <Route path="investments" element={<InvestmentPortfolioPage />} />
-                          <Route path="notifications" element={<Notifications />} />
-                          <Route path="ai" element={<AskAI />} />
-                          <Route path="settings" element={<Settings />} />
-                        </Route>
+                      {/* Protected Dashboard Routes */}
+                      <Route
+                        path="/dashboard"
+                        element={
+                          <ProtectedRoute>
+                            <DashboardLayout />
+                          </ProtectedRoute>
+                        }
+                      >
+                        <Route index element={<OverviewContainer />} />
+                        <Route path="transactions" element={<Transactions />} />
+                        <Route path="salary" element={<SalaryJournal />} />
+                        <Route path="bills" element={<Bills />} />
+                        <Route path="budget" element={<BudgetPlanning />} />
+                        <Route path="analytics" element={<Analytics />} />
+                        <Route path="cash-flow" element={<CashFlowPredictionPage />} />
+                        <Route path="investments" element={<InvestmentPortfolioPage />} />
+                        <Route path="notifications" element={<Notifications />} />
+                        <Route path="ai" element={<AskAI />} />
+                        <Route path="settings" element={<Settings />} />
+                      </Route>
 
-                        {/* Catch-all redirect */}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
-                    </main>
-                    <Footer />
-                  </ErrorBoundary>
-                </div>
-              </TimeFrameProvider>
-            </ThemeProvider>
+                      {/* Catch-all redirect */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </ErrorBoundary>
+              </div>
+            </TimeFrameProvider>
           </AuthProvider>
         </HelmetProvider>
       </Router>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Card } from '../../common/Card';
 import { formatCurrency } from '../../../utils/formatters';
-import PlaidService from '../../../services/PlaidService';
+import PlaidService from '../../../services/plaidService';
 import { useAuth } from '../../../hooks/useAuth';
 
 interface NetWorthData {

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { z } from 'zod';
-import PlaidService from '../../../services/PlaidService';
+import PlaidService from '../../../services/plaidService';
 import { BillsRepository } from '../../../models/BillsRepository';
 
 const billSchema = z.object({

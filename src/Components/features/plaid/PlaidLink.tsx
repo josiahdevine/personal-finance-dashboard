@@ -2,7 +2,7 @@ import React from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
-import PlaidService from '../../../services/PlaidService';
+import PlaidService from '../../../services/plaidService';
 
 export const PlaidLink: React.FC = () => {
   const { user } = useAuth();

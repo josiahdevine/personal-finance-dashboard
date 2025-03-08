@@ -1,52 +1,118 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ApiError } from '../services/api';
 
 interface ErrorMessage {
   title: string;
-  description: string | ReactNode;
+  description: string | React.ReactNode;
 }
 
 interface ThemeContextValue {
   state: {
-    theme: 'light' | 'dark';
     isDarkMode: boolean;
-    isLoading: boolean;
-    error: string | null;
   };
-  setTheme: (theme: 'light' | 'dark') => void;
-  toggleTheme: () => void;
-  toggleDarkMode: () => void;
 }
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: React.ReactNode;
+  componentName?: string;
+  showDetails?: boolean;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | ApiError | null;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
 }
 
-// Wrapper to use hooks in class component
+const ErrorFallback: React.FC<{
+  error: Error;
+  errorInfo: React.ErrorInfo | null;
+  isDarkMode: boolean;
+  componentName?: string;
+  showDetails?: boolean;
+}> = ({ error, errorInfo, isDarkMode, componentName, showDetails }) => (
+  <div className={`p-6 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'} rounded-lg shadow-lg`}>
+    <h2 className="text-2xl font-bold text-red-500 mb-4">Something went wrong {componentName ? `in ${componentName}` : ''}</h2>
+    <p className="mb-4">{error.message}</p>
+    {showDetails && errorInfo && (
+      <details className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded">
+        <summary className="cursor-pointer">Stack trace</summary>
+        <pre className="mt-2 overflow-auto text-sm p-2">{errorInfo.componentStack}</pre>
+      </details>
+    )}
+    <div className="mt-4">
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+      >
+        Retry
+      </button>
+    </div>
+  </div>
+);
+
+// Function to safely get theme outside of hooks with more detailed logging
+function safelyGetTheme(): boolean {
+  try {
+    // First try to get theme from document class
+    const hasDarkClass = document.documentElement.classList.contains('dark');
+    if (hasDarkClass) {
+      return true;
+    }
+    
+    // Then try to get from localStorage
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      return true;
+    }
+    
+    // Finally check system preference
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    console.warn('Failed to detect theme from DOM or localStorage, defaulting to light mode');
+    return false;
+  }
+}
+
 const ErrorBoundaryWithTheme: React.FC<Props> = (props) => {
-  const { state: { isDarkMode } } = useTheme() as ThemeContextValue;
+  let isDarkMode = false;
+  
+  try {
+    // Always call hook unconditionally to avoid React Hook errors
+    // But wrap it in a try-catch to handle case when context is missing
+    const themeContext = useTheme() as ThemeContextValue;
+    isDarkMode = themeContext.state.isDarkMode;
+  } catch (e) {
+    // If theme context is not available, try to get it from DOM/localStorage
+    isDarkMode = safelyGetTheme();
+    console.warn('ThemeProvider not found, using DOM to detect theme', e);
+  }
+  
   return <ErrorBoundaryClass {...props} isDarkMode={isDarkMode} />;
 };
 
 class ErrorBoundaryClass extends Component<Props & { isDarkMode: boolean }, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
-
-  public static getDerivedStateFromError(error: Error | ApiError): State {
-    return { hasError: true, error };
+  constructor(props: Props & { isDarkMode: boolean }) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('Uncaught error:', error, errorInfo);
+    this.setState({ errorInfo });
+  }
+
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error, errorInfo: null };
   }
 
   private isApiError(error: unknown): error is ApiError {
@@ -112,52 +178,21 @@ class ErrorBoundaryClass extends Component<Props & { isDarkMode: boolean }, Stat
     };
   }
 
-  public render(): ReactNode {
-    const { isDarkMode } = this.props;
+  public render(): React.ReactNode {
+    const { isDarkMode, componentName, showDetails } = this.props;
 
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
-      const { title, description } = this.getErrorMessage();
-      const error = this.state.error;
+      const error = this.state.error || new Error('Unknown error');
+      const errorInfo = this.state.errorInfo;
 
       return (
-        <div className={`p-6 rounded-lg shadow-lg max-w-2xl mx-auto mt-8 ${
-          isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'
-        }`}>
-          <h2 className="text-2xl font-semibold mb-4">
-            {title}
-          </h2>
-          <div className="mb-6">
-            {typeof description === 'string' ? (
-              <p>{description}</p>
-            ) : (
-              description
-            )}
-          </div>
-          <div className="flex space-x-4">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              Retry
-            </button>
-            {(this.isApiError(error) && error.isNetworkError) && (
-              <button
-                onClick={() => this.setState({ hasError: false, error: null })}
-                className={`px-4 py-2 rounded-md border ${
-                  isDarkMode
-                    ? 'border-gray-600 hover:border-gray-500'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                Continue Without Connection
-              </button>
-            )}
-          </div>
-        </div>
+        <ErrorFallback
+          error={error}
+          errorInfo={errorInfo}
+          isDarkMode={isDarkMode}
+          componentName={componentName}
+          showDetails={showDetails}
+        />
       );
     }
 

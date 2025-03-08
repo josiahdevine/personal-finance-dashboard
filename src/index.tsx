@@ -5,7 +5,7 @@ import './index.css';
 import { App } from './App';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import ErrorBoundary from 'components/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -13,14 +13,14 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
-        <ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <ErrorBoundary>
           <AuthProvider>
             <App />
           </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
+        </ErrorBoundary>
+      </ThemeProvider>
+    </BrowserRouter>
   </React.StrictMode>
 ); 

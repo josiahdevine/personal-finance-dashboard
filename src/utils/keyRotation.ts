@@ -124,16 +124,22 @@ export class KeyRotationManager {
     oldKey: string
   ): Promise<T> {
     const oldKeyObj = await importKey(oldKey);
-    const currentKey = await this.getCurrentKey();
-    const currentKeyObj = await importKey(currentKey);
+    const currentKeyObj = await importKey(await this.getCurrentKey());
 
     // Re-encrypt each encrypted field
-    const reencrypted = { ...data };
+    const reencrypted = { ...data } as T;
     for (const key in data) {
       if (typeof data[key] === 'object' && data[key]?.isEncrypted) {
         const decrypted = await decryptData(data[key].data, data[key].iv, oldKeyObj);
         const encrypted = await encryptData(decrypted, currentKeyObj);
-        reencrypted[key] = encrypted;
+        // Add the isEncrypted flag to maintain compatibility with our encryption structure
+        (reencrypted[key] as any) = {
+          ...encrypted,
+          isEncrypted: true,
+          _type: typeof decrypted === 'string' ? 'string' : 
+                 Array.isArray(decrypted) ? 'array' : 
+                 typeof decrypted
+        };
       }
     }
 

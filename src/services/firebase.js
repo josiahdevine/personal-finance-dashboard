@@ -58,24 +58,20 @@ console.log('[Firebase Debug] Full Firebase Config:', {
 
 // Enhanced logging for production troubleshooting
 
-
-
 // Type check firebaseConfig to ensure it's valid
-const _configValid = true;
+let _configValid = true;
 const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
 const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 
 if (missingKeys.length > 0) {
   _configValid = false;
   logError('Firebase', 'Missing required Firebase configuration keys', new Error('Invalid config'), { missingKeys });
-  
 }
 
 for (const [key, value] of Object.entries(firebaseConfig)) {
   if (value === undefined || value === null || value === '') {
     _configValid = false;
     logError('Firebase', `Firebase config key ${key} has invalid value`, new Error('Invalid config value'), { key });
-    
   }
 }
 

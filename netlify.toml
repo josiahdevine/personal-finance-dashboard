@@ -6,7 +6,7 @@
 [functions]
   directory = "functions"
   node_bundler = "esbuild"
-  external_node_modules = ["plaid"]
+  external_node_modules = ["plaid", "ioredis"]
   included_files = [
     "functions/utils/**",
     "functions/firebase-config.json"
@@ -15,15 +15,15 @@
 [dev]
   framework = "#custom"
   command = "npm run dev"
-  port = 3000
-  targetPort = 3001
+  port = 8888
+  targetPort = 3000
   publish = "build"
   autoLaunch = false
   functionsPort = 9999
 
 [dev.environment]
   NODE_ENV = "development"
-  PORT = "3001"
+  PORT = "3000"
   BROWSER = "none"
 
 [build.environment]

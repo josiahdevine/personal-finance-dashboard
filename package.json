@@ -34,11 +34,11 @@
     "chart.js": "^4.4.8",
     "chokidar": "^3.6.0",
     "classnames": "^2.5.1",
-    "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "firebase": "^10.8.0",
     "firebase-admin": "^13.1.0",
     "framer-motion": "^12.4.10",
+    "ioredis": "^5.6.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^15.2.1",
     "next-auth": "^4.24.11",
@@ -89,7 +89,7 @@
     "db:migrate": "ts-node src/db/run-migrations.ts",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
-    "dev:all": "concurrently \"npm run dev\" \"npm run start:netlify\""
+    "dev:all": "concurrently \"cross-env PORT=3000 npm run dev\" \"netlify dev --port 8888\""
   },
   "eslintConfig": {
     "extends": [
@@ -131,6 +131,7 @@
     "chai": "^4.3.7",
     "colors": "^1.4.0",
     "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
     "crypto-browserify": "^3.12.1",
     "eslint": "^8.57.0",
     "eslint-plugin-jsx-a11y": "^6.8.0",

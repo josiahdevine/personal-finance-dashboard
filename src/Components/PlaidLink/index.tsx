@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
-import PlaidService from '../../services/PlaidService';
+import PlaidService from '../../services/plaidService';
 import { useAuth } from '../../hooks/useAuth';
 
 interface PlaidLinkButtonProps {

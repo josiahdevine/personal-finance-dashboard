@@ -1,10 +1,10 @@
 import { encryptData, decryptData, isCryptoSupported } from './encryption';
 
-interface EncryptedField<T> {
+interface EncryptedField {
   data: string;
   iv: string;
   isEncrypted: boolean;
-  _type: T;  // Type information for TypeScript, not stored
+  _type: string;  // Type information for TypeScript, not stored
 }
 
 /**
@@ -23,23 +23,26 @@ type SensitiveField = typeof SENSITIVE_FIELDS[number];
 /**
  * Encrypts specific fields in portfolio data
  */
-export async function encryptPortfolioFields<T extends Record<string, any>>(
-  data: T,
+export async function encryptPortfolioFields(
+  data: Record<string, any>,
   fieldsToEncrypt: SensitiveField[] = [...SENSITIVE_FIELDS]
-): Promise<T> {
+): Promise<Record<string, any>> {
   if (!isCryptoSupported()) {
     console.warn('Crypto API not supported - data will not be encrypted');
     return data;
   }
 
-  const encryptedData = { ...data };
+  const encryptedData: Record<string, any> = { ...data };
 
   for (const field of fieldsToEncrypt) {
     if (field in data && data[field] !== null) {
       try {
-        const encrypted = await encryptData(data[field]);
+        // Get current encryption key from your key management system
+        const currentKey = await getCurrentEncryptionKey();
+        const encrypted = await encryptData(data[field], currentKey);
         encryptedData[field] = {
           ...encrypted,
+          isEncrypted: true,
           _type: typeof data[field]
         };
       } catch (error) {
@@ -54,27 +57,39 @@ export async function encryptPortfolioFields<T extends Record<string, any>>(
 }
 
 /**
+ * Placeholder function to get current encryption key
+ * Replace with your actual key management implementation
+ */
+async function getCurrentEncryptionKey(): Promise<CryptoKey> {
+  // This is a placeholder - in a real app, you'd retrieve the stored encryption key
+  throw new Error('getCurrentEncryptionKey not implemented');
+}
+
+/**
  * Decrypts specific fields in portfolio data
  */
-export async function decryptPortfolioFields<T extends Record<string, any>>(
-  data: T,
+export async function decryptPortfolioFields(
+  data: Record<string, any>,
   fieldsToDecrypt: SensitiveField[] = [...SENSITIVE_FIELDS]
-): Promise<T> {
+): Promise<Record<string, any>> {
   if (!isCryptoSupported()) {
     return data;
   }
 
-  const decryptedData = { ...data };
+  const decryptedData: Record<string, any> = { ...data };
 
   for (const field of fieldsToDecrypt) {
     if (field in data && data[field] !== null) {
-      const encryptedField = data[field] as EncryptedField<any>;
+      const encryptedField = data[field] as EncryptedField;
       
       if (encryptedField.isEncrypted) {
         try {
+          // Get current encryption key from your key management system
+          const currentKey = await getCurrentEncryptionKey();
           const decrypted = await decryptData(
             encryptedField.data,
-            encryptedField.iv
+            encryptedField.iv,
+            currentKey
           );
           
           // Convert back to original type

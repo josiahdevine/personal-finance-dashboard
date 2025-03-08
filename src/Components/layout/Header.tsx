@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { ThemeMode } from '../../types/theme';
 
 export interface HeaderProps {
-  theme: 'dark' | 'light';
+  theme: ThemeMode;
   onThemeToggle: () => void;
+  _onMenuClick?: () => void;
 }
 
-export const Header = ({ theme, onThemeToggle }: HeaderProps) => {
+export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, _onMenuClick }) => {
   const navigate = useNavigate();
   const { state, login, logout } = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);

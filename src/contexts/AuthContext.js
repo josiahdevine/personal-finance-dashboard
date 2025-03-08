@@ -59,10 +59,17 @@ export const AuthProvider = ({ children }) => {
     const checkFirebaseInit = async () => {
       try {
         // Try to get the auth instance
-        const authInstance = ensureAuth();
+        const authInstance = await ensureAuth();
         if (authInstance) {
-          // Set persistence to local
-          await setPersistence(authInstance, browserLocalPersistence);
+          try {
+            // Set persistence to local - handling as a separate try/catch
+            await setPersistence(authInstance, browserLocalPersistence);
+            console.log('[Firebase] Auth persistence set to LOCAL successfully');
+          } catch (persistenceError) {
+            console.warn('[Firebase] Could not set persistence, continuing anyway:', persistenceError);
+            // We can continue even if persistence setting fails
+          }
+          
           setFirebaseInitialized(true);
           return true;
         }
@@ -83,12 +90,12 @@ export const AuthProvider = ({ children }) => {
         if (initialized) {
           clearInterval(retryInterval);
         }
-      }, 1000);
+      }, 3000); // Longer interval to reduce console spam
 
       // Cleanup
       return () => clearInterval(retryInterval);
     }
-  }, []);
+  }, [firebaseInitialized]); // Add firebaseInitialized as a dependency
 
   // Handle auth state changes with Firebase
   useEffect(() => {

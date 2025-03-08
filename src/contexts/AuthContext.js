@@ -106,58 +106,75 @@ export const AuthProvider = ({ children }) => {
 
     try {
       log('AuthContext', 'Setting up auth state listener');
-      const authInstance = ensureAuth();
-      if (!authInstance) {
-        throw new Error('Auth not available');
-      }
-
-      // Add debug info to help troubleshoot auth issues
-      log('AuthContext', 'Auth configuration', {
-        authDomain: authInstance.config.authDomain,
-        currentHostname: window.location.hostname,
-        apiKey: authInstance.config.apiKey ? '[PRESENT]' : '[MISSING]',
-        persistence: localStorage.getItem('firebase:authUser') ? 'LOCAL' : 'NONE'
-      });
-
-      const unsubscribe = onAuthStateChanged(
-        authInstance,
-        (user) => {
-          if (user) {
-            log('AuthContext', 'User authenticated', { 
-              uid: user.uid,
-              email: user.email,
-              emailVerified: user.emailVerified
-            });
-            setCurrentUser(user);
-            setIsAuthenticated(true);
-            
-            // Store auth state in localStorage for debugging
-            localStorage.setItem('auth_state', 'authenticated');
-            localStorage.setItem('auth_timestamp', Date.now().toString());
-          } else {
-            log('AuthContext', 'No authenticated user');
-            setCurrentUser(null);
-            setIsAuthenticated(false);
-            localStorage.setItem('auth_state', 'unauthenticated');
+      
+      // Set up an async function we can await inside the effect
+      const setupAuthListener = async () => {
+        try {
+          // Make sure to await ensureAuth to properly resolve the auth instance
+          const authInstance = await ensureAuth();
+          
+          if (!authInstance) {
+            throw new Error('Auth not available');
           }
-          setLoading(false);
-        },
-        (error) => {
-          logError('AuthContext', 'Auth state change error', error);
-          setAuthError({
-            message: 'Error monitoring authentication state',
-            code: error.code
+
+          // Add debug info to help troubleshoot auth issues
+          log('AuthContext', 'Auth configuration', {
+            authDomain: authInstance.config?.authDomain,
+            currentHostname: window.location.hostname,
+            apiKey: authInstance.config?.apiKey ? '[PRESENT]' : '[MISSING]',
+            persistence: localStorage.getItem('firebase:authUser') ? 'LOCAL' : 'NONE'
           });
+
+          const unsubscribe = onAuthStateChanged(
+            authInstance,
+            (user) => {
+              if (user) {
+                log('AuthContext', 'User authenticated', { 
+                  uid: user.uid,
+                  email: user.email,
+                  emailVerified: user.emailVerified
+                });
+                setCurrentUser(user);
+                setIsAuthenticated(true);
+                
+                // Store auth state in localStorage for debugging
+                localStorage.setItem('auth_state', 'authenticated');
+                localStorage.setItem('auth_timestamp', Date.now().toString());
+              } else {
+                log('AuthContext', 'No authenticated user');
+                setCurrentUser(null);
+                setIsAuthenticated(false);
+                localStorage.setItem('auth_state', 'unauthenticated');
+              }
+              setLoading(false);
+            },
+            (error) => {
+              logError('AuthContext', 'Auth state change error', error);
+              setAuthError({
+                message: 'Error monitoring authentication state',
+                code: error.code
+              });
+              setLoading(false);
+              localStorage.setItem('auth_error', JSON.stringify({
+                code: error.code,
+                message: error.message,
+                time: new Date().toISOString()
+              }));
+            }
+          );
+
+          return () => unsubscribe();
+        } catch (error) {
+          logError('AuthContext', 'Error setting up auth state listener', error);
           setLoading(false);
-          localStorage.setItem('auth_error', JSON.stringify({
-            code: error.code,
+          localStorage.setItem('auth_setup_error', JSON.stringify({
             message: error.message,
             time: new Date().toISOString()
           }));
         }
-      );
+      };
 
-      return () => unsubscribe();
+      setupAuthListener();
     } catch (error) {
       logError('AuthContext', 'Error setting up auth state listener', error);
       setLoading(false);
@@ -607,7 +624,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Make sure value is properly memoized to prevent unnecessary re-renders
+  // Memoize the auth value
   const value = useMemo(() => ({
     currentUser,
     loading,
@@ -618,7 +635,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     loginWithGoogle,
     signInAsGuest
-  }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout, loginWithGoogle]);
+  }), [currentUser, loading, isAuthenticated, authError, firebaseInitialized, register, login, logout, loginWithGoogle, signInAsGuest]);
 
   useEffect(() => {
     // Set persistence to LOCAL on mount

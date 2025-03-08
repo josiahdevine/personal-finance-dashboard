@@ -205,9 +205,6 @@ function generateMockSalaryEntries() {
   return entries;
 }
 
-// Set to true to use mock data even in production (for demo purposes)
-const USE_MOCK_DATA = false;
-
 // Get the current port from the window location
 const _getCurrentPort = () => {
   if (typeof window !== 'undefined') {
@@ -226,10 +223,21 @@ const _getCurrentPort = () => {
 };
 
 // Determine the base URL based on environment
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
-  (window.location.hostname === 'localhost' 
-    ? 'http://localhost:8888/.netlify/functions'
-    : '/.netlify/functions');
+// Make sure we don't have a doubled path by removing any existing /.netlify/functions
+const API_BASE_URL = (() => {
+  let baseUrl = process.env.REACT_APP_API_BASE_URL || 
+    (window.location.hostname === 'localhost' 
+      ? `http://localhost:8889/.netlify/functions`
+      : '/.netlify/functions');
+      
+  // Ensure we don't have doubled paths
+  if (baseUrl.includes('/.netlify/functions/.netlify/functions')) {
+    baseUrl = baseUrl.replace('/.netlify/functions/.netlify/functions', '/.netlify/functions');
+  }
+  
+  console.log('API Base URL:', baseUrl);  
+  return baseUrl;
+})();
 
 // Create axios instance with default config
 const api = axios.create({
@@ -239,6 +247,43 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   }
+});
+
+// Add request interceptor for detailed logging
+api.interceptors.request.use(request => {
+  console.log('🚀 API Request:', {
+    url: request.url,
+    method: request.method,
+    headers: request.headers,
+    data: request.data,
+    baseURL: request.baseURL,
+    withCredentials: request.withCredentials
+  });
+  return request;
+}, error => {
+  console.error('❌ Request Error:', error);
+  return Promise.reject(error);
+});
+
+// Add response interceptor for detailed logging
+api.interceptors.response.use(response => {
+  console.log('✅ API Response:', {
+    url: response.config.url,
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+    data: response.data
+  });
+  return response;
+}, error => {
+  console.error('❌ Response Error:', {
+    url: error.config?.url,
+    message: error.message,
+    status: error.response?.status,
+    statusText: error.response?.statusText,
+    data: error.response?.data
+  });
+  return Promise.reject(error);
 });
 
 // Log API initialization for debugging
@@ -251,7 +296,7 @@ console.log('[API] Client initialized with:', {
 /* Health check runs only once at startup. Automatic retries are not implemented to avoid blocking the event loop. */
 api.checkHealth = async () => {
   try {
-    const response = await api.get('/health');
+    const response = await api.get('/health-check');
     console.log('API health check successful:', response.data);
     return { status: 'healthy', data: response.data };
   } catch (error) {
@@ -263,16 +308,10 @@ api.checkHealth = async () => {
 // Add login method for backend authentication
 api.login = async (userData) => {
   try {
-    // In a real implementation, this would call the backend
-    // For now, we'll just mock a successful response
-    console.log('Mock backend login with:', userData);
-    
-    // Simulate successful backend authentication
-    return {
-      success: true,
-      userId: userData.firebaseUid,
-      token: 'mock-auth-token-' + Date.now()
-    };
+    // Make an actual call to the backend login endpoint
+    const response = await api.post('/auth-login', userData);
+    console.log('Backend login response:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Backend login failed:', error);
     throw error;
@@ -288,9 +327,9 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Check if we're in development mode or using mock data intentionally
+// Function to disable mock data usage
 const _shouldUseMockData = () => {
-  return process.env.NODE_ENV === 'development' || USE_MOCK_DATA;
+  return false; // Always use real data
 };
 
 // Mock API response handler

@@ -7,24 +7,24 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTheme } from './contexts/ThemeContext';
 
 // Pages and Components
-import { LandingPage } from './components/LandingPage';
-import { Register } from './components/auth/Register';
-import { Login } from './components/auth/Login';
-import { DashboardLayout } from './components/layout/DashboardLayout';
-import { Overview } from './components/Dashboard/Overview';
-import { Transactions } from './components/Dashboard/Transactions';
-import { SalaryJournal } from './components/Dashboard/SalaryJournal';
+import { LandingPage } from './Components/LandingPage';
+import { Register } from './Components/auth/Register';
+import { Login } from './Components/auth/Login';
+import { DashboardLayout } from './Components/layout/DashboardLayout';
+import { Overview } from './Components/Dashboard/Overview';
+import { Transactions } from './Components/Dashboard/Transactions';
+import { SalaryJournal } from './Components/Dashboard/SalaryJournal';
 import { Bills } from './pages/Dashboard/Bills';
-import { BudgetPlanning } from './components/Dashboard/BudgetPlanning';
-import { Analytics } from './components/Dashboard/Analytics';
-import { Notifications } from './components/Dashboard/Notifications';
-import { AskAI } from './components/Dashboard/AskAI';
-import { Settings } from './components/Dashboard/Settings';
+import { BudgetPlanning } from './Components/Dashboard/BudgetPlanning';
+import { Analytics } from './Components/Dashboard/Analytics';
+import { Notifications } from './Components/Dashboard/Notifications';
+import { AskAI } from './Components/Dashboard/AskAI';
+import { Settings } from './Components/Dashboard/Settings';
 import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
-import ErrorBoundary from './components/ErrorBoundary';
-import PublicNavbar from './components/navigation/PublicNavbar';
-import Footer from './components/Footer';
+import ErrorBoundary from './Components/ErrorBoundary';
+import PublicNavbar from './Components/navigation/PublicNavbar';
+import Footer from './Components/Footer';
 
 // Hooks
 import { useAccounts } from './hooks/useAccounts';

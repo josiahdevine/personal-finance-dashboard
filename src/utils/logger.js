@@ -191,8 +191,8 @@ export const monitorApiCall = async (component, endpoint, apiCall) => {
   }
 };
 
-// Export the default logger object
-export default {
+// Create a named logger object instead of anonymous export
+const logger = {
   log,
   logError,
   logRender,
@@ -200,3 +200,6 @@ export default {
   getEnvironmentInfo,
   monitorApiCall
 };
+
+// Export the named logger
+export default logger;

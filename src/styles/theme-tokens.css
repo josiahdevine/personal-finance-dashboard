@@ -1,0 +1,211 @@
+/* Theme Tokens - Semantic Color System */
+
+/* Light Mode */
+:root {
+  /* Background Colors */
+  --color-background-primary: var(--tw-colors-neutral-50);
+  --color-background-secondary: white;
+  --color-background-tertiary: var(--tw-colors-neutral-100);
+  
+  /* Surface Colors */
+  --color-surface-primary: white;
+  --color-surface-secondary: var(--tw-colors-neutral-50);
+  --color-surface-tertiary: var(--tw-colors-neutral-100);
+  
+  /* Text Colors */
+  --color-text-primary: var(--tw-colors-neutral-900);
+  --color-text-secondary: var(--tw-colors-neutral-700);
+  --color-text-tertiary: var(--tw-colors-neutral-500);
+  --color-text-inverse: white;
+  
+  /* Border Colors */
+  --color-border-light: var(--tw-colors-neutral-200);
+  --color-border-medium: var(--tw-colors-neutral-300);
+  --color-border-heavy: var(--tw-colors-neutral-400);
+  
+  /* Action Colors */
+  --color-action-primary: var(--tw-colors-primary-400);
+  --color-action-primary-hover: var(--tw-colors-primary-500);
+  --color-action-primary-active: var(--tw-colors-primary-600);
+  
+  --color-action-secondary: var(--tw-colors-neutral-200);
+  --color-action-secondary-hover: var(--tw-colors-neutral-300);
+  --color-action-secondary-active: var(--tw-colors-neutral-400);
+  
+  /* Status Colors */
+  --color-positive: var(--tw-colors-secondary-400);
+  --color-positive-light: var(--tw-colors-secondary-50);
+  --color-negative: var(--tw-colors-accent-400);
+  --color-negative-light: var(--tw-colors-accent-50);
+  --color-warning: #FFAA00;
+  --color-warning-light: #FFF8E6;
+  --color-info: var(--tw-colors-primary-400);
+  --color-info-light: var(--tw-colors-primary-50);
+}
+
+/* Dark Mode */
+.dark {
+  /* Background Colors */
+  --color-background-primary: var(--tw-colors-neutral-900);
+  --color-background-secondary: var(--tw-colors-dark-background);
+  --color-background-tertiary: var(--tw-colors-dark-surface);
+  
+  /* Surface Colors */
+  --color-surface-primary: var(--tw-colors-dark-surface);
+  --color-surface-secondary: #2D3452;
+  --color-surface-tertiary: #3A4061;
+  
+  /* Text Colors */
+  --color-text-primary: var(--tw-colors-neutral-50);
+  --color-text-secondary: var(--tw-colors-neutral-200);
+  --color-text-tertiary: var(--tw-colors-neutral-400);
+  --color-text-inverse: var(--tw-colors-neutral-900);
+  
+  /* Border Colors */
+  --color-border-light: #3A4061;
+  --color-border-medium: #465A7D;
+  --color-border-heavy: #61759A;
+  
+  /* Action Colors */
+  --color-action-primary: var(--tw-colors-primary-400);
+  --color-action-primary-hover: var(--tw-colors-primary-300);
+  --color-action-primary-active: var(--tw-colors-primary-200);
+  
+  --color-action-secondary: #3A4061;
+  --color-action-secondary-hover: #465A7D;
+  --color-action-secondary-active: #61759A;
+  
+  /* Status Colors */
+  --color-positive: var(--tw-colors-secondary-400);
+  --color-positive-light: rgba(0, 196, 140, 0.15);
+  --color-negative: var(--tw-colors-accent-400);
+  --color-negative-light: rgba(255, 107, 107, 0.15);
+  --color-warning: #FFAA00;
+  --color-warning-light: rgba(255, 170, 0, 0.15);
+  --color-info: var(--tw-colors-primary-400);
+  --color-info-light: rgba(51, 102, 255, 0.15);
+}
+
+/* Apply TailwindCSS color variables to CSS custom properties */
+:root {
+  --tw-colors-primary-50: #E6EEFF;
+  --tw-colors-primary-100: #C2D4FF;
+  --tw-colors-primary-200: #99B3FF;
+  --tw-colors-primary-300: #6690FF;
+  --tw-colors-primary-400: #3366FF;
+  --tw-colors-primary-500: #1A4DFF;
+  --tw-colors-primary-600: #0033CC;
+  --tw-colors-primary-700: #002299;
+  --tw-colors-primary-800: #001166;
+  --tw-colors-primary-900: #000033;
+  
+  --tw-colors-secondary-50: #E6FAF5;
+  --tw-colors-secondary-100: #B3F1E3;
+  --tw-colors-secondary-200: #80E9D2;
+  --tw-colors-secondary-300: #4DE0C0;
+  --tw-colors-secondary-400: #00C48C;
+  --tw-colors-secondary-500: #00A376;
+  --tw-colors-secondary-600: #008260;
+  --tw-colors-secondary-700: #006249;
+  --tw-colors-secondary-800: #004133;
+  --tw-colors-secondary-900: #00201A;
+  
+  --tw-colors-accent-50: #FFEAEA;
+  --tw-colors-accent-100: #FFCCCC;
+  --tw-colors-accent-200: #FFADAD;
+  --tw-colors-accent-300: #FF8D8D;
+  --tw-colors-accent-400: #FF6B6B;
+  --tw-colors-accent-500: #FF4747;
+  --tw-colors-accent-600: #E60000;
+  --tw-colors-accent-700: #B30000;
+  --tw-colors-accent-800: #800000;
+  --tw-colors-accent-900: #4D0000;
+  
+  --tw-colors-neutral-50: #F7F9FC;
+  --tw-colors-neutral-100: #EAF0F7;
+  --tw-colors-neutral-200: #DCE3ED;
+  --tw-colors-neutral-300: #C8D3E5;
+  --tw-colors-neutral-400: #A3B4CC;
+  --tw-colors-neutral-500: #8295B3;
+  --tw-colors-neutral-600: #61759A;
+  --tw-colors-neutral-700: #465A7D;
+  --tw-colors-neutral-800: #304060;
+  --tw-colors-neutral-900: #1A2643;
+  
+  --tw-colors-dark-background: #1A1F36;
+  --tw-colors-dark-surface: #252D43;
+  --tw-colors-dark-text: #E4E9F2;
+}
+
+/* Typography */
+:root {
+  --font-family-sans: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-mono: "SF Mono", "Roboto Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+  --text-5xl: 3rem;      /* 48px */
+  --text-6xl: 3.75rem;   /* 60px */
+  
+  /* Line heights */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  
+  /* Letter spacing */
+  --tracking-tighter: -0.05em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+  
+  /* Font weights */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+}
+
+/* Spacing */
+:root {
+  --space-xs: 0.25rem;  /* 4px */
+  --space-sm: 0.5rem;   /* 8px */
+  --space-md: 1rem;     /* 16px */
+  --space-lg: 1.5rem;   /* 24px */
+  --space-xl: 2rem;     /* 32px */
+  --space-2xl: 3rem;    /* 48px */
+  --space-3xl: 4rem;    /* 64px */
+}
+
+/* Elevation */
+:root {
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --elevation-2: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.07);
+  --elevation-3: 0 4px 8px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.07);
+  --elevation-4: 0 8px 16px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.07);
+  --elevation-5: 0 16px 32px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0, 0, 0, 0.07);
+}
+
+/* Animation */
+:root {
+  --transition-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --transition-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --transition-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+  
+  --duration-xs: 100ms;
+  --duration-sm: 150ms;
+  --duration-md: 200ms;
+  --duration-lg: 300ms;
+  --duration-xl: 500ms;
+} 

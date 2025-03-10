@@ -12,7 +12,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, _onMenuClick }) => {
   const navigate = useNavigate();
-  const { state, login, logout } = useAuth();
+  const { isAuthenticated, login, logout } = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -88,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, _onMenuCli
             </button>
 
             {/* User Menu */}
-            {state.user ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => navigate('/dashboard')}

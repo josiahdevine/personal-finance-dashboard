@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import SalaryJournal from '../Components/SalaryJournal';
+import SalaryJournal from '../components/SalaryJournal';
 import { useAuth } from '../contexts/AuthContext';
 import { useFinanceData } from '../contexts/FinanceDataContext';
 import { log, logError } from '../utils/logger';

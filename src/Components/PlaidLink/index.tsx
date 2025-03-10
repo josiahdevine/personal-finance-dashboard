@@ -1,91 +1,32 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { usePlaidLink } from 'react-plaid-link';
-import PlaidService from '../../services/plaidService';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useEffect, useState } from 'react';
 
-interface PlaidLinkButtonProps {
-  onSuccess?: () => void;
-  className?: string;
-}
-
-export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
-  onSuccess,
-  className = '',
-}) => {
-  const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  const onSuccessCallback = useCallback(
-    async (publicToken: string) => {
-      try {
-        setLoading(true);
-        setError(null);
-        await PlaidService.exchangePublicToken(publicToken, user?.id || '');
-        onSuccess?.();
-      } catch (err) {
-        console.error('Error linking account:', err);
-        setError('Failed to link account. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [user?.id, onSuccess]
-  );
-
-  const config = {
-    token: linkToken,
-    onSuccess: onSuccessCallback,
-    onExit: () => {
-      setLinkToken(null);
-      setError(null);
-    },
-  };
-
-  const { open, ready } = usePlaidLink(config);
+/**
+ * @deprecated This component is deprecated. Please use the version from 
+ * src/components/features/plaid/PlaidLink.tsx instead.
+ * 
+ * This will be removed in a future release.
+ */
+export const PlaidLinkButton: React.FC<any> = (props) => {
+  console.warn('Using deprecated PlaidLinkButton component. Please import from src/components/features/plaid/PlaidLink.tsx instead.');
+  
+  // Use state to hold the dynamically imported component
+  const [CorrectComponent, setCorrectComponent] = useState<React.ComponentType<any> | null>(null);
 
   useEffect(() => {
-    const getToken = async () => {
-      if (!user?.id) return;
+    // Dynamically import the correct component
+    import('../features/plaid/PlaidLink')
+      .then(module => {
+        setCorrectComponent(() => module.PlaidLink);
+      })
+      .catch(error => {
+        console.error('Error importing PlaidLink:', error);
+      });
+  }, []);
 
-      try {
-        setLoading(true);
-        setError(null);
-        const { linkToken: token } = await PlaidService.createLinkToken(user.id);
-        setLinkToken(token);
-      } catch (err) {
-        console.error('Error getting link token:', err);
-        setError('Failed to initialize Plaid. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getToken();
-  }, [user?.id]);
-
-  if (error) {
-    return (
-      <div className="text-red-600 text-sm mt-2">
-        {error}
-        <button
-          onClick={() => window.location.reload()}
-          className="ml-2 text-blue-600 hover:text-blue-800 underline"
-        >
-          Retry
-        </button>
-      </div>
-    );
+  if (!CorrectComponent) {
+    // Return loading state or fallback while importing
+    return <div>Loading Plaid Component...</div>;
   }
 
-  return (
-    <button
-      onClick={() => open()}
-      disabled={!ready || loading || !linkToken}
-      className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-    >
-      {loading ? 'Connecting...' : 'Link Bank Account'}
-    </button>
-  );
-}; 
+  return <CorrectComponent {...props} />;
+};

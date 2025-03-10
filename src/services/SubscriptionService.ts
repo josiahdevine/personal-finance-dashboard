@@ -1,6 +1,6 @@
 import { api } from '../utils/api';
 
-interface SubscriptionStatus {
+export interface SubscriptionStatus {
   status: 'active' | 'canceled' | 'past_due' | 'none';
   plan: string;
   currentPeriodEnd: string;

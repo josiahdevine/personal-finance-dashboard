@@ -1,12 +1,22 @@
 import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { LineChart } from 'components/Charts/LineChart';
-import { currencyFormatter } from '../../../utils/formatters';
+import { LineChart, LineChartData } from '../../../components/Charts/LineChart';
 
-export const PerformanceChart: React.FC = () => {
-  const { portfolio, loading, error } = usePortfolio();
+interface PerformanceChartProps {
+  isLoading?: boolean;
+  period?: string;
+}
 
-  if (loading) {
+export const PerformanceChart: React.FC<PerformanceChartProps> = ({ 
+  isLoading: externalLoading,
+  period: _period = '1m'
+}) => {
+  const { portfolio, loading: internalLoading, error } = usePortfolio();
+  
+  // Use external loading state if provided, otherwise use internal loading state
+  const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
+
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6 animate-pulse">
         <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
@@ -23,20 +33,37 @@ export const PerformanceChart: React.FC = () => {
     );
   }
 
-  const performanceData = portfolio?.performance.map(point => ({
-    date: new Date(point.date).toLocaleDateString(),
-    value: point.value,
-  })) || [];
+  // Transform the data to match the LineChart expected format
+  const rawPerformanceData = portfolio?.performance || [];
+  
+  // Extract dates for labels
+  const labels = rawPerformanceData.map(point => 
+    new Date(point.date).toLocaleDateString()
+  );
+  
+  // Extract values for dataset
+  const values = rawPerformanceData.map(point => point.value);
+  
+  // Create the LineChartData object
+  const chartData: LineChartData = {
+    labels,
+    datasets: [
+      {
+        label: 'Portfolio Value',
+        data: values,
+        borderColor: '#3b82f6', // blue-500
+        backgroundColor: 'rgba(59, 130, 246, 0.1)', // blue-500 with opacity
+        fill: true
+      }
+    ]
+  };
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold mb-4">Performance History</h2>
       <div className="h-64">
         <LineChart
-          data={performanceData}
-          xKey="date"
-          yKey="value"
-          yFormatter={currencyFormatter}
+          data={chartData}
         />
       </div>
     </div>

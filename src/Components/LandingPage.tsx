@@ -17,12 +17,12 @@ export const LandingPage: React.FC = () => {
   
   const y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
 
-  const { state: { theme }, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const theme = useTheme();
+  const isDark = theme.isDarkMode;
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} ref={containerRef}>
-      <Header theme={theme as any} onThemeToggle={toggleTheme} />
+      <Header theme={isDark ? 'dark' : 'light'} onThemeToggle={theme.toggleTheme} />
       
       {/* Hero Section */}
       <motion.div
@@ -104,21 +104,21 @@ export const LandingPage: React.FC = () => {
               Seamlessly integrated with your favorite banks
             </h2>
           </motion.div>
-          <IntegrationLogos theme={theme} />
+          <IntegrationLogos theme={isDark ? 'dark' : 'light'} />
         </div>
       </div>
 
       {/* Demo Video Section */}
       <div className={`relative ${isDark ? 'bg-gray-900' : 'bg-gray-50'} py-24`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <DemoVideo theme={theme} />
+          <DemoVideo theme={isDark ? 'dark' : 'light'} />
         </div>
       </div>
 
       {/* Testimonials Section */}
       <div className={`relative ${isDark ? 'bg-gray-800' : 'bg-white'} py-24`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Testimonials theme={theme} />
+          <Testimonials theme={isDark ? 'dark' : 'light'} />
         </div>
       </div>
     </div>

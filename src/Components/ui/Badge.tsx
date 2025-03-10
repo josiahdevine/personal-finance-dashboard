@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface BadgeProps {
+export interface BadgeProps {
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'dark' | 'light' | 'default';
   size?: 'sm' | 'md' | 'lg';
   rounded?: boolean;

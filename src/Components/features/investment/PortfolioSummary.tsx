@@ -2,10 +2,17 @@ import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
 import { currencyFormatter } from '../../../utils/formatters';
 
-export const PortfolioSummary: React.FC = () => {
-  const { portfolio, loading, error } = usePortfolio();
+interface PortfolioSummaryProps {
+  isLoading?: boolean;
+}
 
-  if (loading) {
+export const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ isLoading: externalLoading }) => {
+  const { portfolio, loading: internalLoading, error } = usePortfolio();
+  
+  // Use external loading state if provided, otherwise use internal loading state
+  const isLoading = externalLoading !== undefined ? externalLoading : internalLoading;
+
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6 animate-pulse">
         <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>

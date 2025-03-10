@@ -23,9 +23,15 @@ const initialState: AuthState = {
 
 const AuthContext = createContext<{
   state: AuthState;
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  authError: string | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -196,6 +202,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    // TODO: Implement login with Google
+  }, []);
+
+  const signInAsGuest = useCallback(async () => {
+    // TODO: Implement sign in as guest
+  }, []);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -218,9 +232,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         state,
+        currentUser: state.user,
+        isAuthenticated: state.isAuthenticated,
+        authError: state.error,
+        loading: state.isLoading,
         login,
         register,
         logout,
+        loginWithGoogle,
+        signInAsGuest,
         updateProfile,
         resetPassword,
         updatePassword

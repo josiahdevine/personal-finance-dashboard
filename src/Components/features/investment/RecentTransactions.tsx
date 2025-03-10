@@ -2,8 +2,27 @@ import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
 import { dateFormatter, currencyFormatter } from '../../../utils/formatters';
 
-export const RecentTransactions: React.FC = () => {
-  const { portfolio, loading, error } = usePortfolio();
+interface RecentTransactionsProps {
+  isLoading?: boolean;
+  accountIds?: string[];
+}
+
+export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ 
+  isLoading: propIsLoading,
+  accountIds = []
+}) => {
+  const { portfolio, loading: hookLoading, error } = usePortfolio();
+  
+  // Use the prop loading state if provided, otherwise use the hook's loading state
+  const loading = propIsLoading !== undefined ? propIsLoading : hookLoading;
+
+  // Filter transactions by accountIds if provided and not empty
+  const filteredTransactions = accountIds.length === 0 
+    ? portfolio?.recentTransactions || []
+    : portfolio?.recentTransactions?.filter(tx => 
+        // Safe check if tx has accountId property before filtering
+        'accountId' in tx && accountIds.includes(tx.accountId as string)
+      ) || [];
 
   if (loading) {
     return (
@@ -48,7 +67,7 @@ export const RecentTransactions: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {portfolio?.recentTransactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <tr key={transaction.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {dateFormatter(transaction.date)}
@@ -66,6 +85,13 @@ export const RecentTransactions: React.FC = () => {
                 </td>
               </tr>
             ))}
+            {filteredTransactions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                  No transactions found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -3,11 +3,19 @@ import { format } from 'date-fns';
 /**
  * Format a number as currency
  */
-export const currencyFormatter = (value: number, currency = 'USD'): string => {
+export const currencyFormatter = (value: number | string, currency = 'USD'): string => {
+  // Convert string to number if needed
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // Handle NaN case
+  if (isNaN(numValue)) {
+    return '$0.00';
+  }
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
-  }).format(value);
+  }).format(numValue);
 };
 
 // Alias for backward compatibility

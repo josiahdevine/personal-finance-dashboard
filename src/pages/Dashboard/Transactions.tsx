@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CreditCardIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Transaction {
   id: string;
@@ -15,9 +16,13 @@ interface Transaction {
 }
 
 export const Transactions: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Mock data - replace with real data from your backend
   const transactions: Transaction[] = [
@@ -40,118 +45,137 @@ export const Transactions: React.FC = () => {
     {
       id: '3',
       date: '2024-02-18',
-      description: 'Grocery Store',
-      amount: -84.32,
+      description: 'Grocery Shopping',
+      amount: -85.47,
       category: 'Food',
       type: 'expense',
     },
-    // Add more mock transactions as needed
   ];
 
-  const filteredTransactions = transactions.filter((transaction) => {
+  // Simulated data loading effect
+  useEffect(() => {
+    setLoading(true);
+    // Simulate API call
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Function to filter transactions
+  const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
-    // Add date filtering logic here
     return matchesSearch && matchesCategory;
   });
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Transactions</h1>
-      </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="py-4">
-          {/* Filters */}
-          <div className="bg-white shadow rounded-lg mb-6">
-            <div className="p-4 sm:p-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Search transactions"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div>
-                <select
-                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                </select>
-              </div>
-              <div>
-                <select
-                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                >
-                  <option value="all">All Categories</option>
-                  <option value="Income">Income</option>
-                  <option value="Food">Food</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Bills">Bills</option>
-                  <option value="Shopping">Shopping</option>
-                </select>
-              </div>
-              <button
-                type="button"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <FunnelIcon className="h-5 w-5 mr-2" />
-                Apply Filters
-              </button>
-            </div>
-          </div>
-
-          {/* Transactions List */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul role="list" className="divide-y divide-gray-200">
-              {filteredTransactions.map((transaction) => (
-                <li key={transaction.id}>
-                  <div className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
-                          transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
-                          <CreditCardIcon className={`h-6 w-6 ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                          }`} />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
-                          <p className="text-sm text-gray-500">{transaction.category}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="mr-4 text-right">
-                          <p className={`text-sm font-medium ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'income' ? '+' : ''}{transaction.amount.toFixed(2)}
-                          </p>
-                          <p className="text-sm text-gray-500">{transaction.date}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+    <div className={`p-6 ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+      <h1 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        Transactions
+      </h1>
+      
+      {/* Search and filters */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className={`relative flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <input
+            type="text"
+            placeholder="Search transactions..."
+            className={`pl-10 pr-4 py-2 w-full rounded-lg border ${
+              isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+            } focus:outline-none focus:ring-2 ${
+              isDark ? 'focus:ring-blue-500' : 'focus:ring-blue-500'
+            }`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        </div>
+        
+        <div className="flex space-x-2">
+          <select
+            className={`px-4 py-2 rounded-lg border ${
+              isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+            }`}
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">All Categories</option>
+            <option value="Income">Income</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Food">Food</option>
+            {/* Add more categories */}
+          </select>
+          
+          <button
+            className={`p-2 rounded-lg ${
+              isDark ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+          >
+            <FunnelIcon className="h-5 w-5 text-gray-500" />
+          </button>
         </div>
       </div>
+      
+      {/* Transactions list */}
+      {loading ? (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : error ? (
+        <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900' : 'bg-red-100'} mb-4`}>
+          <p className={isDark ? 'text-red-200' : 'text-red-700'}>{error}</p>
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'} mb-4`}>
+          <p className="text-center">No transactions found.</p>
+        </div>
+      ) : (
+        <div className={`overflow-x-auto rounded-lg border ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className={isDark ? 'bg-gray-800' : 'bg-gray-50'}>
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Description
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Category
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                  Amount
+                </th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              {filteredTransactions.map((transaction) => (
+                <tr key={transaction.id} className={isDark ? 'bg-gray-900' : 'bg-white'}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {new Date(transaction.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {transaction.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {transaction.category}
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                    transaction.amount >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {transaction.amount.toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
-}; 
+};

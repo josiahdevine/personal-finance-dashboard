@@ -8,9 +8,8 @@ interface ErrorMessage {
 }
 
 interface ThemeContextValue {
-  state: {
-    isDarkMode: boolean;
-  };
+  isDarkMode: boolean;
+  toggleTheme: () => void;
 }
 
 interface Props {
@@ -86,7 +85,7 @@ const ErrorBoundaryWithTheme: React.FC<Props> = (props) => {
     // Always call hook unconditionally to avoid React Hook errors
     // But wrap it in a try-catch to handle case when context is missing
     const themeContext = useTheme() as ThemeContextValue;
-    isDarkMode = themeContext.state.isDarkMode;
+    isDarkMode = themeContext.isDarkMode;
   } catch (e) {
     // If theme context is not available, try to get it from DOM/localStorage
     isDarkMode = safelyGetTheme();

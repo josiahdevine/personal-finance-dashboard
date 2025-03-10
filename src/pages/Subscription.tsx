@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Elements } from '@stripe/react-stripe-js';
-import { initializeStripe } from '../utils/stripeUtils';
-import { motion } from 'framer-motion';
 import { SubscriptionService } from '../services/SubscriptionService';
+import { SubscriptionStatus } from '../services/SubscriptionService';
+import { initializeStripe } from '../utils/stripeUtils';
+import { Elements } from '@stripe/react-stripe-js';
+import { motion } from 'framer-motion';
 
 // Initialize Stripe
 const stripePromise = initializeStripe();
@@ -13,7 +14,7 @@ const Subscription: React.FC = () => {
   const auth = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,9 +114,7 @@ const Subscription: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Plan</p>
-                        <p className="font-medium text-gray-900">
-                          {subscription.plan || 'No active plan'}
-                        </p>
+                        <p className="font-medium text-gray-900">{subscription.plan}</p>
                       </div>
                       {subscription.currentPeriodEnd && (
                         <div>
@@ -167,4 +166,4 @@ const Subscription: React.FC = () => {
   );
 };
 
-export default Subscription; 
+export default Subscription;

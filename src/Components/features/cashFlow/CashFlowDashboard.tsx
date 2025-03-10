@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../common/Card';
-import { Select } from '../../common/Select';
-import { Toggle } from '../../common/Toggle';
 import { CashFlowChart } from './CashFlowChart';
-import { RecurringTransactionsList } from './RecurringTransactions';
-import { ModelValidationStats } from './ModelValidationStats';
-import { PredictionAlerts } from './PredictionAlerts';
-import { ScenarioAnalysis } from './ScenarioAnalysis';
 import { useAuth } from '../../../hooks/useAuth';
+import { useTheme } from '../../../context/ThemeContext';
+import { ResponsiveGrid } from '../../../components/common/ResponsiveGrid';
+import { PeriodSelector } from '../../features/investment/PeriodSelector';
+import { CashFlowAlerts } from './CashFlowAlerts';
+import { CashFlowSummary } from './CashFlowSummary';
 
 interface CashFlowPrediction {
   date: string;
@@ -52,12 +51,71 @@ interface DashboardConfig {
   confidenceLevel: number;
 }
 
-export const CashFlowDashboard: React.FC = () => {
+export type TimePeriod = '1m' | '3m' | '6m' | '1y' | 'all';
+
+export interface CashFlowDashboardProps {
+  accountIds?: string[];
+  period?: TimePeriod;
+  isLoading?: boolean;
+  includeProjections?: boolean;
+  onPeriodChange?: (period: TimePeriod) => void;
+  className?: string;
+}
+
+interface CashFlowData {
+  income: number[];
+  expenses: number[];
+  netCashFlow: number[];
+  projectedIncome?: number[];
+  projectedExpenses?: number[];
+  projectedNetCashFlow?: number[];
+  dates: string[];
+  upcomingBills: UpcomingBill[];
+  currentBalance: number;
+  projectedEndBalance: number;
+}
+
+interface UpcomingBill {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate: string;
+  category: string;
+  isPaid: boolean;
+  isRecurring: boolean;
+}
+
+const sampleCashFlowData: CashFlowData = {
+  income: [4500, 4500, 4700, 4500, 4500, 5200],
+  expenses: [3200, 3800, 3500, 3300, 3600, 3400],
+  netCashFlow: [1300, 700, 1200, 1200, 900, 1800],
+  projectedIncome: [4500, 4500, 4500, 4500],
+  projectedExpenses: [3500, 3700, 3400, 3600],
+  projectedNetCashFlow: [1000, 800, 1100, 900],
+  dates: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+  upcomingBills: [
+    { id: '1', name: 'Rent', amount: 1200, dueDate: '2023-08-01', category: 'Housing', isPaid: false, isRecurring: true },
+    { id: '2', name: 'Electricity', amount: 120, dueDate: '2023-08-05', category: 'Utilities', isPaid: false, isRecurring: true },
+    { id: '3', name: 'Internet', amount: 80, dueDate: '2023-08-12', category: 'Utilities', isPaid: false, isRecurring: true },
+    { id: '4', name: 'Car Insurance', amount: 150, dueDate: '2023-08-15', category: 'Insurance', isPaid: false, isRecurring: true },
+  ],
+  currentBalance: 6500,
+  projectedEndBalance: 9300,
+};
+
+export const CashFlowDashboard: React.FC<CashFlowDashboardProps> = ({
+  accountIds: _accountIds = [],
+  period = '3m',
+  isLoading = false,
+  includeProjections = true,
+  onPeriodChange,
+  className = '',
+}) => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoadingInternal, setIsLoadingInternal] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [predictions, setPredictions] = useState<PredictionResponse | null>(null);
+  const [_timeframe, _setTimeframe] = useState('30d');
+  const [_predictions, setPredictions] = useState<PredictionResponse | null>(null);
   const [config, setConfig] = useState<DashboardConfig>({
     timeframeInDays: 90,
     modelType: 'hybrid',
@@ -65,8 +123,10 @@ export const CashFlowDashboard: React.FC = () => {
     includeRecurringTransactions: true,
     confidenceLevel: 0.95
   });
-  const [validationMetrics, setValidationMetrics] = useState<any>(null);
-
+  const [_validationMetrics, setValidationMetrics] = useState<any>(null);
+  const [activePeriod, setActivePeriod] = useState<TimePeriod>(period);
+  const { /* isDarkMode */ } = useTheme();
+  
   useEffect(() => {
     if (user) {
       fetchPredictions();
@@ -76,7 +136,7 @@ export const CashFlowDashboard: React.FC = () => {
 
   const fetchPredictions = async () => {
     try {
-      setIsLoading(true);
+      setIsLoadingInternal(true);
       setError(null);
 
       const params = new URLSearchParams({
@@ -97,7 +157,7 @@ export const CashFlowDashboard: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsLoading(false);
+      setIsLoadingInternal(false);
     }
   };
 
@@ -119,11 +179,18 @@ export const CashFlowDashboard: React.FC = () => {
     }
   };
 
-  const handleConfigChange = (key: keyof DashboardConfig, value: any) => {
+  const _handleConfigChange = (key: keyof DashboardConfig, value: any) => {
     setConfig(prev => ({
       ...prev,
       [key]: value
     }));
+  };
+
+  const handlePeriodChange = (newPeriod: TimePeriod) => {
+    setActivePeriod(newPeriod);
+    if (onPeriodChange) {
+      onPeriodChange(newPeriod);
+    }
   };
 
   if (error) {
@@ -140,206 +207,67 @@ export const CashFlowDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Configuration Panel */}
-      <Card>
-        <Card.Body>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prediction Model
-              </label>
-              <Select
-                value={config.modelType}
-                onChange={e => handleConfigChange('modelType', e.target.value)}
-                options={[
-                  { value: 'hybrid', label: 'Hybrid Model' },
-                  { value: 'time-series', label: 'Time Series' },
-                  { value: 'recurring-transaction', label: 'Recurring Transactions' }
-                ]}
-                className="w-full"
-              />
-            </div>
+    <div className={`space-y-6 ${className}`}>
+      {/* Header with period selector */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-semibold">Cash Flow Dashboard</h2>
+          <p className="text-gray-500 dark:text-gray-400">
+            Track your cash flow and upcoming expenses
+          </p>
+        </div>
+        <PeriodSelector
+          activePeriod={activePeriod}
+          onPeriodChange={handlePeriodChange}
+        />
+      </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Timeframe
-              </label>
-              <Select
-                value={config.timeframeInDays.toString()}
-                onChange={e => handleConfigChange('timeframeInDays', parseInt(e.target.value))}
-                options={[
-                  { value: '30', label: '30 Days' },
-                  { value: '90', label: '90 Days' },
-                  { value: '180', label: '180 Days' },
-                  { value: '365', label: '1 Year' }
-                ]}
-                className="w-full"
-              />
-            </div>
+      {/* Cash Flow Summary Cards */}
+      <ResponsiveGrid columns={{ sm: 1, md: 3 }} gap={6}>
+        <CashFlowSummary 
+          currentBalance={sampleCashFlowData.currentBalance}
+          projectedEndBalance={sampleCashFlowData.projectedEndBalance}
+          netCashFlow={sampleCashFlowData.netCashFlow.reduce((sum, value) => sum + value, 0)}
+          projectedNetCashFlow={
+            sampleCashFlowData.projectedNetCashFlow 
+              ? sampleCashFlowData.projectedNetCashFlow.reduce((sum, value) => sum + value, 0) 
+              : 0
+          }
+          isLoading={isLoading}
+        />
+      </ResponsiveGrid>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                View
-              </label>
-              <Select
-                value={timeframe}
-                onChange={e => setTimeframe(e.target.value as any)}
-                options={[
-                  { value: 'daily', label: 'Daily' },
-                  { value: 'weekly', label: 'Weekly' },
-                  { value: 'monthly', label: 'Monthly' }
-                ]}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center space-x-6">
-            <Toggle
-              label="Include Pending Transactions"
-              checked={config.includePendingTransactions}
-              onChange={value => handleConfigChange('includePendingTransactions', value)}
-            />
-            <Toggle
-              label="Include Recurring Transactions"
-              checked={config.includeRecurringTransactions}
-              onChange={value => handleConfigChange('includeRecurringTransactions', value)}
-            />
-          </div>
-        </Card.Body>
+      {/* Cash Flow Chart */}
+      <Card className="p-4">
+        <div className="mb-4">
+          <h3 className="text-lg font-medium">Cash Flow History & Projections</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Track your income, expenses, and net cash flow over time
+          </p>
+        </div>
+        <div className="h-80">
+          <CashFlowChart 
+            data={sampleCashFlowData}
+            period={activePeriod}
+            includeProjections={includeProjections}
+            isLoading={isLoading}
+          />
+        </div>
       </Card>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Cash Flow Chart */}
-          <Card>
-            <Card.Body>
-              <h2 className="text-lg font-semibold mb-4">Cash Flow Predictions</h2>
-              {predictions && (
-                <CashFlowChart
-                  predictions={{
-                    totalPrediction: {
-                      balance: predictions.totalPrediction.cashFlow,
-                      trend: predictions.totalPrediction.cashFlow > 0 ? 'up' : 
-                             predictions.totalPrediction.cashFlow < 0 ? 'down' : 'stable',
-                      percentageChange: 0 // We don't have this data, so defaulting to 0
-                    },
-                    dailyPredictions: predictions.dailyPredictions.map(p => ({
-                      date: p.date,
-                      cashFlow: p.cashFlow,
-                      confidenceLow: p.confidenceLow,
-                      confidenceHigh: p.confidenceHigh
-                    })),
-                    weeklyPredictions: predictions.weeklyPredictions.map(p => ({
-                      startDate: p.date,
-                      endDate: p.date,
-                      cashFlow: p.cashFlow,
-                      confidenceLow: p.confidenceLow,
-                      confidenceHigh: p.confidenceHigh
-                    })),
-                    monthlyPredictions: predictions.monthlyPredictions.map(p => ({
-                      month: p.date,
-                      cashFlow: p.cashFlow,
-                      confidenceLow: p.confidenceLow,
-                      confidenceHigh: p.confidenceHigh
-                    })),
-                    alerts: predictions.alerts.map(alert => ({
-                      type: alert.severity === 'high' ? 'danger' : 
-                            alert.severity === 'medium' ? 'warning' : 'info',
-                      message: alert.message,
-                      date: alert.date
-                    })),
-                    recurringTransactions: {
-                      income: [],
-                      expenses: []
-                    }
-                  }}
-                  timeframe={timeframe}
-                  onTimeframeChange={setTimeframe}
-                  isLoading={isLoading}
-                />
-              )}
-            </Card.Body>
-          </Card>
-
-          {/* Scenario Analysis */}
-          <Card>
-            <Card.Body>
-              <h2 className="text-lg font-semibold mb-4">What-If Scenarios</h2>
-              {predictions && (
-                <ScenarioAnalysis
-                  basePredictions={predictions.dailyPredictions}
-                  recurringTransactions={
-                    predictions.dailyPredictions
-                      .flatMap(p => p.recurringTransactions)
-                      .filter((tx, index, self) =>
-                        index === self.findIndex(t => t.merchantName === tx.merchantName)
-                      )
-                  }
-                />
-              )}
-            </Card.Body>
-          </Card>
+      {/* Upcoming Bills */}
+      <Card className="p-4">
+        <div className="mb-4">
+          <h3 className="text-lg font-medium">Upcoming Bills</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            View and manage your upcoming payments
+          </p>
         </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Model Validation Stats */}
-          {validationMetrics && (
-            <Card>
-              <Card.Body>
-                <h2 className="text-lg font-semibold mb-4">Model Performance</h2>
-                <ModelValidationStats metrics={validationMetrics} />
-              </Card.Body>
-            </Card>
-          )}
-
-          {/* Alerts */}
-          {predictions?.alerts && predictions.alerts.length > 0 && (
-            <Card>
-              <Card.Body>
-                <h2 className="text-lg font-semibold mb-4">Alerts</h2>
-                <PredictionAlerts alerts={predictions.alerts} />
-              </Card.Body>
-            </Card>
-          )}
-
-          {/* Recurring Transactions */}
-          {predictions && config.includeRecurringTransactions && (
-            <Card>
-              <Card.Body>
-                <h2 className="text-lg font-semibold mb-4">Recurring Transactions</h2>
-                <RecurringTransactionsList
-                  income={predictions.dailyPredictions
-                    .flatMap(p => p.recurringTransactions)
-                    .filter(tx => tx.isIncome)
-                    .map(tx => ({
-                      id: tx.merchantName,
-                      name: tx.merchantName,
-                      amount: tx.amount,
-                      frequency: 'Monthly',
-                      nextDate: new Date().toISOString()
-                    }))}
-                  expenses={predictions.dailyPredictions
-                    .flatMap(p => p.recurringTransactions)
-                    .filter(tx => !tx.isIncome)
-                    .map(tx => ({
-                      id: tx.merchantName,
-                      name: tx.merchantName,
-                      amount: tx.amount,
-                      frequency: 'Monthly',
-                      nextDate: new Date().toISOString()
-                    }))}
-                  isLoading={isLoading}
-                />
-              </Card.Body>
-            </Card>
-          )}
-        </div>
-      </div>
+        <CashFlowAlerts 
+          upcomingBills={sampleCashFlowData.upcomingBills}
+          isLoading={isLoading}
+        />
+      </Card>
     </div>
   );
 }; 

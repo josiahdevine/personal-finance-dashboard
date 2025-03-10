@@ -1,6 +1,6 @@
 import React from 'react';
 import { AggregatedAccount } from '../../services/AccountAggregationService';
-import { PlaidLinkButton } from '../PlaidLink';
+import { PlaidLink } from '../../components/features/plaid/PlaidLink';
 import { NetWorthApplet } from '../NetWorthApplet';
 
 interface OverviewProps {
@@ -21,7 +21,8 @@ export const Overview: React.FC<OverviewProps> = ({ accounts, onAccountClick, on
           >
             Refresh
           </button>
-          <PlaidLinkButton onSuccess={onRefresh} />
+          {/* PlaidLink handles success internally, no need for onSuccess prop */}
+          <PlaidLink />
         </div>
       </div>
 

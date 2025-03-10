@@ -23,21 +23,26 @@ const testimonials = [
 ];
 
 interface TestimonialsProps {
-  theme: 'dark' | 'light';
+  theme: 'dark' | 'light' | 'system';
 }
 
 export const Testimonials: React.FC<TestimonialsProps> = ({ theme }) => {
+  // Determine actual theme value if 'system' is provided
+  const effectiveTheme = theme === 'system' 
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme;
+
   return (
-    <div className={`py-24 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`py-24 ${effectiveTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className={`text-3xl font-extrabold sm:text-4xl ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
+            effectiveTheme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
             Trusted by professionals worldwide
           </h2>
           <p className={`mt-4 text-xl ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            effectiveTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
           }`}>
             See what our users are saying about their experience
           </p>
@@ -51,7 +56,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ theme }) => {
               transition={{ duration: 0.5, delay: index * 0.2 }}
               viewport={{ once: true }}
               className={`relative rounded-2xl p-8 shadow-xl ${
-                theme === 'dark' 
+                effectiveTheme === 'dark' 
                   ? 'bg-gray-800 shadow-blue-500/10' 
                   : 'bg-white shadow-gray-200/50'
               }`}
@@ -65,19 +70,19 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ theme }) => {
                 <div className="mt-4">
                   <blockquote>
                     <p className={`text-lg ${
-                      theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
+                      effectiveTheme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                       {testimonial.content}
                     </p>
                   </blockquote>
                   <div className="mt-6">
                     <p className={`font-medium ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      effectiveTheme === 'dark' ? 'text-white' : 'text-gray-900'
                     }`}>
                       {testimonial.name}
                     </p>
                     <p className={`text-base ${
-                      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                      effectiveTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       {testimonial.role}
                     </p>

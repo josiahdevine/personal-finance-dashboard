@@ -1,7 +1,9 @@
 import React from 'react';
 import { Badge } from './Badge';
+import { useTheme } from '../../contexts/ThemeContext';
+import { motion } from 'framer-motion';
 
-interface Tab {
+export interface Tab {
   id: string;
   label: string;
   icon?: React.ReactNode;
@@ -9,53 +11,16 @@ interface Tab {
   disabled?: boolean;
 }
 
-interface TabsProps {
+export interface TabsProps {
   tabs: Tab[];
   activeTab: string;
   onChange: (tabId: string) => void;
   variant?: 'underline' | 'pills' | 'boxed';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   align?: 'left' | 'center' | 'right';
   className?: string;
+  ariaLabel?: string;
 }
-
-const variantStyles = {
-  underline: {
-    list: 'border-b border-gray-200',
-    tab: (active: boolean) => `
-      border-b-2 ${active ? 'border-blue-500' : 'border-transparent'}
-      ${active ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'}
-    `,
-    disabled: 'text-gray-400 cursor-not-allowed'
-  },
-  pills: {
-    list: 'space-x-1',
-    tab: (active: boolean) => `
-      rounded-md ${active ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'}
-    `,
-    disabled: 'text-gray-400 cursor-not-allowed'
-  },
-  boxed: {
-    list: 'border-b border-gray-200',
-    tab: (active: boolean) => `
-      rounded-t-lg border-t border-l border-r -mb-px
-      ${active ? 'bg-white border-gray-200 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}
-    `,
-    disabled: 'text-gray-400 cursor-not-allowed'
-  }
-};
-
-const sizeStyles = {
-  sm: 'px-2 py-1 text-sm',
-  md: 'px-3 py-2 text-base',
-  lg: 'px-4 py-3 text-lg'
-};
-
-const alignStyles = {
-  left: 'justify-start',
-  center: 'justify-center',
-  right: 'justify-end'
-};
 
 export const Tabs: React.FC<TabsProps> = ({
   tabs,
@@ -64,38 +29,94 @@ export const Tabs: React.FC<TabsProps> = ({
   variant = 'underline',
   size = 'md',
   align = 'left',
-  className = ''
+  className = '',
+  ariaLabel = 'Navigation tabs'
 }) => {
+  const { isDarkMode } = useTheme();
+
+  // Determine variant styles based on theme
+  const variantStyles = {
+    underline: {
+      list: `border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`,
+      tab: (active: boolean) => `
+        relative border-b-2 ${active 
+          ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' 
+          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+        }
+      `,
+      disabled: 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+    },
+    pills: {
+      list: 'space-x-1',
+      tab: (active: boolean) => `
+        rounded-md ${active 
+          ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' 
+          : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }
+      `,
+      disabled: 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+    },
+    boxed: {
+      list: `border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`,
+      tab: (active: boolean) => `
+        rounded-t-lg border-t border-l border-r -mb-px
+        ${active 
+          ? `${isDarkMode ? 'bg-gray-800' : 'bg-white'} ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} text-indigo-600 dark:text-indigo-400` 
+          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}
+      `,
+      disabled: 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+    }
+  };
+
+  // Size styles mapping
+  const sizeStyles = {
+    xs: 'px-2 py-1 text-xs',
+    sm: 'px-2 py-1.5 text-sm',
+    md: 'px-3 py-2 text-base',
+    lg: 'px-4 py-3 text-lg'
+  };
+
+  // Alignment styles mapping
+  const alignStyles = {
+    left: 'justify-start',
+    center: 'justify-center',
+    right: 'justify-end'
+  };
+
+  // Get the current styles based on the selected variant
   const styles = variantStyles[variant];
   const sizeStyle = sizeStyles[size];
   const alignStyle = alignStyles[align];
 
   return (
     <div className={className}>
-      <nav>
-        <ul className={`flex ${alignStyle} ${styles.list}`}>
+      <nav aria-label={ariaLabel}>
+        <ul className={`flex ${alignStyle} ${styles.list}`} role="tablist">
           {tabs.map((tab) => {
             const isActive = tab.id === activeTab;
             const isDisabled = tab.disabled;
 
             return (
-              <li key={tab.id} className="relative">
+              <li key={tab.id} className="relative" role="presentation">
                 <button
                   type="button"
                   onClick={() => !isDisabled && onChange(tab.id)}
                   disabled={isDisabled}
                   className={`
                     inline-flex items-center ${sizeStyle}
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                    transition-all duration-200 ease-in-out
                     ${styles.tab(isActive)}
                     ${isDisabled ? styles.disabled : ''}
                   `}
                   role="tab"
                   aria-selected={isActive}
                   aria-disabled={isDisabled}
+                  aria-controls={`tab-panel-${tab.id}`}
+                  id={`tab-${tab.id}`}
                 >
                   {tab.icon && (
-                    <span className={`${tab.label ? 'mr-2' : ''}`}>
+                    <span className={`${tab.label ? 'mr-2' : ''} transition-transform duration-200 ${isActive ? 'transform scale-110' : ''}`}>
                       {tab.icon}
                     </span>
                   )}
@@ -110,6 +131,20 @@ export const Tabs: React.FC<TabsProps> = ({
                     </Badge>
                   )}
                 </button>
+                
+                {/* Animation for the active state indicator */}
+                {variant === 'underline' && isActive && (
+                  <motion.div
+                    className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500"
+                    layoutId="activeTabIndicator"
+                    initial={false}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 30,
+                    }}
+                  />
+                )}
               </li>
             );
           })}

@@ -1,103 +1,145 @@
 import React from 'react';
-import { Card } from '../../common/Card';
-import { format as formatDate } from 'date-fns';
+import { Skeleton } from '../../../components/common/Skeleton';
 
-interface Alert {
-    date?: string;
-    type: 'warning' | 'info' | 'danger';
-    message: string;
+interface UpcomingBill {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate: string;
+  category: string;
+  isPaid: boolean;
+  isRecurring: boolean;
 }
 
 interface CashFlowAlertsProps {
-    alerts: Alert[];
-    isLoading: boolean;
+  upcomingBills: UpcomingBill[];
+  isLoading?: boolean;
+  className?: string;
 }
 
 export const CashFlowAlerts: React.FC<CashFlowAlertsProps> = ({
-    alerts,
-    isLoading
+  upcomingBills,
+  isLoading = false,
+  className = '',
 }) => {
-    // Get alert icon and color based on type
-    const getAlertStyles = (
-        type: 'warning' | 'info' | 'danger'
-    ) => {
-        const typeColors = {
-            warning: 'text-orange-500 bg-orange-100',
-            info: 'text-blue-500 bg-blue-100',
-            danger: 'text-red-500 bg-red-100'
-        };
-
-        const typeIcons = {
-            warning: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            ),
-            info: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            ),
-            danger: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            )
-        };
-
-        return {
-            colorClass: typeColors[type],
-            icon: typeIcons[type]
-        };
-    };
-
+  // Format currency
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
+  
+  // Calculate days until due date
+  const getDaysUntil = (dateString: string) => {
+    const dueDate = new Date(dateString);
+    const today = new Date();
+    
+    // Reset time to midnight for accurate day calculation
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+  
+  // Get appropriate styling based on due date proximity
+  const getUrgencyStyles = (daysUntil: number) => {
+    if (daysUntil < 0) {
+      return 'text-red-600 dark:text-red-400 font-medium';
+    } else if (daysUntil <= 3) {
+      return 'text-red-500 dark:text-red-400 font-medium';
+    } else if (daysUntil <= 7) {
+      return 'text-yellow-500 dark:text-yellow-400';
+    } else {
+      return 'text-green-600 dark:text-green-400';
+    }
+  };
+  
+  // Sort bills by due date (ascending)
+  const sortedBills = [...upcomingBills].sort((a, b) => {
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  });
+  
+  if (isLoading) {
     return (
-        <Card className="w-full">
-            <Card.Header>
-                <h3 className="text-lg font-semibold">Cash Flow Alerts</h3>
-            </Card.Header>
-            <Card.Body>
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-24">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    </div>
-                ) : alerts.length > 0 ? (
-                    <div className="space-y-4">
-                        {alerts.map((alert, index) => {
-                            const { colorClass, icon } = getAlertStyles(alert.type);
-
-                            return (
-                                <div
-                                    key={index}
-                                    className="border rounded-lg p-4 flex items-start"
-                                >
-                                    <div className={`rounded-full p-2 ${colorClass} mr-4 flex-shrink-0`}>
-                                        {icon}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="font-medium">
-                                                    {alert.type === 'warning' ? 'Warning Alert' :
-                                                     alert.type === 'info' ? 'Info Alert' : 'Danger Alert'}
-                                                </div>
-                                                <div className="text-sm text-gray-600 mb-2">
-                                                    {alert.date ? formatDate(new Date(alert.date), 'MMMM d, yyyy') : 'No date'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p>{alert.message}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center h-24 text-gray-500">
-                        No alerts found
-                    </div>
-                )}
-            </Card.Body>
-        </Card>
+      <div className={`space-y-4 ${className}`}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex justify-between p-3 border rounded-lg">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <div className="text-right space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          </div>
+        ))}
+      </div>
     );
+  }
+  
+  if (sortedBills.length === 0) {
+    return (
+      <div className={`text-center py-6 text-gray-500 dark:text-gray-400 ${className}`}>
+        No upcoming bills to display
+      </div>
+    );
+  }
+  
+  return (
+    <div className={`space-y-4 ${className}`}>
+      {sortedBills.map((bill) => {
+        const daysUntil = getDaysUntil(bill.dueDate);
+        const urgencyClass = getUrgencyStyles(daysUntil);
+        const dueDate = new Date(bill.dueDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        });
+        
+        return (
+          <div 
+            key={bill.id}
+            className="flex justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <div>
+              <div className="font-medium">{bill.name}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center">
+                <span className="capitalize">{bill.category}</span>
+                {bill.isRecurring && (
+                  <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                    Recurring
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <div className="font-medium">{formatCurrency(bill.amount)}</div>
+              <div className={`text-sm mt-1 ${urgencyClass}`}>
+                {daysUntil < 0
+                  ? `Overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) !== 1 ? 's' : ''}`
+                  : daysUntil === 0
+                  ? 'Due today'
+                  : `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''} (${dueDate})`}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      
+      {/* View all link if needed */}
+      {upcomingBills.length > 5 && (
+        <div className="text-center pt-2">
+          <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
+            View all bills
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }; 

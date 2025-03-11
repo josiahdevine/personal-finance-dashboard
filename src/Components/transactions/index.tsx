@@ -1,5 +1,61 @@
 import React, { useState, useEffect } from 'react';
+{{ ... }}
+import Card from '../common/Card';
+{{ ... }}
+```
+
+Should be changed to:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+{{ ... }}
+import { default as Card } from '../common/Card';
+{{ ... }}
+```
+
+Or more simply:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+{{ ... }}
+import Card from '../common/Card';
+{{ ... }}
+```
+
+Should be changed to:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+{{ ... }}
 import { Card } from '../common/Card';
+{{ ... }}
+```
+
+However, since you want to use default import, the correct change would be:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+{{ ... }}
+import Card from '../common/Card';
+{{ ... }}
+```
+
+Should be changed to:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+{{ ... }}
+import Card from '../common/Card';
+{{ ... }}
+```
+
+No change is needed in this case, as the import statement is already using the default import syntax.
+
+Here is the full updated code:
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import Card from '../common/Card';
 
 interface Transaction {
   id: string;

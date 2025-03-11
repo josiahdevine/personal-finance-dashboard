@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,8 @@ interface PublicNavbarProps {
 
 export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) => {
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const { currentUser, isAuthenticated, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
   
@@ -53,6 +54,15 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   // Derive styles based on theme and scroll state
   const navBackground = scrolled 
@@ -67,6 +77,9 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
   const linkHoverColor = isDarkMode ? 'hover:text-indigo-400' : 'hover:text-indigo-700';
   const mobileMenuBg = isDarkMode ? 'bg-gray-900' : 'bg-white';
   const borderColor = isDarkMode ? 'border-gray-700' : 'border-gray-200';
+
+  // Show dashboard link only when user is authenticated
+  const shouldShowDashboard = isAuthenticated || currentUser;
 
   return (
     <nav 
@@ -106,7 +119,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
             >
               About
             </Link>
-            {currentUser && (
+            {shouldShowDashboard && (
               <Link 
                 to="/dashboard" 
                 className={`${textColor} font-medium ${linkHoverColor} ${location.pathname.startsWith('/dashboard') ? 'border-b-2 border-indigo-500' : ''}`}
@@ -127,7 +140,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
             </button>
             
             {/* Authentication Buttons */}
-            {currentUser ? (
+            {shouldShowDashboard ? (
               <div className="flex items-center space-x-4">
                 <Link 
                   to="/dashboard" 
@@ -135,6 +148,12 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
                 >
                   Dashboard
                 </Link>
+                <button
+                  onClick={handleLogout}
+                  className={`px-4 py-2 rounded-md ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-gray-900 hover:bg-gray-100'}`}
+                >
+                  Sign Out
+                </button>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
@@ -145,7 +164,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
                   Sign In
                 </Link>
                 <Link 
-                  to="/signup" 
+                  to="/register" 
                   className={`px-4 py-2 rounded-md ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                 >
                   Get Started
@@ -218,7 +237,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
               >
                 About
               </Link>
-              {currentUser && (
+              {shouldShowDashboard && (
                 <Link 
                   to="/dashboard" 
                   className={`block ${textColor} font-medium py-2 ${location.pathname.startsWith('/dashboard') ? 'text-indigo-500' : ''}`}
@@ -230,14 +249,25 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
               
               {/* Mobile Authentication Buttons */}
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                {currentUser ? (
-                  <Link 
-                    to="/dashboard" 
-                    className="block w-full text-center px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-                    onClick={closeMobileMenu}
-                  >
-                    Dashboard
-                  </Link>
+                {shouldShowDashboard ? (
+                  <>
+                    <Link 
+                      to="/dashboard" 
+                      className="block w-full text-center px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 mb-2"
+                      onClick={closeMobileMenu}
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={() => {
+                        closeMobileMenu();
+                        handleLogout();
+                      }}
+                      className="block w-full text-center px-4 py-2 rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    >
+                      Sign Out
+                    </button>
+                  </>
                 ) : (
                   <div className="space-y-2">
                     <Link 
@@ -248,7 +278,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
                       Sign In
                     </Link>
                     <Link 
-                      to="/signup" 
+                      to="/register" 
                       className="block w-full text-center px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
                       onClick={closeMobileMenu}
                     >

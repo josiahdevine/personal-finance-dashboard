@@ -3,6 +3,7 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
+  permissions?: string[];
   createdAt: string;
   updatedAt: string;
   subscription?: {
@@ -167,7 +168,7 @@ export interface Report {
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   startDate: string;
   endDate: string;
-  data: any;
+  data: Record<string, unknown>;
   createdAt: string;
   format: 'pdf' | 'csv' | 'json';
   status: 'pending' | 'completed' | 'failed';
@@ -206,7 +207,7 @@ export interface ApiError {
   status: number;
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   isNetworkError?: boolean;
 }
 
@@ -223,7 +224,7 @@ export interface QueryParams {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   search?: string;
-  filter?: Record<string, any>;
+  filter?: Record<string, unknown>;
 }
 
 export interface TransactionFilters {
@@ -352,7 +353,7 @@ export interface Category extends BaseModel {
   parentId?: string;
   isCustom: boolean;
   isHidden: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CreateCategoryData {
@@ -360,7 +361,7 @@ export interface CreateCategoryData {
   color: string;
   icon?: string;
   parentId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateCategoryData {
@@ -369,7 +370,7 @@ export interface UpdateCategoryData {
   icon?: string;
   parentId?: string;
   isHidden?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Budget Types
@@ -381,7 +382,7 @@ export interface Budget extends BaseModel {
   startDate: string;
   endDate: string;
   isRecurring: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CreateBudgetData {
@@ -392,7 +393,7 @@ export interface CreateBudgetData {
   startDate: string;
   endDate: string;
   isRecurring: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateBudgetData {
@@ -403,7 +404,7 @@ export interface UpdateBudgetData {
   startDate?: string;
   endDate?: string;
   isRecurring?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Integration Types
@@ -413,21 +414,21 @@ export interface Integration extends BaseModel {
   status: 'active' | 'inactive' | 'error';
   lastSync?: string;
   error?: string;
-  settings: Record<string, any>;
-  metadata: Record<string, any>;
+  settings: Record<string, unknown>;
+  metadata: Record<string, unknown>;
 }
 
 export interface CreateIntegrationData {
   name: string;
   type: Integration['type'];
-  settings: Record<string, any>;
-  metadata?: Record<string, any>;
+  settings: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateIntegrationData {
   name?: string;
-  settings?: Record<string, any>;
-  metadata?: Record<string, any>;
+  settings?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 // Backup Types
@@ -516,4 +517,4 @@ export interface Portfolio {
     amount: number;
   }>;
   lastUpdated: string;
-} 
+}

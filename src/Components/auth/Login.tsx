@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { state, login } = useAuth();
+  const auth = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [auth.isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
-      await login(email, password);
+      await auth.signInWithEmail(email, password);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -25,12 +32,26 @@ export const Login: React.FC = () => {
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      // Google sign in is not available in this version
-      setError('Google sign in is not available');
+      await auth.signInWithGoogle();
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
     }
   };
+
+  // If still checking authentication, show loading
+  if (auth.isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-indigo-600" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -54,10 +75,10 @@ export const Login: React.FC = () => {
           </p>
         </div>
 
-        {(error || state.error) && (
+        {(error || auth.error) && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">
-              {error || state.error}
+              {error || (auth.error ? auth.error.message : null)}
             </div>
           </div>
         )}
@@ -78,7 +99,7 @@ export const Login: React.FC = () => {
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
               />
             </div>
             <div>
@@ -95,7 +116,7 @@ export const Login: React.FC = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
               />
             </div>
           </div>
@@ -114,14 +135,14 @@ export const Login: React.FC = () => {
           <div>
             <button
               type="submit"
-              disabled={state.isLoading}
+              disabled={auth.isLoading}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                state.isLoading
+                auth.isLoading
                   ? 'bg-indigo-400 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
               }`}
             >
-              {state.isLoading ? 'Signing in...' : 'Sign in'}
+              {auth.isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
 
@@ -141,9 +162,9 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
                 className={`w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 ${
-                  state.isLoading
+                  auth.isLoading
                     ? 'bg-gray-100 cursor-not-allowed'
                     : 'bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
                 }`}

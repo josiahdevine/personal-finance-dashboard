@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card } from '../../common/Card';
-import { Button } from '../../common/Button';
+import Card from "../../common/Card";
+import Button from "../../common/button/Button";
 import { useExport } from '../../../hooks/useExport';
 import { useImport } from '../../../hooks/useImport';
 import { CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
@@ -76,11 +76,11 @@ export const ImportExportSettings: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={handleImport}
-                    disabled={importing}
+                    isDisabled={importing}
                     className="flex items-center"
                   >
                     <CloudArrowUpIcon className="h-5 w-5 mr-2" />
-                    {importing ? 'Importing...' : 'Import Data'}
+                    Import
                   </Button>
                 </div>
               )}

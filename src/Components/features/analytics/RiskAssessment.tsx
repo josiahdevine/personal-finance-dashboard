@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { useAnalytics } from '../../../hooks/useAnalytics';
 
 export const RiskAssessment: React.FC = () => {

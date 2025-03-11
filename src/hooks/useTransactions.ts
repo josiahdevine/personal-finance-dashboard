@@ -1,135 +1,234 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Transaction } from '../types/models';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { transactionRepository } from '../repositories/TransactionRepository';
+import logger from '../utils/logger';
+import { Transaction } from '../repositories/TransactionRepository';
 
-interface TransactionFilters {
-  startDate?: string;
-  endDate?: string;
-  category?: string;
-  type?: 'income' | 'expense';
-  minAmount?: number;
-  maxAmount?: number;
-  searchTerm?: string;
-}
-
-export const useTransactions = (initialFilters?: TransactionFilters) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [filters, setFilters] = useState<TransactionFilters>(initialFilters || {});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTransactions = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      // Build query params from filters
-      const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          queryParams.append(key, value.toString());
-        }
-      });
-
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/transactions?${queryParams}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch transactions');
-      }
-      const data = await response.json();
-      setTransactions(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch transactions');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filters]);
-
-  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
-    try {
-      setIsLoading(true);
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transaction)
-      });
-      if (!response.ok) {
-        throw new Error('Failed to add transaction');
-      }
-      const newTransaction = await response.json();
-      setTransactions(prev => [...prev, newTransaction]);
-      setError(null);
-      return newTransaction;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add transaction');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
-    try {
-      setIsLoading(true);
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/transactions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update transaction');
-      }
-      const updatedTransaction = await response.json();
-      setTransactions(prev =>
-        prev.map(tx => (tx.id === id ? { ...tx, ...updatedTransaction } : tx))
-      );
-      setError(null);
-      return updatedTransaction;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update transaction');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const deleteTransaction = useCallback(async (id: string) => {
-    try {
-      setIsLoading(true);
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/transactions/${id}`, {
-        method: 'DELETE'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete transaction');
-      }
-      setTransactions(prev => prev.filter(tx => tx.id !== id));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete transaction');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const updateFilters = useCallback((newFilters: Partial<TransactionFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  }, []);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
-
-  return {
-    transactions,
-    filters,
-    isLoading,
-    error,
-    updateFilters,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    refreshTransactions: fetchTransactions
+/**
+ * Hook to fetch transactions with pagination and filtering
+ */
+export const useTransactions = (
+  filters: {
+    startDate?: string;
+    endDate?: string;
+    accountIds?: string[];
+    categories?: string[];
+    searchTerm?: string;
+  } = {},
+  page = 1,
+  limit = 25
+) => {
+  // Set default date range if not provided
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  const formattedFilters = {
+    startDate: filters.startDate || thirtyDaysAgo.toISOString().split('T')[0],
+    endDate: filters.endDate || today.toISOString().split('T')[0],
+    accountIds: filters.accountIds,
+    categories: filters.categories,
+    searchTerm: filters.searchTerm,
   };
+  
+  // Calculate offset from page and limit
+  const offset = (page - 1) * limit;
+  
+  return useQuery({
+    queryKey: ['transactions', formattedFilters, page, limit],
+    queryFn: async () => {
+      try {
+        // Get transactions with repository (from database)
+        const result = await transactionRepository.findByUserId(
+          'current-user', // This would typically be the actual user ID from auth context
+          {
+            startDate: formattedFilters.startDate,
+            endDate: formattedFilters.endDate,
+            accountIds: formattedFilters.accountIds,
+            categories: formattedFilters.categories,
+            searchTerm: formattedFilters.searchTerm,
+            limit,
+            offset,
+            sortBy: 'date',
+            sortDirection: 'DESC'
+          }
+        );
+        
+        return {
+          data: result.transactions,
+          total: result.total,
+          page,
+          limit,
+          totalPages: Math.ceil(result.total / limit)
+        };
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error('Unknown error fetching transactions');
+        logger.error('useTransactions', 'Failed to fetch transactions', err);
+        throw err;
+      }
+    },
+    staleTime: 60 * 1000, // 1 minute
+    placeholderData: (previousData) => previousData, // This replaces keepPreviousData in v4
+    meta: {
+      errorMessage: 'Failed to load transactions'
+    }
+  });
+};
+
+/**
+ * Hook to fetch a single transaction
+ */
+export const useTransaction = (id: string | null) => {
+  return useQuery({
+    queryKey: ['transaction', id],
+    queryFn: async () => {
+      if (!id) {
+        throw new Error('Transaction ID is required');
+      }
+      
+      try {
+        // Get transaction from repository
+        const transaction = await transactionRepository.findById(id);
+        
+        if (!transaction) {
+          throw new Error(`Transaction with ID ${id} not found`);
+        }
+        
+        return transaction;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error('Unknown error fetching transaction');
+        logger.error('useTransaction', `Failed to fetch transaction ${id}`, err);
+        throw err;
+      }
+    },
+    enabled: !!id,
+    meta: {
+      errorMessage: 'Failed to load transaction details'
+    }
+  });
+};
+
+/**
+ * Hook to update a transaction
+ */
+export const useUpdateTransaction = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Transaction> }) => {
+      try {
+        // Update transaction in repository
+        const updatedTransaction = await transactionRepository.update(id, data);
+        
+        if (!updatedTransaction) {
+          throw new Error(`Failed to update transaction with ID ${id}`);
+        }
+        
+        return updatedTransaction;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error('Unknown error updating transaction');
+        logger.error('useUpdateTransaction', `Failed to update transaction ${id}`, err);
+        throw err;
+      }
+    },
+    onSuccess: (updatedTransaction) => {
+      // Update the individual transaction cache
+      queryClient.setQueryData(
+        ['transaction', updatedTransaction.id],
+        updatedTransaction
+      );
+      
+      // Invalidate transactions list to refetch it
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+    meta: {
+      showSuccessToast: true,
+      successMessage: 'Transaction updated successfully',
+    },
+  });
+};
+
+/**
+ * Hook to fetch transaction category summary
+ */
+export const useTransactionCategorySummary = (
+  startDate?: string,
+  endDate?: string,
+  accountIds?: string[]
+) => {
+  // Set default date range if not provided
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  const start = startDate || thirtyDaysAgo.toISOString().split('T')[0];
+  const end = endDate || today.toISOString().split('T')[0];
+  
+  return useQuery({
+    queryKey: ['transactionCategorySummary', start, end, accountIds],
+    queryFn: async () => {
+      try {
+        // Get category summary from repository
+        const data = await transactionRepository.getCategorySummary(
+          'current-user', // This would typically be the actual user ID from auth context
+          start,
+          end,
+          accountIds
+        );
+        
+        return data;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error('Unknown error fetching category summary');
+        logger.error('useTransactionCategorySummary', 'Failed to load category summary', err);
+        throw err;
+      }
+    },
+    enabled: !!start && !!end,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    meta: {
+      errorMessage: 'Failed to load category summary'
+    }
+  });
+};
+
+/**
+ * Hook to fetch monthly spending trends
+ */
+export const useMonthlySpendingTrends = (
+  startDate?: string,
+  endDate?: string,
+  accountIds?: string[]
+) => {
+  // Set default date range if not provided (last 6 months)
+  const today = new Date();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(today.getMonth() - 6);
+  
+  const start = startDate || sixMonthsAgo.toISOString().split('T')[0];
+  const end = endDate || today.toISOString().split('T')[0];
+  
+  return useQuery({
+    queryKey: ['monthlySpendingTrends', start, end, accountIds],
+    queryFn: async () => {
+      try {
+        // Get monthly trends from repository
+        const data = await transactionRepository.getMonthlyTrends(
+          'current-user', // This would typically be the actual user ID from auth context
+          start,
+          end,
+          accountIds
+        );
+        
+        return data;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error('Unknown error fetching spending trends');
+        logger.error('useMonthlySpendingTrends', 'Failed to load spending trends', err);
+        throw err;
+      }
+    },
+    enabled: !!start && !!end,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    meta: {
+      errorMessage: 'Failed to load spending trends'
+    }
+  });
 }; 

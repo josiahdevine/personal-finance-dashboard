@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { PlaidLink } from '../PlaidLink';
-import { AuthProvider } from '../../../context/AuthContext';
+import { AuthProvider } from '../../../contexts/AuthContext';
 import { server } from '../../../test/mocks/server';
 import { http, HttpResponse } from 'msw';
 

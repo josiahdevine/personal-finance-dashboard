@@ -1,0 +1,57 @@
+.grid {
+  display: grid;
+  width: 100%;
+}
+
+/* XS Breakpoint (default) */
+.grid-cols-xs-1 { grid-template-columns: repeat(1, 1fr); }
+.grid-cols-xs-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-xs-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-cols-xs-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-cols-xs-5 { grid-template-columns: repeat(5, 1fr); }
+.grid-cols-xs-6 { grid-template-columns: repeat(6, 1fr); }
+.grid-cols-xs-12 { grid-template-columns: repeat(12, 1fr); }
+
+/* SM Breakpoint (480px) */
+@media (min-width: 30rem) {
+  .grid-cols-sm-1 { grid-template-columns: repeat(1, 1fr); }
+  .grid-cols-sm-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-sm-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-sm-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-cols-sm-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-cols-sm-6 { grid-template-columns: repeat(6, 1fr); }
+  .grid-cols-sm-12 { grid-template-columns: repeat(12, 1fr); }
+}
+
+/* MD Breakpoint (768px) */
+@media (min-width: 48rem) {
+  .grid-cols-md-1 { grid-template-columns: repeat(1, 1fr); }
+  .grid-cols-md-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-md-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-md-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-cols-md-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-cols-md-6 { grid-template-columns: repeat(6, 1fr); }
+  .grid-cols-md-12 { grid-template-columns: repeat(12, 1fr); }
+}
+
+/* LG Breakpoint (1024px) */
+@media (min-width: 64rem) {
+  .grid-cols-lg-1 { grid-template-columns: repeat(1, 1fr); }
+  .grid-cols-lg-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-lg-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-lg-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-cols-lg-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-cols-lg-6 { grid-template-columns: repeat(6, 1fr); }
+  .grid-cols-lg-12 { grid-template-columns: repeat(12, 1fr); }
+}
+
+/* XL Breakpoint (1280px) */
+@media (min-width: 80rem) {
+  .grid-cols-xl-1 { grid-template-columns: repeat(1, 1fr); }
+  .grid-cols-xl-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-xl-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-xl-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-cols-xl-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-cols-xl-6 { grid-template-columns: repeat(6, 1fr); }
+  .grid-cols-xl-12 { grid-template-columns: repeat(12, 1fr); }
+} 

@@ -1,0 +1,113 @@
+.transaction-summary {
+  border-radius: 0.5rem;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.transaction-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 0.75rem;
+}
+
+.transaction-summary-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.transaction-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.transaction-summary-metric {
+  background-color: #f7fafc;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-summary-metric-label {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.transaction-summary-metric-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.transaction-summary-metric-value.positive {
+  color: #38a169;
+}
+
+.transaction-summary-metric-value.negative {
+  color: #e53e3e;
+}
+
+.transaction-summary-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.transaction-summary-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transaction-summary-category-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background-color: #f7fafc;
+  align-items: center;
+}
+
+.transaction-summary-category-name {
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.transaction-summary-category-value {
+  font-weight: 600;
+}
+
+.transaction-summary-category-value.positive {
+  color: #38a169;
+}
+
+.transaction-summary-category-value.negative {
+  color: #e53e3e;
+}
+
+.transaction-summary-category-count {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.transaction-summary-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background-color: #f7fafc;
+  border-radius: 0.375rem;
+  color: #718096;
+  font-style: italic;
+} 

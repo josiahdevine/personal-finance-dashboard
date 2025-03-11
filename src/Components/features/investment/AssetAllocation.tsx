@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { PieChart } from "../../../components/Charts/PieChart";
+import PieChart from "../../../components/common/charts/PieChart";
 import { percentFormatter } from '../../../utils/formatters';
 
 interface AssetAllocationProps {

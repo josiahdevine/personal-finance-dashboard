@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePortfolio } from '../../../hooks/usePortfolio';
-import { LineChart, LineChartData } from '../../../components/Charts/LineChart';
+import { LineChart, LineChartData } from '../../../components/common/charts';
+import Widget from '../../../components/common/widget/Widget';
 
 interface PerformanceChartProps {
   isLoading?: boolean;
@@ -49,23 +50,18 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
     labels,
     datasets: [
       {
-        label: 'Portfolio Value',
+        label: 'Performance',
         data: values,
-        borderColor: '#3b82f6', // blue-500
-        backgroundColor: 'rgba(59, 130, 246, 0.1)', // blue-500 with opacity
-        fill: true
-      }
-    ]
+        borderColor: '#34D399',
+        backgroundColor: '#A7F3D0',
+        fill: true,
+      },
+    ],
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">Performance History</h2>
-      <div className="h-64">
-        <LineChart
-          data={chartData}
-        />
-      </div>
-    </div>
+    <Widget title="Performance">
+      <LineChart data={chartData} />
+    </Widget>
   );
 }; 

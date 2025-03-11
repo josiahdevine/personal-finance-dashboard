@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { useSettings } from '../../../hooks/useSettings';
 import { useTheme } from '../../../hooks/useTheme';
 

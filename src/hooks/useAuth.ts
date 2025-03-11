@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useContext } from 'react';
 import { useAsyncAction } from './useAsyncAction';
 import { User } from '../types/models';
+import { AuthContext } from '../contexts/AuthContext';
 
 interface AuthState {
   user: User | null;
@@ -10,6 +11,16 @@ interface AuthState {
 }
 
 export const useAuth = () => {
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+};
+
+export function useAuthOld() {
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -169,4 +180,4 @@ export const useAuth = () => {
     updateProfile,
     updatePassword,
   };
-};
+}

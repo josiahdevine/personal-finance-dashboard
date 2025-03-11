@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../../../components/common/Card';
-import { StatCard } from '../../../components/common/StatCard';
-import { ResponsiveContainer, ResponsiveFlex } from '../../../components/layout/ResponsiveContainer';
+import Card from "../../../components/common/card_component/Card";
+import StatCard from '../../../components/common/stat-card/StatCard';
+import { ResponsiveContainer } from '../../../components/layout/ResponsiveContainer';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { formatCurrency } from '../../../utils/formatters';
 import { 
@@ -125,7 +125,6 @@ export const AccountSummary: React.FC<AccountSummaryProps> = ({
             formatter={formatCurrency}
             icon={<BanknotesIcon className="h-6 w-6" />}
             iconBackground="primary"
-            size="lg"
           />
         </div>
 

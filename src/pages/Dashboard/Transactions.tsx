@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  CreditCardIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
@@ -19,10 +18,10 @@ export const Transactions: React.FC = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [_dateFilter, _setDateFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, _setError] = useState<string | null>(null);
 
   // Mock data - replace with real data from your backend
   const transactions: Transaction[] = [
@@ -123,9 +122,9 @@ export const Transactions: React.FC = () => {
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-      ) : error ? (
+      ) : _error ? (
         <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900' : 'bg-red-100'} mb-4`}>
-          <p className={isDark ? 'text-red-200' : 'text-red-700'}>{error}</p>
+          <p className={isDark ? 'text-red-200' : 'text-red-700'}>{_error}</p>
         </div>
       ) : filteredTransactions.length === 0 ? (
         <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'} mb-4`}>

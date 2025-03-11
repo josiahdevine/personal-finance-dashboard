@@ -1,0 +1,95 @@
+.optimized-data-grid {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.data-grid-window {
+  overflow: auto !important;
+}
+
+.data-grid-header-cell {
+  padding: 0.75rem;
+  background-color: #f7fafc;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600 !important;
+  color: #4a5568;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-grid-cell {
+  padding: 0.75rem;
+  border-bottom: 1px solid #edf2f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.data-grid-cell:hover {
+  background-color: #f7fafc;
+}
+
+.optimized-data-grid-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  color: #718096;
+  font-style: italic;
+}
+
+/* Column type-specific styling */
+.data-grid-cell.column-number {
+  text-align: right;
+}
+
+.data-grid-cell.column-currency {
+  text-align: right;
+  font-family: monospace;
+}
+
+.data-grid-cell.column-date {
+  font-size: 0.875rem;
+}
+
+.data-grid-cell.column-status {
+  text-align: center;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .optimized-data-grid {
+    border-color: #4a5568;
+  }
+  
+  .data-grid-header-cell {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border-bottom-color: #4a5568;
+  }
+  
+  .data-grid-cell {
+    border-bottom-color: #4a5568;
+  }
+  
+  .data-grid-cell:hover {
+    background-color: #2d3748;
+  }
+  
+  .optimized-data-grid-empty {
+    background-color: #1a202c;
+    color: #a0aec0;
+    border-color: #4a5568;
+  }
+} 

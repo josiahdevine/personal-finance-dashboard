@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card } from '../../../components/common/Card';
+import Card from "../../../components/common/card_component/Card";
 import { ResponsiveContainer, ResponsiveGrid } from '../../../components/layout/ResponsiveContainer';
-import { Button } from '../../../components/common/Button';
+import Button from "../../../components/common/button/Button";
 import { useTheme } from '../../../contexts/ThemeContext';
 import {
   ChevronRightIcon

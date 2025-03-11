@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import Goals from '../components/Goals';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { log } from '../utils/logger';
+import { log } from '../utils/logger.js';
 
 function GoalsPage() {
   const { currentUser } = useAuth();

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
-import { CashFlowDashboard } from '../components/features/cashFlow/CashFlowDashboard';
-import { Card } from '../components/common/Card';
-import { TimePeriod } from '../components/features/cashFlow/CashFlowDashboard';
+import { useTheme } from '../contexts/ThemeContext';
+import { CashFlowDashboard } from '../components/features/cash-flow/CashFlowDashboard';
+import Card from "../components/common/Card";
+import { TimePeriod } from '../components/features/cash-flow/CashFlowDashboard';
 
 const CashFlowPredictionPage: React.FC = () => {
   const { isDarkMode: _isDarkMode } = useTheme();

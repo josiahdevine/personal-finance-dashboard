@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { useForm } from '../../../hooks/useForm';
 import { validatePassword } from '../../../utils/validation';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '../../../components/common/Button';
+import Button from "../../../components/common/button/Button";
 
 export type TimePeriod = '1m' | '3m' | '6m' | '1y' | 'all';
 

@@ -15,7 +15,7 @@ const localStorageMock = {
   key: jest.fn(),
 };
 
-global.localStorage = localStorageMock;
+global.localStorage = localStorageMock as any;
 
 // Mock Web Crypto API
 const cryptoMock = {

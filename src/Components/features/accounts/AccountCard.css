@@ -1,0 +1,88 @@
+.account-card {
+  width: 100%;
+  transition: all var(--duration-200) var(--ease-in-out);
+}
+
+.account-card-selected {
+  border-color: var(--color-action-primary);
+}
+
+.account-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.account-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.account-card-institution {
+  display: flex;
+  align-items: center;
+}
+
+.account-card-institution-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  margin-right: var(--space-xs);
+}
+
+.account-card-institution-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-xs);
+  font-size: var(--text-lg);
+}
+
+.account-card-institution-name {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.account-card-type {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: capitalize;
+}
+
+.account-card-last-four {
+  margin-left: var(--space-xs);
+  font-family: var(--font-family-mono);
+}
+
+.account-card-body {
+  padding: var(--space-md);
+  flex: 1;
+}
+
+.account-card-name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs) 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-card-balance {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.account-card-footer {
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--color-border-light);
+} 

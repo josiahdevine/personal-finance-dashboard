@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/card_component/Card";
 import { useAccounts } from '../../../hooks/useAccounts';
 import { formatCurrency } from '../../../utils/formatters';
-import { Button } from '../../common/Button';
+import Button from "../../common/button/Button";
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 export const AccountSettings: React.FC = () => {
@@ -35,7 +35,7 @@ export const AccountSettings: React.FC = () => {
               >
                 <div className="flex items-center space-x-4">
                   <div className={`w-2 h-2 rounded-full ${
-                    account.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                    (account as any).status === 'active' ? 'bg-green-500' : 'bg-red-500'
                   }`} />
                   <div>
                     <h3 className="font-medium">{account.name}</h3>

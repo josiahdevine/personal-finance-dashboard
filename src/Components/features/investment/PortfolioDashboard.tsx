@@ -4,9 +4,9 @@ import { PortfolioSummary } from './PortfolioSummary';
 import { AssetAllocation } from './AssetAllocation';
 import { PerformanceChart } from './PerformanceChart';
 import { RecentTransactions } from './RecentTransactions';
-import { Card } from '../../../components/common/Card';
+import Card from "../../../components/common/card_component/Card";
 import { ResponsiveGrid } from '../../../components/layout/ResponsiveContainer';
-import { Button } from '../../../components/common/Button';
+import Button from "../../../components/common/button/Button";
 import {
   ArrowTrendingUpIcon,
   ChartPieIcon,

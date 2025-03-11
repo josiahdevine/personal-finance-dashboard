@@ -1,10 +1,10 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from './layout/Header';
-import { Testimonials } from './Landing/Testimonials';
-import { IntegrationLogos } from './Landing/IntegrationLogos';
-import { DemoVideo } from './Landing/DemoVideo';
-import { UnifiedDemo } from './Landing/UnifiedDemo';
+import { Testimonials } from './features/landing/Testimonials';
+import { IntegrationLogos } from './features/landing/IntegrationLogos';
+import { DemoVideo } from './features/landing/DemoVideo';
+import { UnifiedDemo } from './features/landing/UnifiedDemo';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 

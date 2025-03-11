@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { formatCurrency, formatShortDate } from '../../../utils/formatters';
 
 export const RecentActivity: React.FC = () => {

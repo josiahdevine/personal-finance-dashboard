@@ -18,17 +18,17 @@ interface UpdateGoalData {
 export class GoalService {
   static async getGoals(): Promise<Goal[]> {
     const response = await api.get<Goal[]>('/api/goals');
-    return response.data;
+    return response;
   }
 
   static async createGoal(data: CreateGoalData): Promise<Goal> {
     const response = await api.post<Goal>('/api/goals', data);
-    return response.data;
+    return response;
   }
 
   static async updateGoal(id: string, data: UpdateGoalData): Promise<Goal> {
     const response = await api.patch<Goal>(`/api/goals/${id}`, data);
-    return response.data;
+    return response;
   }
 
   static async deleteGoal(id: string): Promise<void> {
@@ -37,7 +37,7 @@ export class GoalService {
 
   static async getGoalProgress(id: string): Promise<Goal> {
     const response = await api.get<Goal>(`/api/goals/${id}/progress`);
-    return response.data;
+    return response;
   }
 
   static async getGoalProjections(id: string): Promise<{
@@ -50,7 +50,7 @@ export class GoalService {
       monthlyRequired: number;
       progressRate: number;
     }>(`/api/goals/${id}/projections`);
-    return response.data;
+    return response;
   }
 }
 
@@ -70,16 +70,16 @@ export const analyzeGoal = async (
   targetAmount: number,
   currentAmount: number,
   deadline: string,
-  monthlyContribution?: number
+  monthlyContribution: number
 ): Promise<GoalAnalysis> => {
   try {
-    const { data } = await api.post<GoalAnalysis>('/goals/analyze', {
+    const response = await api.post<GoalAnalysis>('/goals/analyze', {
       targetAmount,
       currentAmount,
       deadline,
       monthlyContribution
     });
-    return data;
+    return response;
   } catch (error) {
     console.error('Error analyzing goal:', error);
     throw error;
@@ -104,12 +104,12 @@ export const getGoalRecommendations = async (
   riskTolerance: 'low' | 'medium' | 'high'
 ): Promise<GoalRecommendations> => {
   try {
-    const { data } = await api.post<GoalRecommendations>('/goals/recommendations', {
+    const response = await api.post<GoalRecommendations>('/goals/recommendations', {
       income,
       expenses,
       riskTolerance
     });
-    return data;
+    return response;
   } catch (error) {
     console.error('Error getting goal recommendations:', error);
     throw error;

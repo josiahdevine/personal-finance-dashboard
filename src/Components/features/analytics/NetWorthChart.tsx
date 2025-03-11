@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { formatCurrency } from '../../../utils/formatters';
 import PlaidService from '../../../services/plaidService';
 import { useAuth } from '../../../hooks/useAuth';
@@ -27,7 +27,7 @@ export const NetWorthChart: React.FC = () => {
       
       try {
         setLoading(true);
-        const accountsData = await PlaidService.getAccounts(user.id);
+        const accountsData = await PlaidService.getAccounts();
         setAccounts(accountsData);
       } catch (err) {
         console.error('Error fetching accounts:', err);

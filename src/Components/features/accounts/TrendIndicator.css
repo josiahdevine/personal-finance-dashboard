@@ -1,0 +1,30 @@
+.trend-indicator {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+}
+
+.trend-indicator-positive {
+  color: var(--color-positive);
+}
+
+.trend-indicator-negative {
+  color: var(--color-negative);
+}
+
+.trend-indicator-neutral {
+  color: var(--color-text-tertiary);
+}
+
+.trend-indicator-icon {
+  margin-right: var(--space-xs);
+}
+
+.trend-indicator-value {
+  font-weight: var(--font-medium);
+  margin-right: var(--space-xs);
+}
+
+.trend-indicator-period {
+  color: var(--color-text-tertiary);
+} 

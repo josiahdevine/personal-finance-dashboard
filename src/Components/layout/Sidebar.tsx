@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Avatar } from '../ui/Avatar';
+import { Avatar } from '../../components/ui/Avatar';
 import { AnimatePresence, motion } from 'framer-motion';
 import { 
   ChartBarIcon, 
@@ -47,14 +47,14 @@ export type SidebarProps = {
 export const Sidebar: React.FC<SidebarProps> = ({ 
   className = "", 
   isOpen = false,
-  onClose = () => {},
+  onClose = () => {/* No operation - optional callback */},
   mobileOnly = false,
   desktopOnly = false
 }) => {
   const { currentUser, logout } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(isOpen);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isDarkMode = theme === 'dark';
 
   // Use the isOpen prop to control the mobile menu state
@@ -62,11 +62,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setIsMobileMenuOpen(isOpen);
   }, [isOpen]);
 
-  // Handle closing the mobile menu
-  const handleCloseMobileMenu = () => {
+  // Use useCallback to prevent unnecessary re-renders and fix dependency array issues
+  const handleCloseMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
-    onClose();
-  };
+    if (onClose) onClose();
+  }, [onClose]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    handleCloseMobileMenu();
+  }, [location.pathname, handleCloseMobileMenu]);
 
   // Animation variants for the mobile menu button
   const buttonVariants = {
@@ -88,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, handleCloseMobileMenu]);
 
   // Derive background and text colors based on theme
   const bgColor = isDarkMode ? 'bg-gray-800' : 'bg-white';

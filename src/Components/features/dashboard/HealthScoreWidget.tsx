@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Card } from '../../../components/common/Card';
-import { Button } from '../../../components/common/Button';
+import Card from "../../../components/common/Card";
+import Button from "../../../components/common/button/Button";
 import { ResponsiveContainer } from '../../../components/layout/ResponsiveContainer';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { ArrowUpIcon, ArrowDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';

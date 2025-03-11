@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card } from '../components/common/Card';
+import Card from "../components/common/Card";
 import api from '../services/api';
 
 interface DeletedItem {

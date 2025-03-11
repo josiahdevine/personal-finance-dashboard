@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import Navigation from '../../components/navigation/Navigation';
+import { Navigation } from '../../components/navigation/Navigation';
 import { AccountSummary } from '../../components/features/dashboard/AccountSummary';
 import { HealthScoreWidget } from '../../components/features/dashboard/HealthScoreWidget';
 import { RecentTransactionsWidget } from '../../components/features/dashboard/RecentTransactionsWidget';
@@ -22,23 +22,28 @@ import {
   AcademicCapIcon,
   HeartIcon,
   LifebuoyIcon,
-  TruckIcon // Using TruckIcon instead of CarIcon
+  TruckIcon
 } from '@heroicons/react/24/outline';
+import { IconType } from 'react-icons';
 
-type DashboardTab = 'overview' | 'bills' | 'salary' | 'transactions' | 'goals' | 'analytics' | 'subscriptions' | 'investments' | 'plaid' | 'ask-ai';
+// Convert Heroicons to IconType compatible format
+const iconWrapper = (Icon: React.ElementType): IconType => {
+  const WrappedIcon = (props: React.SVGProps<SVGSVGElement>) => <Icon {...props} />;
+  return WrappedIcon as unknown as IconType;
+};
 
 // The tabs in the dashboard
 const navigationItems = [
-  { name: 'Overview', href: '/dashboard', icon: HomeIcon },
-  { name: 'Bills', href: '/dashboard/bills', icon: CreditCardIcon },
-  { name: 'Salary Journal', href: '/dashboard/salary', icon: CurrencyDollarIcon },
-  { name: 'Transactions', href: '/dashboard/transactions', icon: ReceiptRefundIcon },
-  { name: 'Goals', href: '/dashboard/goals', icon: FlagIcon },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
-  { name: 'Subscriptions', href: '/dashboard/subscriptions', icon: ClockIcon },
-  { name: 'Investments', href: '/dashboard/investments', icon: ArrowTrendingUpIcon },
-  { name: 'Plaid Integration', href: '/dashboard/plaid', icon: LinkIcon },
-  { name: 'Ask AI', href: '/dashboard/ask-ai', icon: ChatBubbleLeftRightIcon },
+  { id: 'overview', title: 'Overview', path: '/dashboard', icon: iconWrapper(HomeIcon) },
+  { id: 'bills', title: 'Bills', path: '/dashboard/bills', icon: iconWrapper(CreditCardIcon) },
+  { id: 'salary', title: 'Salary Journal', path: '/dashboard/salary', icon: iconWrapper(CurrencyDollarIcon) },
+  { id: 'transactions', title: 'Transactions', path: '/dashboard/transactions', icon: iconWrapper(ReceiptRefundIcon) },
+  { id: 'goals', title: 'Goals', path: '/dashboard/goals', icon: iconWrapper(FlagIcon) },
+  { id: 'analytics', title: 'Analytics', path: '/dashboard/analytics', icon: iconWrapper(ChartBarIcon) },
+  { id: 'subscriptions', title: 'Subscriptions', path: '/dashboard/subscriptions', icon: iconWrapper(ClockIcon) },
+  { id: 'investments', title: 'Investments', path: '/dashboard/investments', icon: iconWrapper(ArrowTrendingUpIcon) },
+  { id: 'plaid', title: 'Plaid Integration', path: '/dashboard/plaid', icon: iconWrapper(LinkIcon) },
+  { id: 'ask-ai', title: 'Ask AI', path: '/dashboard/ask-ai', icon: iconWrapper(ChatBubbleLeftRightIcon) }
 ];
 
 // Mock data for demo purposes
@@ -169,8 +174,7 @@ const mockDaysUntilLow = 12;
 
 const Dashboard: React.FC = () => {
   const { state: { isAuthenticated } } = useAuth();
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  const [isLoading] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
@@ -181,9 +185,10 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Navigation 
-        items={navigationItems} 
-        activeTab={activeTab} 
-        onTabChange={(tab) => setActiveTab(tab as DashboardTab)} 
+        items={navigationItems}
+        showMobileMenu={showMobileMenu}
+        onMobileMenuToggle={() => setShowMobileMenu(!showMobileMenu)}
+        onNavItemClick={() => setShowMobileMenu(false)}
       />
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">
@@ -202,7 +207,7 @@ const Dashboard: React.FC = () => {
             <AccountSummary 
               accounts={mockAccounts}
               totalBalance={totalBalance}
-              isLoading={isLoading} 
+              isLoading={false} 
               onAddAccount={() => console.log('Add account clicked')}
             />
 
@@ -212,7 +217,7 @@ const Dashboard: React.FC = () => {
                 score={mockHealthScore.score}
                 previousScore={mockHealthScore.previousScore}
                 topRecommendation={mockHealthScore.topRecommendation}
-                isLoading={isLoading}
+                isLoading={false}
                 onViewDetails={() => console.log('View health details clicked')}
               />
               <CashFlowWidget
@@ -221,7 +226,7 @@ const Dashboard: React.FC = () => {
                 projectedLow={mockProjectedLow}
                 projectedHigh={mockProjectedHigh}
                 daysUntilLow={mockDaysUntilLow}
-                isLoading={isLoading}
+                isLoading={false}
                 onViewDetails={() => console.log('View cash flow details clicked')}
               />
             </ResponsiveGrid>
@@ -233,12 +238,12 @@ const Dashboard: React.FC = () => {
                 totalSpent={mockBudgetCategories.reduce((acc, curr) => acc + curr.spent, 0)}
                 totalBudgeted={mockBudgetCategories.reduce((acc, curr) => acc + curr.budgeted, 0)}
                 period="July 2023"
-                isLoading={isLoading}
+                isLoading={false}
                 onViewDetails={() => console.log('View budget details clicked')}
               />
               <RecentTransactionsWidget
                 transactions={mockTransactions}
-                isLoading={isLoading}
+                isLoading={false}
                 onViewAll={() => console.log('View all transactions clicked')}
               />
             </ResponsiveGrid>

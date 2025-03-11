@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import BillsAnalysis from '../components/BillsAnalysis';
 import { useAuth } from '../contexts/AuthContext';
 import { useFinanceData } from '../contexts/FinanceDataContext';
-import { log, logError } from '../utils/logger';
+import { log, logError } from '../utils/logger.js';
 import { ErrorBoundary } from 'react-error-boundary';
 
 // Error fallback component

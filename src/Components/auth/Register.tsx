@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { state, register } = useAuth();
+  const auth = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,6 +16,13 @@ export const Register: React.FC = () => {
     searchParams.get('plan') || 'free'
   );
 
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [auth.isAuthenticated, navigate]);
+
   useEffect(() => {
     const plan = searchParams.get('plan');
     if (plan) {
@@ -23,40 +30,56 @@ export const Register: React.FC = () => {
     }
   }, [searchParams]);
 
-  const validateForm = () => {
+  // If still checking authentication, show loading
+  if (auth.isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-indigo-600" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const validateForm = (): string | null => {
     if (!email) {
-      setError('Email is required');
-      return false;
+      return 'Email is required';
     }
+    
     if (!password) {
-      setError('Password is required');
-      return false;
+      return 'Password is required';
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return false;
-    }
+    
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+      return 'Passwords do not match';
     }
+    
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    
     if (!name) {
-      setError('Name is required');
-      return false;
+      return 'Name is required';
     }
-    return true;
+    
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!validateForm()) {
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     try {
-      await register(email, password, name);
+      await auth.createUserWithEmail(email, password, name);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
@@ -77,12 +100,18 @@ export const Register: React.FC = () => {
           <p className="mt-2 text-center text-sm text-gray-600">
             Selected plan: {selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)}
           </p>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Sign in
+            </Link>
+          </p>
         </div>
 
-        {(error || state.error) && (
+        {(error || auth.error) && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">
-              {error || state.error}
+              {error || (auth.error ? auth.error.message : null)}
             </div>
           </div>
         )}
@@ -102,7 +131,7 @@ export const Register: React.FC = () => {
                 placeholder="Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
               />
             </div>
             <div>
@@ -119,7 +148,7 @@ export const Register: React.FC = () => {
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
               />
             </div>
             <div>
@@ -136,7 +165,7 @@ export const Register: React.FC = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
               />
             </div>
             <div>
@@ -153,7 +182,7 @@ export const Register: React.FC = () => {
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={state.isLoading}
+                disabled={auth.isLoading}
               />
             </div>
           </div>
@@ -161,14 +190,14 @@ export const Register: React.FC = () => {
           <div>
             <button
               type="submit"
-              disabled={state.isLoading}
+              disabled={auth.isLoading}
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                state.isLoading
+                auth.isLoading
                   ? 'bg-indigo-400 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
               }`}
             >
-              {state.isLoading ? 'Creating account...' : 'Create Account'}
+              {auth.isLoading ? 'Creating account...' : 'Create Account'}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import { Card } from '../../../components/common/Card';
+import Card from "../../../components/common/Card";
 import { ResponsiveGrid } from '../../../components/common/ResponsiveGrid';
 import { PeriodSelector } from '../../features/investment/PeriodSelector';
 import { Skeleton } from '../../../components/common/Skeleton';

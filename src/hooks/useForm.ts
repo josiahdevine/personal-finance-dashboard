@@ -1,99 +1,170 @@
-import { useState, useCallback, FormEvent } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-interface FormConfig<T> {
+interface FormOptions<T> {
   initialValues: T;
   onSubmit: (values: T) => void | Promise<void>;
-  validate?: (values: T) => Partial<Record<keyof T, string>>;
+  validate?: (values: T) => Record<string, string>;
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
 }
 
 interface FormState<T> {
   values: T;
-  errors: Partial<Record<keyof T, string>>;
-  touched: Partial<Record<keyof T, boolean>>;
+  errors: Record<string, string>;
+  touched: Record<string, boolean>;
   isSubmitting: boolean;
+  isValid: boolean;
+  isDirty: boolean;
 }
 
-export const useForm = <T extends Record<string, any>>({
-  initialValues,
-  onSubmit,
-  validate
-}: FormConfig<T>) => {
-  const [state, setState] = useState<FormState<T>>({
-    values: initialValues,
-    errors: {},
-    touched: {},
-    isSubmitting: false
-  });
+interface FormHandlers {
+  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  handleBlur: (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  setFieldValue: (field: string, value: any) => void;
+  setFieldTouched: (field: string, isTouched?: boolean) => void;
+  resetForm: () => void;
+}
 
-  const validateForm = useCallback((values: T) => {
+export function useForm<T extends Record<string, any>>(options: FormOptions<T>): [FormState<T>, FormHandlers] {
+  const {
+    initialValues,
+    onSubmit,
+    validate,
+    validateOnChange = true,
+    validateOnBlur = true,
+  } = options;
+  
+  // Initialize form state
+  const [values, setValues] = useState<T>(initialValues);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  
+  // Run validation and update errors
+  const validateForm = useCallback(() => {
     if (!validate) return {};
-    return validate(values);
-  }, [validate]);
-
-  const setFieldValue = useCallback((field: keyof T, value: any) => {
-    setState(prev => ({
-      ...prev,
-      values: {
-        ...prev.values,
-        [field]: value
-      },
-      touched: {
-        ...prev.touched,
-        [field]: true
+    
+    const newErrors = validate(values);
+    setErrors(newErrors);
+    return newErrors;
+  }, [values, validate]);
+  
+  // Check if form is valid
+  const isValid = Object.keys(errors).length === 0;
+  
+  // Reset form to initial state
+  const resetForm = useCallback(() => {
+    setValues(initialValues);
+    setErrors({});
+    setTouched({});
+    setIsSubmitting(false);
+    setIsDirty(false);
+  }, [initialValues]);
+  
+  // Handle field change
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    
+    setValues(prevValues => {
+      // Handle special input types
+      let newValue: any = value;
+      
+      if (type === 'number') {
+        newValue = value === '' ? '' : Number(value);
+      } else if (type === 'checkbox') {
+        const target = e.target as HTMLInputElement;
+        newValue = target.checked;
       }
+      
+      return { ...prevValues, [name]: newValue };
+    });
+    
+    setIsDirty(true);
+    
+    if (validateOnChange) {
+      validateForm();
+    }
+  }, [validateForm, validateOnChange]);
+  
+  // Handle field blur
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name } = e.target;
+    
+    setTouched(prevTouched => ({
+      ...prevTouched,
+      [name]: true
     }));
-  }, []);
-
-  const setFieldTouched = useCallback((field: keyof T, isTouched = true) => {
-    setState(prev => ({
-      ...prev,
-      touched: {
-        ...prev.touched,
-        [field]: isTouched
-      }
+    
+    if (validateOnBlur) {
+      validateForm();
+    }
+  }, [validateForm, validateOnBlur]);
+  
+  // Set a field value programmatically
+  const setFieldValue = useCallback((field: string, value: any) => {
+    setValues(prevValues => ({
+      ...prevValues,
+      [field]: value
     }));
-  }, []);
-
-  const handleSubmit = useCallback(async (e: FormEvent) => {
+    
+    setIsDirty(true);
+    
+    if (validateOnChange) {
+      validateForm();
+    }
+  }, [validateForm, validateOnChange]);
+  
+  // Set a field touched state programmatically
+  const setFieldTouched = useCallback((field: string, isTouched = true) => {
+    setTouched(prevTouched => ({
+      ...prevTouched,
+      [field]: isTouched
+    }));
+    
+    if (validateOnBlur && isTouched) {
+      validateForm();
+    }
+  }, [validateForm, validateOnBlur]);
+  
+  // Handle form submission
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    const errors = validateForm(state.values);
-    setState(prev => ({
-      ...prev,
-      errors,
-      touched: Object.keys(prev.values).reduce((acc, key) => {
-        acc[key as keyof T] = true;
-        return acc;
-      }, {} as Record<keyof T, boolean>)
-    }));
-
-    if (Object.keys(errors).length === 0) {
-      setState(prev => ({ ...prev, isSubmitting: true }));
+    // Set all fields as touched
+    const allTouched = Object.keys(values).reduce((acc, key) => {
+      acc[key] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
+    
+    setTouched(allTouched);
+    
+    // Validate form
+    const formErrors = validate ? validate(values) : {};
+    setErrors(formErrors);
+    
+    // Only submit if there are no errors
+    if (Object.keys(formErrors).length === 0) {
+      setIsSubmitting(true);
+      
       try {
-        await onSubmit(state.values);
+        await onSubmit(values);
       } finally {
-        setState(prev => ({ ...prev, isSubmitting: false }));
+        setIsSubmitting(false);
       }
     }
-  }, [state.values, validateForm, onSubmit]);
-
-  const resetForm = useCallback(() => {
-    setState({
-      values: initialValues,
-      errors: {},
-      touched: {},
-      isSubmitting: false
-    });
-  }, [initialValues]);
-
-  return {
-    values: state.values,
-    errors: state.errors,
-    touched: state.touched,
-    isSubmitting: state.isSubmitting,
-    setFieldValue,
-    setFieldTouched,
-    handleSubmit,
-    resetForm
-  };
-}; 
+  }, [values, validate, onSubmit]);
+  
+  // Run validation when initialValues change
+  useEffect(() => {
+    if (validate) {
+      validateForm();
+    }
+  }, [initialValues, validate, validateForm]);
+  
+  return [
+    { values, errors, touched, isSubmitting, isValid, isDirty },
+    { handleChange, handleBlur, handleSubmit, setFieldValue, setFieldTouched, resetForm }
+  ];
+} 

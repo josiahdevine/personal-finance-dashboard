@@ -3,8 +3,8 @@ import { NotificationPreferences } from '../types/models';
 
 export const getNotificationPreferences = async (): Promise<NotificationPreferences> => {
   try {
-    const { data } = await api.get<NotificationPreferences>('/notifications/preferences');
-    return data;
+    const response = await api.get<NotificationPreferences>('/notifications/preferences');
+    return response;
   } catch (error) {
     console.error('Error fetching notification preferences:', error);
     throw error;
@@ -15,8 +15,8 @@ export const updateNotificationPreferences = async (
   preferences: Partial<NotificationPreferences>
 ): Promise<NotificationPreferences> => {
   try {
-    const { data } = await api.put<NotificationPreferences>('/notifications/preferences', preferences);
-    return data;
+    const response = await api.put<NotificationPreferences>('/notifications/preferences', preferences);
+    return response;
   } catch (error) {
     console.error('Error updating notification preferences:', error);
     throw error;

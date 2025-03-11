@@ -8,7 +8,9 @@ import {
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useTheme } from '../../contexts/ThemeContext';
-import { PlaidLink } from '../../components/plaid/PlaidLink';
+import { useAuth } from '../../hooks/useAuth';
+import { PlaidLink } from '../../components/features/plaid/PlaidLink';
+import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -39,6 +41,7 @@ const AccountConnections: React.FC = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [isPlaidModalOpen, setIsPlaidModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -94,7 +97,8 @@ const AccountConnections: React.FC = () => {
     },
   });
 
-  const handlePlaidSuccess = () => {
+  const handlePlaidSuccess = (metadata: any) => {
+    console.log('Successfully connected account:', metadata);
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     setIsPlaidModalOpen(false);
   };
@@ -296,7 +300,21 @@ const AccountConnections: React.FC = () => {
         title="Connect Your Bank Account"
       >
         <div className="mt-4">
-          <PlaidLink onSuccess={handlePlaidSuccess} />
+          <Card>
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Bank Account</h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Connect your bank account to track your transactions and balances.
+              </p>
+              <PlaidLink
+                onSuccess={handlePlaidSuccess}
+                buttonText="Connect Bank Account"
+                variant="primary"
+                size="md"
+                isFullWidth
+              />
+            </div>
+          </Card>
         </div>
       </Modal>
 
@@ -314,4 +332,4 @@ const AccountConnections: React.FC = () => {
   );
 };
 
-export default AccountConnections; 
+export default AccountConnections;

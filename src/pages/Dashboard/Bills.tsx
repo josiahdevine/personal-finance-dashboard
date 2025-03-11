@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { currencyFormatter, dateFormatter } from '../../utils/formatters';
-import BillForm from '../../components/Bills/BillForm';
+import BillForm from '../../components/features/bills/BillForm';
 import Modal from '../../components/common/Modal';
-import { BillFrequency } from '../../components/Bills/BillForm';
+import { BillFrequency } from '../../components/features/bills/BillForm';
 
 interface Bill {
   id: string;

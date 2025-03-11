@@ -12,7 +12,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
-import { log, logError, timeOperation } from '../utils/logger';
+import { log, logError, timeOperation } from '../utils/logger.js';
 
 // Initialize Firebase
 let app;

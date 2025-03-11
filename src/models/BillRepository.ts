@@ -14,7 +14,11 @@ export class BillRepository extends BaseRepository<Bill> {
   }
 
   async update(id: string, data: Partial<Bill>): Promise<Bill> {
-    const validated = validateBill({ ...await this.findById(id), ...data });
+    const existingBill = await this.findById(id);
+    if (!existingBill) {
+      throw new Error(`Bill with id ${id} not found`);
+    }
+    const validated = validateBill({ ...existingBill, ...data });
     return super.update(id, validated);
   }
 
@@ -71,7 +75,11 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
   }
 
   async update(id: string, data: Partial<Subscription>): Promise<Subscription> {
-    const validated = validateSubscription({ ...await this.findById(id), ...data });
+    const existingSubscription = await this.findById(id);
+    if (!existingSubscription) {
+      throw new Error(`Subscription with id ${id} not found`);
+    }
+    const validated = validateSubscription({ ...existingSubscription, ...data });
     return super.update(id, validated);
   }
 

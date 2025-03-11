@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 // import { useAnalytics } from '../../../hooks/useAnalytics';
 import { formatCurrency } from '../../../utils/formatters';
 import type { ChartOptions } from 'chart.js';
@@ -42,11 +42,10 @@ export const TrendAnalysis: React.FC = () => {
         const endDateStr = endDate.toISOString().split('T')[0];
         
         // Fetch transactions
-        const transactions = await PlaidService.getTransactions(
-          user.id,
-          startDateStr,
-          endDateStr
-        );
+        const transactions = await PlaidService.getTransactions({
+          start_date: startDateStr,
+          end_date: endDateStr
+        });
         
         // Process transactions into monthly data
         const monthlyData: Record<string, { income: number, expenses: number }> = {};
@@ -60,7 +59,7 @@ export const TrendAnalysis: React.FC = () => {
         }
         
         // Aggregate transactions by month
-        transactions.forEach(transaction => {
+        transactions.transactions.forEach(transaction => {
           const monthKey = transaction.date.slice(0, 7);
           if (monthlyData[monthKey]) {
             if (transaction.amount < 0) {

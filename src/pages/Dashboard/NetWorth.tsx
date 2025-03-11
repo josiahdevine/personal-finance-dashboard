@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useTimeFrame } from '../../contexts/TimeFrameContext';
 import { formatCurrency } from '../../utils/formatters';
 import { TimeFrameSelector } from '../../components/common/TimeFrameSelector';
-import { BalanceHistoryChart } from '../../components/Charts/BalanceHistoryChart';
+import { BalanceHistoryChart } from '../../components/charts/BalanceHistoryChart';
 
 interface NetWorthData {
   date: string;
@@ -59,32 +59,11 @@ const NetWorth: React.FC = () => {
     .filter(account => account.type === 'liability')
     .reduce((sum, account) => sum + account.balance, 0);
 
-  const chartData = {
-    labels: netWorthHistory.map(data => new Date(data.date).toLocaleDateString()),
-    datasets: [
-      {
-        label: 'Net Worth',
-        data: netWorthHistory.map(data => data.netWorth),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-      },
-      {
-        label: 'Assets',
-        data: netWorthHistory.map(data => data.assets),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        fill: true,
-      },
-      {
-        label: 'Liabilities',
-        data: netWorthHistory.map(data => data.liabilities),
-        borderColor: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-      },
-    ],
-  };
+  // Format data for BalanceHistoryChart component
+  const balanceHistoryData = netWorthHistory.map(item => ({
+    date: item.date,
+    amount: item.netWorth
+  }));
 
   if (isLoadingHistory || isLoadingBalances) {
     return (
@@ -159,9 +138,12 @@ const NetWorth: React.FC = () => {
       {/* Chart */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <BalanceHistoryChart
-          labels={chartData.labels}
-          datasets={chartData.datasets}
+          data={balanceHistoryData}
+          title="Net Worth Over Time"
           height={400}
+          showLegend={true}
+          gradientColor="rgba(59, 130, 246, 0.2)"
+          lineColor="rgb(59, 130, 246)"
         />
       </div>
 
@@ -223,4 +205,4 @@ const NetWorth: React.FC = () => {
   );
 };
 
-export default NetWorth; 
+export default NetWorth;

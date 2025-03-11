@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { log, logError } from '../utils/logger';
+import { log, logError } from '../utils/logger.js';
 
 // Create the context
 const FinanceDataContext = createContext();

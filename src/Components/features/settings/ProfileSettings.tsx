@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { useForm } from '../../../hooks/useForm';
-import { Button } from '../../common/Button';
+import Button from "../../common/button/Button";
 import { useAuth } from '../../../hooks/useAuth';
 
 interface ProfileFormData {

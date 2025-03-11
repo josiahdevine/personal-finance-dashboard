@@ -4,13 +4,13 @@ import {
   ResponsiveGrid, 
   ResponsiveFlex 
 } from '../components/layout/ResponsiveContainer';
-import { Card } from '../components/common/Card';
-import { StatCard } from '../components/common/StatCard';
-import { DataTable, Column } from '../components/common/DataTable';
+import Card from "../components/common/Card";
+import StatCard from "../components/common/stat-card/StatCard";
+import { DataTable, Column } from '../components/common/data-table';
 import { TransactionList } from '../components/features/transactions/TransactionList';
-import { Button } from '../components/common/Button';
-import { Text } from '../components/common/Text';
-import { Heading } from '../components/common/Heading';
+import Button from "../components/common/button/Button";
+import { Text } from '../components/common/text';
+import { Heading } from '../components/common/heading';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   ChartPieIcon,

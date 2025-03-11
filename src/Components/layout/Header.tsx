@@ -12,7 +12,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, _onMenuClick }) => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, signInWithEmail, signOut } = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,9 +20,10 @@ export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, _onMenuCli
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password);
+      await signInWithEmail(email, password);
       setShowLoginMenu(false);
-      navigate('/dashboard');
+      setEmail('');
+      setPassword('');
     } catch (error) {
       console.error('Login error:', error);
     }
@@ -30,8 +31,8 @@ export const Header: React.FC<HeaderProps> = ({ theme, onThemeToggle, _onMenuCli
 
   const handleLogout = async () => {
     try {
-      await logout();
-      navigate('/');
+      await signOut();
+      navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
     }

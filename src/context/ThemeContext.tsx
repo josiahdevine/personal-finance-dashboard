@@ -1,97 +1,127 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export interface ThemeContextType {
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+interface ThemeContextType {
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
-  setDarkMode: (isDark: boolean) => void;
 }
 
-// Use noop functions instead of empty objects
-const toggleThemeNoop = (): void => {
-  console.warn('toggleTheme was called before ThemeProvider was initialized');
-};
-
-const setDarkModeNoop = (): void => {
-  console.warn('setDarkMode was called before ThemeProvider was initialized');
-};
-
-const ThemeContext = createContext<ThemeContextType>({
-  isDarkMode: false,
-  toggleTheme: toggleThemeNoop,
-  setDarkMode: setDarkModeNoop,
-});
-
-export const useTheme = (): ThemeContextType => useContext(ThemeContext);
-
-interface ThemeProviderProps {
-  children: React.ReactNode;
-}
-
+const DEFAULT_THEME = 'system';
 const THEME_STORAGE_KEY = 'financeApp_theme';
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  // Initialize theme from localStorage or system preference
-  const getInitialTheme = (): boolean => {
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setThemeState] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
-      // Check localStorage first
-      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      if (storedTheme) {
-        return storedTheme === 'dark';
-      }
-      
-      // Otherwise, check system preference
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      return (savedTheme as ThemeMode) || DEFAULT_THEME;
     }
-    
-    // Default to light mode when rendered on server
+    return DEFAULT_THEME;
+  });
+  
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      return theme === 'dark';
+    }
     return false;
+  });
+
+  // Function to check if system prefers dark mode
+  const getSystemTheme = (): 'light' | 'dark' => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
   };
-  
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(getInitialTheme());
-  
-  useEffect(() => {
-    // Apply theme to document
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.style.colorScheme = 'dark';
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.style.colorScheme = 'light';
-    }
-    
-    // Save theme preference to localStorage
-    localStorage.setItem(THEME_STORAGE_KEY, isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
-  
-  // Listen for system preference changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Only update if user hasn't set a preference in localStorage
-      if (!localStorage.getItem(THEME_STORAGE_KEY)) {
-        setIsDarkMode(e.matches);
+
+  // Function to set the theme in both state and localStorage
+  const setTheme = (newTheme: ThemeMode) => {
+    setThemeState(newTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+
+      // Update dark mode state based on the new theme
+      if (newTheme === 'system') {
+        setIsDarkMode(getSystemTheme() === 'dark');
+      } else {
+        setIsDarkMode(newTheme === 'dark');
       }
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
-  
+    }
+  };
+
+  // Toggle between light and dark
   const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
+    const newTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+    setTheme(newTheme);
   };
-  
-  const setDarkMode = (isDark: boolean) => {
-    setIsDarkMode(isDark);
+
+  // Apply the theme to the document
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const applyTheme = () => {
+        const effectiveTheme = theme === 'system' ? getSystemTheme() : theme;
+        setIsDarkMode(effectiveTheme === 'dark');
+        
+        if (effectiveTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.style.colorScheme = 'light';
+        }
+      };
+
+      applyTheme();
+
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        if (theme === 'system') {
+          setIsDarkMode(e.matches);
+          if (e.matches) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        }
+      };
+
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+      } else if ('addListener' in mediaQuery) {
+        // For older browsers
+        mediaQuery.addListener(handleChange as any);
+        return () => mediaQuery.removeListener(handleChange as any);
+      }
+    }
+    return undefined;
+  }, [theme]);
+
+  const value = {
+    theme,
+    setTheme,
+    isDarkMode,
+    toggleTheme
   };
-  
-  return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme, setDarkMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-}; 
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+export const useTheme = (): ThemeContextType => {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
+export default { ThemeProvider, useTheme }; 

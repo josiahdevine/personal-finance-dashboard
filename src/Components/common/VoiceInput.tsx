@@ -27,8 +27,8 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [internalIsListening, setInternalIsListening] = useState(false);
-  const { state } = useTheme();
-  const isDark = state.theme === 'dark';
+  const { theme, isDarkMode } = useTheme();
+  const isDark = isDarkMode;
 
   const isListening = externalIsListening ?? internalIsListening;
 

@@ -45,8 +45,8 @@ interface PortfolioSummary {
 
 export const getPortfolioSummary = async (): Promise<PortfolioSummary> => {
   try {
-    const { data } = await api.get<PortfolioSummary>('/portfolio/summary');
-    return data;
+    const response = await api.get<PortfolioSummary>('/portfolio/summary');
+    return response;
   } catch (error) {
     console.error('Error fetching portfolio summary:', error);
     throw error;
@@ -55,8 +55,8 @@ export const getPortfolioSummary = async (): Promise<PortfolioSummary> => {
 
 export const getAssetAllocation = async (): Promise<AssetClassAllocation[]> => {
   try {
-    const { data } = await api.get<AssetClassAllocation[]>('/portfolio/allocation');
-    return data;
+    const response = await api.get<AssetClassAllocation[]>('/portfolio/allocation');
+    return response;
   } catch (error) {
     console.error('Error fetching asset allocation:', error);
     throw error;
@@ -65,8 +65,8 @@ export const getAssetAllocation = async (): Promise<AssetClassAllocation[]> => {
 
 export const getSecurityAllocations = async (): Promise<SecurityAllocation[]> => {
   try {
-    const { data } = await api.get<SecurityAllocation[]>('/portfolio/securities');
-    return data;
+    const response = await api.get<SecurityAllocation[]>('/portfolio/securities');
+    return response;
   } catch (error) {
     console.error('Error fetching security allocations:', error);
     throw error;

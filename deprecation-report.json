@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-03-10T19:09:29.575Z",
+  "deprecatedFiles": [
+    "src\\contexts\\ThemeContext.js",
+    "src\\contexts\\AuthContext.js",
+    "src\\context\\ThemeContext.tsx",
+    "src\\context\\AuthContext.tsx",
+    "src\\components\\PlaidLink\\index.tsx",
+    "src\\components\\plaid\\PlaidLink.tsx",
+    "src\\components\\Budget\\index.tsx"
+  ],
+  "componentsWithImports": {},
+  "summary": {
+    "totalDeprecated": 7,
+    "componentsToFix": 0
+  }
+}

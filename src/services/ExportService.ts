@@ -24,11 +24,11 @@ export const exportData = async (
   endDate?: string
 ): Promise<Blob> => {
   try {
-    const { data } = await api.get<Blob>('/export', {
+    const response = await api.get<Blob>('/export', {
       params: { type, format, startDate, endDate },
       responseType: 'blob'
     });
-    return data;
+    return response;
   } catch (error) {
     console.error('Error exporting data:', error);
     throw error;
@@ -37,8 +37,8 @@ export const exportData = async (
 
 export const getExportJobs = async (): Promise<ExportJob[]> => {
   try {
-    const { data } = await api.get<ExportJob[]>('/export/jobs');
-    return data;
+    const response = await api.get<ExportJob[]>('/export/jobs');
+    return response;
   } catch (error) {
     console.error('Error fetching export jobs:', error);
     throw error;

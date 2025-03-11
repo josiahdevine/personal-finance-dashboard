@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 // import { usePlaid } from '../../../contexts/PlaidContext';
 import { formatCurrency } from '../../../utils/formatters';
 import type { ChartOptions } from 'chart.js';

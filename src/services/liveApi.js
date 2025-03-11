@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getToken } from './auth';
-import { log, logError } from '../utils/logger';
+import { log, logError } from '../utils/logger.js';
 import { ensureAuth } from './firebase';
 
 const getBaseURL = () => {

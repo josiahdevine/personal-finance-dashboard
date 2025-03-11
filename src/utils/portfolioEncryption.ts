@@ -1,137 +1,143 @@
-import { encryptData, decryptData, isCryptoSupported } from './encryption';
+import CryptoJS from 'crypto-js';
+import logger from './logger';
 
-interface EncryptedField {
-  data: string;
-  iv: string;
-  isEncrypted: boolean;
-  _type: string;  // Type information for TypeScript, not stored
-}
-
-/**
- * Fields that should be encrypted in portfolio data
- */
-const SENSITIVE_FIELDS = [
-  'accountNumber',
-  'routingNumber',
-  'balance',
-  'transactions',
-  'positions'
-] as const;
-
-type SensitiveField = typeof SENSITIVE_FIELDS[number];
-
-/**
- * Encrypts specific fields in portfolio data
- */
-export async function encryptPortfolioFields(
-  data: Record<string, any>,
-  fieldsToEncrypt: SensitiveField[] = [...SENSITIVE_FIELDS]
-): Promise<Record<string, any>> {
-  if (!isCryptoSupported()) {
-    console.warn('Crypto API not supported - data will not be encrypted');
-    return data;
-  }
-
-  const encryptedData: Record<string, any> = { ...data };
-
-  for (const field of fieldsToEncrypt) {
-    if (field in data && data[field] !== null) {
-      try {
-        // Get current encryption key from your key management system
-        const currentKey = await getCurrentEncryptionKey();
-        const encrypted = await encryptData(data[field], currentKey);
-        encryptedData[field] = {
-          ...encrypted,
-          isEncrypted: true,
-          _type: typeof data[field]
-        };
-      } catch (error) {
-        console.error(`Failed to encrypt field ${field}:`, error);
-        // Keep original data if encryption fails
-        encryptedData[field] = data[field];
-      }
+// Mock key rotation service for now
+// This would typically be a more complex implementation that manages key rotation
+const keyRotationService = {
+  getCurrentKeyId: (): number => 1,
+  getCurrentKey: (): string => {
+    const key = process.env.REACT_APP_ENCRYPTION_KEY || 'default-encryption-key-for-development';
+    return key;
+  },
+  getKeyById: (keyId: number): string | null => {
+    if (keyId === 1) {
+      return process.env.REACT_APP_ENCRYPTION_KEY || 'default-encryption-key-for-development';
     }
+    return null;
   }
+};
 
-  return encryptedData;
+export const getKeyRotationService = () => keyRotationService;
+
+/**
+ * Encrypts portfolio data using the current encryption key
+ */
+export function encryptPortfolioData(data: any): string {
+  try {
+    const key = getCurrentEncryptionKey();
+    const jsonString = JSON.stringify(data);
+    
+    // Encrypt the data
+    const encryptedData = CryptoJS.AES.encrypt(jsonString, key).toString();
+    
+    // Return encrypted data with metadata
+    return JSON.stringify({
+      version: 1,
+      keyId: getKeyRotationService().getCurrentKeyId(),
+      data: encryptedData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown encryption error');
+    logger.error('PortfolioEncryption', 'Error encrypting portfolio data:', err);
+    throw new Error('Failed to encrypt portfolio data');
+  }
 }
 
 /**
- * Placeholder function to get current encryption key
- * Replace with your actual key management implementation
+ * Decrypts portfolio data
  */
-async function getCurrentEncryptionKey(): Promise<CryptoKey> {
-  // This is a placeholder - in a real app, you'd retrieve the stored encryption key
-  throw new Error('getCurrentEncryptionKey not implemented');
-}
-
-/**
- * Decrypts specific fields in portfolio data
- */
-export async function decryptPortfolioFields(
-  data: Record<string, any>,
-  fieldsToDecrypt: SensitiveField[] = [...SENSITIVE_FIELDS]
-): Promise<Record<string, any>> {
-  if (!isCryptoSupported()) {
-    return data;
-  }
-
-  const decryptedData: Record<string, any> = { ...data };
-
-  for (const field of fieldsToDecrypt) {
-    if (field in data && data[field] !== null) {
-      const encryptedField = data[field] as EncryptedField;
-      
-      if (encryptedField.isEncrypted) {
-        try {
-          // Get current encryption key from your key management system
-          const currentKey = await getCurrentEncryptionKey();
-          const decrypted = await decryptData(
-            encryptedField.data,
-            encryptedField.iv,
-            currentKey
-          );
-          
-          // Convert back to original type
-          decryptedData[field] = 
-            encryptedField._type === 'number' ? Number(decrypted) :
-            encryptedField._type === 'boolean' ? Boolean(decrypted) :
-            decrypted;
-        } catch (error) {
-          console.error(`Failed to decrypt field ${field}:`, error);
-          // Keep encrypted data if decryption fails
-          decryptedData[field] = data[field];
-        }
-      }
+export function decryptPortfolioData(encryptedString: string): any {
+  try {
+    // Parse the encrypted package
+    const encryptedPackage = JSON.parse(encryptedString);
+    
+    // Get the key for this data version
+    const key = getKeyById(encryptedPackage.keyId);
+    
+    if (!key) {
+      throw new Error(`Encryption key not found for key ID: ${encryptedPackage.keyId}`);
     }
+    
+    // Decrypt the data
+    const decryptedBytes = CryptoJS.AES.decrypt(encryptedPackage.data, key);
+    const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    
+    if (!decryptedText) {
+      throw new Error('Decryption failed: Invalid result');
+    }
+    
+    // Parse the JSON data
+    return JSON.parse(decryptedText);
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown decryption error');
+    logger.error('PortfolioEncryption', 'Error decrypting portfolio data:', err);
+    throw new Error('Failed to decrypt portfolio data');
   }
-
-  return decryptedData;
 }
 
 /**
- * Checks if a field in portfolio data is encrypted
+ * Gets the current encryption key
  */
-export function isFieldEncrypted(
-  data: any,
-  field: string
-): boolean {
-  return (
-    data &&
-    typeof data === 'object' &&
-    field in data &&
-    data[field] !== null &&
-    typeof data[field] === 'object' &&
-    'isEncrypted' in data[field] &&
-    data[field].isEncrypted === true
-  );
+export function getCurrentEncryptionKey(): string {
+  const keyService = getKeyRotationService();
+  const currentKey = keyService.getCurrentKey();
+  
+  if (!currentKey) {
+    throw new Error('Current encryption key not available');
+  }
+  
+  return currentKey;
 }
 
 /**
- * Gets a list of all encrypted fields in the data
+ * Gets an encryption key by ID
  */
-export function getEncryptedFields(
-  data: Record<string, any>
-): string[] {
-  return Object.keys(data).filter(field => isFieldEncrypted(data, field));
+export function getKeyById(keyId: number): string | null {
+  return getKeyRotationService().getKeyById(keyId);
+}
+
+/**
+ * Re-encrypts data with the current key
+ */
+export function reencryptPortfolioData(encryptedString: string): string {
+  const data = decryptPortfolioData(encryptedString);
+  return encryptPortfolioData(data);
+}
+
+/**
+ * Checks if data needs re-encryption with a newer key
+ */
+export function needsReencryption(encryptedString: string): boolean {
+  try {
+    const encryptedPackage = JSON.parse(encryptedString);
+    const currentKeyId = getKeyRotationService().getCurrentKeyId();
+    
+    // Re-encrypt if using an older key version
+    return encryptedPackage.keyId < currentKeyId;
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown error checking encryption');
+    logger.error('PortfolioEncryption', 'Error checking if reencryption is needed:', err);
+    return true; // Be safe and suggest reencryption if we can't determine
+  }
+}
+
+/**
+ * Initialize portfolio encryption system
+ */
+export async function initializePortfolioEncryption(): Promise<void> {
+  try {
+    // Check if encryption keys are available
+    const currentKey = getKeyRotationService().getCurrentKey();
+    
+    if (!currentKey) {
+      throw new Error('Encryption key not available');
+    }
+    
+    logger.info('PortfolioEncryption', 'Portfolio encryption initialized successfully');
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown initialization error');
+    logger.error('PortfolioEncryption', 'Failed to initialize portfolio encryption:', err);
+    throw new Error('Failed to initialize portfolio encryption');
+  }
 } 

@@ -1,11 +1,16 @@
+// Import webpack instead of requiring it
 const webpack = require('webpack');
+// Import other dependencies
+const tailwindcss = require('tailwindcss');
+const autoprefixer = require('autoprefixer');
 
+// Use module.exports instead of export default
 module.exports = {
   style: {
     postcss: {
       plugins: [
-        require('tailwindcss'),
-        require('autoprefixer'),
+        tailwindcss,
+        autoprefixer,
       ],
     },
   },
@@ -20,8 +25,8 @@ module.exports = {
         https: require.resolve('https-browserify'),
         os: require.resolve('os-browserify'),
         url: require.resolve('url'),
-        util: require.resolve('util/'),
-        buffer: require.resolve('buffer/'),
+        util: require.resolve('util'),
+        buffer: require.resolve('buffer'),
         path: require.resolve('path-browserify'),
         process: require.resolve('process/browser'),
         fs: false,
@@ -64,4 +69,4 @@ module.exports = {
       return webpackConfig;
     },
   },
-}; 
+};

@@ -2,9 +2,16 @@
  * This script installs necessary dependencies and runs the fix-import-casing.js script
  */
 
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import glob from 'glob';
+import chalk from 'chalk';
+import { exec, execSync } from 'child_process';
+
+// ES Module equivalent for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Check if glob is installed
 try {
@@ -128,4 +135,89 @@ if (fs.existsSync(progressPath)) {
   }
 }
 
-console.log('All tasks completed successfully!'); 
+console.log('All tasks completed successfully!');
+
+const COMPONENTS_DIR = path.join(__dirname, '../src/components');
+
+function toKebabCase(str) {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase();
+}
+
+function toPascalCase(str) {
+  return str
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('');
+}
+
+function scanAndFixCasing() {
+  console.log(chalk.blue('Starting case sensitivity fix...'));
+
+  // Get all component directories
+  const directories = glob.sync(`${COMPONENTS_DIR}/*`, { onlyDirectories: true });
+  
+  directories.forEach(dir => {
+    const dirName = path.basename(dir);
+    const kebabName = toKebabCase(dirName);
+    
+    if (dirName !== kebabName) {
+      console.log(chalk.yellow(`Directory needs renaming: ${dirName} → ${kebabName}`));
+      
+      // Create new directory with correct casing
+      const newPath = path.join(path.dirname(dir), kebabName);
+      if (!fs.existsSync(newPath)) {
+        fs.mkdirSync(newPath);
+      }
+      
+      // Move contents to new directory
+      const files = glob.sync(`${dir}/**/*`);
+      files.forEach(file => {
+        const relativePath = path.relative(dir, file);
+        const newFilePath = path.join(newPath, relativePath);
+        
+        // Create directory structure if needed
+        const newFileDir = path.dirname(newFilePath);
+        if (!fs.existsSync(newFileDir)) {
+          fs.mkdirSync(newFileDir, { recursive: true });
+        }
+        
+        // Move file
+        fs.renameSync(file, newFilePath);
+      });
+      
+      // Remove old directory
+      fs.rmdirSync(dir, { recursive: true });
+    }
+  });
+
+  // Fix component file casing
+  const componentFiles = glob.sync(`${COMPONENTS_DIR}/**/*.{tsx,jsx,js,ts}`);
+  
+  componentFiles.forEach(file => {
+    const dirName = path.dirname(file);
+    const fileName = path.basename(file);
+    const ext = path.extname(file);
+    const baseName = path.basename(file, ext);
+    
+    // Skip index files
+    if (baseName.toLowerCase() === 'index') {
+      return;
+    }
+    
+    // Component files should be PascalCase
+    const pascalName = toPascalCase(baseName);
+    if (baseName !== pascalName) {
+      console.log(chalk.yellow(`File needs renaming: ${fileName} → ${pascalName}${ext}`));
+      
+      const newPath = path.join(dirName, `${pascalName}${ext}`);
+      fs.renameSync(file, newPath);
+    }
+  });
+
+  console.log(chalk.green('Case sensitivity fix completed!'));
+}
+
+// Run the fix
+scanAndFixCasing(); 

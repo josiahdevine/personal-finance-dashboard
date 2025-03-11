@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect fill="#10b981" width="400" height="300"/>
+  <text fill="#FFFFFF" font-family="sans-serif" font-size="24" font-weight="bold" text-anchor="middle" x="200" y="150">Demo Image 2</text>
+  <!-- Simple bar chart -->
+  <g fill="#FFFFFF" opacity="0.8">
+    <rect x="100" y="180" width="30" height="70" />
+    <rect x="150" y="150" width="30" height="100" />
+    <rect x="200" y="100" width="30" height="150" />
+    <rect x="250" y="120" width="30" height="130" />
+    <rect x="300" y="140" width="30" height="110" />
+  </g>
+</svg> 

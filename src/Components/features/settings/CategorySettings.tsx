@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { useCategories } from '../../../hooks/useCategories';
-import { Button } from '../../common/Button';
+import Button from "../../common/button/Button";
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ColorPicker } from '../../common/ColorPicker';
 import type { Category, CreateCategoryData } from '../../../types/models';

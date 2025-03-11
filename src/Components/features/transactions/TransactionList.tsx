@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../common/Card';
-import { Button } from '../../common/Button';
-import { DataTable, Column } from '../../common/DataTable';
-import { Badge } from '../../common/Badge';
+import Card from "../../common/Card";
+import Button from "../../common/button/Button";
+import { DataTable, Column } from '../../common/data-table';
+import Badge from "../../common/badge/Badge";
 import { formatCurrency, dateFormatter } from '../../../utils/formatters';
 import {
   ArrowUpIcon,

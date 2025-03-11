@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { useGoals } from '../../../hooks/useGoals';
 import { formatCurrency } from '../../../utils/formatters';
 

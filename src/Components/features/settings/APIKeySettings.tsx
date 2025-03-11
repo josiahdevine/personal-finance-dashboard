@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card } from '../../common/Card';
-import { Button } from '../../common/Button';
+import Card from "../../common/Card";
+import Button from "../../common/button/Button";
 import { useAPIKeys } from '../../../hooks/useAPIKeys';
 import { EyeIcon, EyeSlashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
@@ -28,11 +28,11 @@ export const APIKeySettings: React.FC = () => {
         <Button
           variant="primary"
           onClick={() => createAPIKey({ name: 'New API Key' })}
-          disabled={creatingAPIKey}
+          isDisabled={creatingAPIKey}
           className="flex items-center"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
-          Generate New Key
+          Create API Key
         </Button>
       </Card.Header>
       <Card.Body>

@@ -1,0 +1,199 @@
+/**
+ * @deprecated This file is deprecated. Please import from src/contexts/ThemeContext.tsx instead.
+ * The UI components in this file will be moved to separate component files in a future update.
+ */
+
+import React from 'react';
+import { 
+  ThemeProvider as ActualThemeProvider, 
+  useTheme as actualUseTheme 
+} from './ThemeContext.tsx';
+
+// Re-export the context and hooks
+export const ThemeProvider = ActualThemeProvider;
+export const useTheme = actualUseTheme;
+
+// Export UI components for backward compatibility
+// These should be moved to separate component files
+
+// Button component
+export const Button = ({ 
+  children, 
+  variant = 'primary', 
+  size = 'md', 
+  className = '', 
+  ...props 
+}) => {
+  const theme = useTheme();
+  const isDarkMode = theme.isDarkMode;
+  
+  // Define button styles based on variant
+  const buttonStyles = {
+    primary: `bg-blue-600 hover:bg-blue-700 text-white ${isDarkMode ? 'dark:bg-blue-800 dark:hover:bg-blue-700' : ''}`,
+    secondary: `bg-gray-200 hover:bg-gray-300 text-gray-800 ${isDarkMode ? 'dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white' : ''}`,
+    text: `text-blue-600 hover:text-blue-800 ${isDarkMode ? 'dark:text-blue-400 dark:hover:text-blue-300' : ''}`,
+  };
+  
+  // Size classes
+  const sizeClasses = {
+    sm: 'py-1 px-2 text-sm',
+    md: 'py-2 px-4',
+    lg: 'py-3 px-6 text-lg',
+  };
+  
+  const baseClasses = 'font-medium rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors';
+  
+  return (
+    <button 
+      className={`${baseClasses} ${buttonStyles[variant]} ${sizeClasses[size]} ${className}`} 
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Card component
+export const Card = ({ 
+  children, 
+  variant = 'base', 
+  className = '', 
+  hover = false,
+  ...props 
+}) => {
+  const theme = useTheme();
+  const isDarkMode = theme.isDarkMode;
+  
+  // Card styles based on variant
+  const cardStyles = {
+    base: `bg-white shadow rounded-lg p-4 ${isDarkMode ? 'dark:bg-gray-800 dark:text-gray-100' : ''}`,
+    bordered: `bg-white border border-gray-200 rounded-lg p-4 ${isDarkMode ? 'dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100' : ''}`,
+    flat: `bg-gray-50 rounded-lg p-4 ${isDarkMode ? 'dark:bg-gray-900 dark:text-gray-100' : ''}`,
+  };
+  
+  const hoverClass = hover ? 'transition-shadow hover:shadow-md' : '';
+  
+  return (
+    <div 
+      className={`${cardStyles[variant]} ${hoverClass} ${className}`} 
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
+
+// FormInput component
+export const FormInput = ({ 
+  error, 
+  disabled, 
+  className = '', 
+  ...props 
+}) => {
+  const theme = useTheme();
+  const isDarkMode = theme.isDarkMode;
+  
+  let inputClasses = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+    isDarkMode 
+      ? 'dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:border-blue-500' 
+      : 'bg-white border-gray-300'
+  }`;
+  
+  if (error) {
+    inputClasses = `w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 border-red-500 ${
+      isDarkMode 
+        ? 'dark:bg-gray-800 dark:text-white' 
+        : 'bg-white'
+    }`;
+  } else if (disabled) {
+    inputClasses = `w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed text-gray-500 ${
+      isDarkMode 
+        ? 'dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400' 
+        : 'border-gray-300'
+    }`;
+  }
+  
+  return (
+    <input 
+      className={`${inputClasses} ${className}`} 
+      disabled={disabled} 
+      {...props} 
+    />
+  );
+};
+
+// Alert component
+export const Alert = ({ 
+  children, 
+  variant = 'info', 
+  className = '', 
+  onClose,
+  ...props 
+}) => {
+  // Define alert styles based on variant
+  const alertStyles = {
+    info: `bg-blue-50 text-blue-800 border border-blue-200`,
+    success: `bg-green-50 text-green-800 border border-green-200`,
+    warning: `bg-yellow-50 text-yellow-800 border border-yellow-200`,
+    danger: `bg-red-50 text-red-800 border border-red-200`,
+  };
+  
+  return (
+    <div 
+      className={`p-4 rounded-md ${alertStyles[variant] || alertStyles.info} ${className}`}
+      role="alert"
+      {...props}
+    >
+      <div className="flex items-center">
+        <div className="flex-1">{children}</div>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="ml-auto text-gray-400 hover:text-gray-600"
+            aria-label="Close"
+          >
+            <span className="text-xl">&times;</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Helper function
+export const getThemeClasses = (type, variant, theme) => {
+  if (!theme || !theme.isDarkMode === undefined) {
+    console.warn('Theme not properly provided to getThemeClasses');
+    return '';
+  }
+  
+  const isDarkMode = theme.isDarkMode;
+  
+  // A simple mapping of component types and variants to classes
+  const classMap = {
+    button: {
+      primary: `bg-blue-600 hover:bg-blue-700 text-white ${isDarkMode ? 'dark:bg-blue-800 dark:hover:bg-blue-700' : ''}`,
+      secondary: `bg-gray-200 hover:bg-gray-300 text-gray-800 ${isDarkMode ? 'dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white' : ''}`,
+      text: `text-blue-600 hover:text-blue-800 ${isDarkMode ? 'dark:text-blue-400 dark:hover:text-blue-300' : ''}`,
+    },
+    card: {
+      base: `bg-white shadow rounded-lg p-4 ${isDarkMode ? 'dark:bg-gray-800 dark:text-gray-100' : ''}`,
+      bordered: `bg-white border border-gray-200 rounded-lg p-4 ${isDarkMode ? 'dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100' : ''}`,
+      flat: `bg-gray-50 rounded-lg p-4 ${isDarkMode ? 'dark:bg-gray-900 dark:text-gray-100' : ''}`,
+    }
+  };
+  
+  if (!classMap[type]) {
+    console.warn(`Theme component type '${type}' not found`);
+    return '';
+  }
+  
+  if (!classMap[type][variant]) {
+    console.warn(`Theme component variant '${variant}' not found for type '${type}'`);
+    return '';
+  }
+  
+  return classMap[type][variant];
+};
+
+export default { ThemeProvider, useTheme }; 

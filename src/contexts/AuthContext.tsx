@@ -1,260 +1,323 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  signOut as _firebaseSignOut,
+  updateProfile as firebaseUpdateProfile,
+  sendPasswordResetEmail,
+  updatePassword as firebaseUpdatePassword,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { auth } from '../services/firebase';
+import logger from '../utils/logger.js';
 import { User } from '../types/models';
 
-interface AuthState {
+interface AuthContextType {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  error: string | null;
-}
-
-type AuthAction =
-  | { type: 'SET_USER'; payload: User | null }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'LOGOUT' };
-
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  error: null
-};
-
-const AuthContext = createContext<{
-  state: AuthState;
+  error: Error | null;
+  state: {
+    user: User | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    error: Error | null;
+  };
   currentUser: User | null;
-  isAuthenticated: boolean;
-  authError: string | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  signInAsGuest: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  createUserWithEmail: (email: string, password: string, name?: string) => Promise<void>;
+  signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-} | null>(null);
+  clearError: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
+}
 
-const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-  switch (action.type) {
-    case 'SET_USER':
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export { AuthContext };
+
+const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<User | null> => {
+  if (!firebaseUser) return null;
+  
+  try {
+    // Fetch additional user data from your database here
+    const response = await fetch(`/api/users/${firebaseUser.uid}`);
+    
+    // Check if response is HTML (error page) instead of JSON
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") === -1) {
+      console.warn("Received non-JSON response from user API");
+      // Return basic user info without attempting to parse JSON
       return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: !!action.payload,
-        isLoading: false
+        id: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: firebaseUser.displayName || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-    case 'SET_LOADING':
-      return {
-        ...state,
-        isLoading: action.payload
-      };
-    case 'SET_ERROR':
-      return {
-        ...state,
-        error: action.payload,
-        isLoading: false
-      };
-    case 'LOGOUT':
-      return {
-        ...initialState,
-        isLoading: false
-      };
-    default:
-      return state;
+    }
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+    
+    const userData = await response.json();
+    
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      name: firebaseUser.displayName || '',
+      createdAt: userData.createdAt || new Date().toISOString(),
+      updatedAt: userData.updatedAt || new Date().toISOString(),
+      ...userData // Merge with additional user data from your database
+    };
+  } catch (error) {
+    logger.logError('AuthContext', 'Error fetching user data', error as Error);
+    // Return basic user data if database fetch fails
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      name: firebaseUser.displayName || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  
+  // Get the isAuthenticated value from both firebaseUser and user
+  const isAuthenticated = Boolean(firebaseUser && user);
 
-  const login = useCallback(async (email: string, password: string) => {
+  // Initialize Firebase auth state listener
+  useEffect(() => {
+    setIsLoading(true);
+    
+    // Persist the auth state
+    const persistedUser = localStorage.getItem('user');
+    if (persistedUser) {
+      try {
+        setUser(JSON.parse(persistedUser));
+      } catch (err) {
+        console.error('Error parsing persisted user data:', err);
+        localStorage.removeItem('user');
+      }
+    }
+    
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setFirebaseUser(firebaseUser);
+      try {
+        if (firebaseUser) {
+          const mappedUser = await mapFirebaseUser(firebaseUser);
+          setUser(mappedUser);
+          
+          // Persist the user data
+          if (mappedUser) {
+            localStorage.setItem('user', JSON.stringify(mappedUser));
+          }
+        } else {
+          setUser(null);
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('Error mapping Firebase user:', error);
+        setError(error instanceof Error ? error : new Error('Unknown error during authentication'));
+      } finally {
+        setIsLoading(false);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  const signInWithGoogle = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/login', {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      logger.logError('AuthContext', 'Google sign in error', error as Error);
+      setError(error instanceof Error ? error : new Error('Google sign-in failed'));
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      logger.logError('AuthContext', 'Email sign in error', error as Error);
+      setError(error instanceof Error ? error : new Error('Email sign-in failed'));
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createUserWithEmail = async (email: string, password: string, name = '') => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password);
+      if (name) {
+        await firebaseUpdateProfile(newUser, { displayName: name });
+      }
+      
+      // Create user profile in your database
+      await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({
+          uid: newUser.uid,
+          email: newUser.email,
+          displayName: name || null,
+        }),
       });
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
+    } catch (error) {
+      logger.logError('AuthContext', 'User creation error', error as Error);
+      setError(error instanceof Error ? error : new Error('Failed to create user'));
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      setIsLoading(true);
+      await auth.signOut();
+      setUser(null);
+      localStorage.removeItem('user');
+    } catch (error) {
+      setError(error instanceof Error ? error : new Error('Error during sign out'));
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (updates: Partial<User>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      if (!firebaseUser) throw new Error('No user logged in');
+
+      // Update Firebase profile
+      const firebaseUpdates: { displayName?: string; photoURL?: string } = {};
+      if (updates.name) firebaseUpdates.displayName = updates.name;
+      
+      if (Object.keys(firebaseUpdates).length > 0) {
+        await firebaseUpdateProfile(firebaseUser, firebaseUpdates);
       }
-      const user = await response.json();
-      dispatch({ type: 'SET_USER', payload: user });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to login'
-      });
-      throw err;
-    }
-  }, []);
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
-      });
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-      const user = await response.json();
-      dispatch({ type: 'SET_USER', payload: user });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to register'
-      });
-      throw err;
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Replace with actual API call
-      await fetch('/api/auth/logout', { method: 'POST' });
-      dispatch({ type: 'LOGOUT' });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to logout'
-      });
-      throw err;
-    }
-  }, []);
-
-  const updateProfile = useCallback(async (updates: Partial<User>) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/profile', {
+      // Update additional user data in your database
+      const response = await fetch(`/api/users/${firebaseUser.uid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
       });
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
+
+      if (!response.ok) throw new Error('Failed to update user profile');
+
       const updatedUser = await response.json();
-      dispatch({ type: 'SET_USER', payload: updatedUser });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to update profile'
-      });
-      throw err;
-    }
-  }, []);
-
-  const resetPassword = useCallback(async (email: string) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      if (!response.ok) {
-        throw new Error('Failed to reset password');
-      }
-      dispatch({ type: 'SET_ERROR', payload: null });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to reset password'
-      });
-      throw err;
+      setUser(updatedUser);
+    } catch (error) {
+      logger.logError('AuthContext', 'Profile update error', error as Error);
+      setError(error instanceof Error ? error : new Error('Failed to update profile'));
+      throw error;
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      setIsLoading(false);
     }
-  }, []);
+  };
 
-  const updatePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+  const resetPassword = async (email: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/update-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword })
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update password');
-      }
-      dispatch({ type: 'SET_ERROR', payload: null });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to update password'
-      });
-      throw err;
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      logger.logError('AuthContext', 'Password reset error', error as Error);
+      setError(error instanceof Error ? error : new Error('Failed to reset password'));
+      throw error;
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      setIsLoading(false);
     }
-  }, []);
+  };
 
-  const loginWithGoogle = useCallback(async () => {
-    // TODO: Implement login with Google
-  }, []);
-
-  const signInAsGuest = useCallback(async () => {
-    // TODO: Implement sign in as guest
-  }, []);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // TODO: Replace with actual API call
-        const response = await fetch('/api/auth/me');
-        if (!response.ok) {
-          throw new Error('Not authenticated');
-        }
-        const user = await response.json();
-        dispatch({ type: 'SET_USER', payload: user });
-      } catch (err) {
-        dispatch({ type: 'SET_USER', payload: null });
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      if (!firebaseUser || !firebaseUser.email) {
+        throw new Error('No user logged in');
       }
-    };
 
-    checkAuth();
-  }, []);
+      // Re-authenticate user before password update
+      await signInWithEmailAndPassword(auth, firebaseUser.email, currentPassword);
+      await firebaseUpdatePassword(firebaseUser, newPassword);
+    } catch (error) {
+      logger.logError('AuthContext', 'Password update error', error as Error);
+      setError(error instanceof Error ? error : new Error('Failed to update password'));
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearError = () => setError(null);
+
+  const contextValue: AuthContextType = {
+    user,
+    firebaseUser,
+    isAuthenticated,
+    isLoading,
+    error,
+    state: {
+      user,
+      isAuthenticated,
+      isLoading,
+      error
+    },
+    currentUser: user,
+    signInWithGoogle,
+    signInWithEmail,
+    createUserWithEmail,
+    signOut,
+    updateProfile,
+    resetPassword,
+    updatePassword,
+    clearError,
+    login: signInWithEmail,  // Alias for signInWithEmail
+    register: createUserWithEmail  // Alias for createUserWithEmail
+  };
 
   return (
-    <AuthContext.Provider
-      value={{
-        state,
-        currentUser: state.user,
-        isAuthenticated: state.isAuthenticated,
-        authError: state.error,
-        loading: state.isLoading,
-        login,
-        register,
-        logout,
-        loginWithGoogle,
-        signInAsGuest,
-        updateProfile,
-        resetPassword,
-        updatePassword
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+}

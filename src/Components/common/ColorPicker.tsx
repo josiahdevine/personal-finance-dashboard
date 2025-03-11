@@ -13,12 +13,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ color, onChange }) => 
         value={color}
         onChange={(e) => onChange(e.target.value)}
         className="h-10 w-10 rounded cursor-pointer"
+        data-testid="color-picker-input"
       />
       <input
         type="text"
         value={color}
         onChange={(e) => onChange(e.target.value)}
         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        data-testid="color-text-input"
       />
     </div>
   );

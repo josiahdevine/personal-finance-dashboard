@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card } from '../../common/Card';
-import { Button } from '../../common/Button';
+import Card from "../../common/Card";
+import Button from "../../common/button/Button";
 import { useBackups } from '../../../hooks/useBackups';
 import { CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
 
@@ -25,7 +25,7 @@ export const BackupSettings: React.FC = () => {
         <Button
           variant="primary"
           onClick={handleCreateBackup}
-          disabled={creatingBackup}
+          isDisabled={creatingBackup}
           className="flex items-center"
         >
           <CloudArrowUpIcon className="h-5 w-5 mr-2" />
@@ -67,7 +67,7 @@ export const BackupSettings: React.FC = () => {
                     <Button
                       variant="secondary"
                       onClick={() => restoreBackup(backup.id)}
-                      disabled={restoringBackup}
+                      isDisabled={restoringBackup}
                       className="flex items-center"
                     >
                       <CloudArrowDownIcon className="h-5 w-5 mr-2" />

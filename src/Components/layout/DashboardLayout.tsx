@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { useTheme } from '../../contexts/ThemeContext';
+import { Navigation } from '../navigation/Navigation';
+import { useTheme } from '../../hooks/useTheme';
 import { useTimeFrame } from '../../contexts/TimeFrameContext';
-import type { TimeFrame } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import type { TimeFrame } from '../../types/common';
+import { Header } from './Header';
+import { Footer } from '../Footer';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { ThemeMode } from '../../types/theme';
 
 interface TimeFrameOption {
   label: string;
@@ -21,99 +26,117 @@ const timeFrameOptions: TimeFrameOption[] = [
   { label: '5Y', value: '5y' },
 ];
 
-export const DashboardLayout: React.FC = () => {
-  const { theme } = useTheme();
-  const { timeFrame, setTimeFrame } = useTimeFrame();
-  const isDark = theme === 'dark';
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  // Using windowWidth in the responsive logic
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+interface DashboardLayoutProps {
+  children?: React.ReactNode;
+  showSidebar?: boolean;
+  showHeader?: boolean; 
+  showFooter?: boolean;
+}
 
-  // Add window resize listener
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+  children,
+  showSidebar = true,
+  showHeader = true,
+  showFooter = true,
+}) => {
+  const { theme, toggleTheme } = useTheme();
+  const { timeFrame, setTimeFrame } = useTimeFrame();
+  const { user } = useAuth();
+  
+  // State for responsive behavior
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Convert Theme from hooks/useTheme to ThemeMode
+  const themeMode: ThemeMode = theme as unknown as ThemeMode;
+  
+  // Check if the theme is 'dark'
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  // Handle responsive sidebar behavior
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      // Close mobile menu on larger screens
-      if (window.innerWidth >= 768) {
-        setIsMobileMenuOpen(false);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      // Auto collapse sidebar on mobile
+      if (mobile && !sidebarCollapsed) {
+        setSidebarCollapsed(true);
       }
     };
     
+    handleResize();
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [sidebarCollapsed]);
 
-  // Toggle mobile menu
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Global Header */}
-      <header className={`fixed top-0 w-full z-50 ${isDark ? 'bg-gray-900' : 'bg-white'} border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} h-16 px-4`}>
-        <div className="h-full flex items-center justify-between max-w-7xl mx-auto">
-          {/* Mobile menu button - only show on small screens */}
-          {windowWidth < 768 && (
-            <button 
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={toggleMobileMenu}
-              aria-label="Toggle mobile menu"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          )}
-          
-          {/* Time Frame Selector */}
-          <div className="flex items-center space-x-2 overflow-x-auto hide-scrollbar">
-            {timeFrameOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setTimeFrame(option.value)}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
-                  ${timeFrame === option.value
-                    ? `${isDark ? 'bg-blue-900 bg-opacity-40 text-blue-400' : 'bg-blue-100 text-blue-800'}`
-                    : `${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'}`
-                  }
-                `}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          
-          {/* User Profile */}
-          <div className="flex items-center space-x-4">
-            <div className="relative group">
-              <div className="flex items-center space-x-2 cursor-pointer">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold">
-                  JD
-                </div>
-                <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>John Doe</span>
+    <div className={`min-h-screen flex bg-neutral-50 dark:bg-neutral-900 ${isDarkMode ? 'dark' : ''}`}>
+      {showSidebar && (
+        <AnimatePresence mode="wait">
+          <motion.aside
+            key="sidebar"
+            initial={{ x: sidebarCollapsed ? -240 : 0 }}
+            animate={{ x: sidebarCollapsed ? -240 : 0 }}
+            exit={{ x: -240 }}
+            transition={{ duration: 0.3 }}
+            className={`fixed inset-y-0 left-0 z-10 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-md ${
+              sidebarCollapsed ? 'w-0' : 'w-64'
+            }`}
+          >
+            <Navigation
+              collapsed={sidebarCollapsed}
+              className={
+                isMobile 
+                  ? `dashboard-sidebar-mobile ${sidebarCollapsed ? 'collapsed' : 'expanded'}` 
+                  : `dashboard-sidebar ${sidebarCollapsed ? 'collapsed' : 'expanded'}`
+              }
+            />
+          </motion.aside>
+        </AnimatePresence>
+      )}
+
+      <div className="flex-1 flex flex-col min-h-screen">
+        {showHeader && (
+          <Header 
+            theme={themeMode}
+            onThemeToggle={toggleTheme}
+            _onMenuClick={toggleSidebar}
+          />
+        )}
+
+        <main className="flex-grow p-4 md:p-6 mx-auto w-full max-w-7xl">
+          {/* Timeframe selector */}
+          {user && (
+            <div className="mb-6 flex justify-center sm:justify-end">
+              <div className="inline-flex rounded-md shadow-sm bg-white dark:bg-gray-800 p-1">
+                {timeFrameOptions.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setTimeFrame(option.value)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
+                      ${timeFrame === option.value
+                        ? `${isDarkMode ? 'bg-blue-900 bg-opacity-40 text-blue-400' : 'bg-blue-100 text-blue-800'}`
+                        : `${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'}`
+                      }
+                    `}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Layout - Use a flex container for the sidebar and content */}
-      <div className="flex h-full pt-16">
-        {/* Sidebar */}
-        <Sidebar 
-          isOpen={isMobileMenuOpen} 
-          onClose={() => setIsMobileMenuOpen(false)}
-          className="z-50"
-        />
-
-        {/* Main Content */}
-        <main className={`flex-1 overflow-y-auto ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Outlet />
-          </div>
+          )}
+          {/* Main content */}
+          {children || <Outlet />}
         </main>
+
+        {showFooter && <Footer />}
       </div>
     </div>
   );

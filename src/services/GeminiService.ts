@@ -1,132 +1,86 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { CacheService } from './CacheService';
+import logger from '../utils/logger';
 
+interface GeminiResponse {
+  text: string;
+  citations?: {
+    startIndex: number;
+    endIndex: number;
+    uri: string;
+    title: string;
+  }[];
+  error?: string;
+}
+
+/**
+ * Service for interacting with Google's Gemini AI model
+ */
 export class GeminiService {
-  private static instance: GeminiService;
-  private model: any;
-  private cache: CacheService;
-  private cachePrefix = 'gemini_';
-  private cacheTTL = 24 * 60 * 60 * 1000; // 24 hours
-
-  private constructor() {
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY!;
-    const genAI = new GoogleGenerativeAI(apiKey);
-    this.model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    this.cache = CacheService.getInstance();
-  }
-
-  static getInstance(): GeminiService {
-    if (!GeminiService.instance) {
-      GeminiService.instance = new GeminiService();
+  private apiKey: string | null;
+  
+  constructor() {
+    // Get API key from environment variables
+    this.apiKey = process.env.REACT_APP_GEMINI_API_KEY || null;
+    
+    if (!this.apiKey) {
+      logger.logError('GeminiService', 'No API key found for Gemini', new Error('Missing API key'));
     }
-    return GeminiService.instance;
   }
 
-  private getCacheKey(query: string): string {
-    return `${this.cachePrefix}${query}`;
-  }
-
-  async getResponse(query: string): Promise<string> {
+  /**
+   * Get a response from Gemini based on user prompt
+   */
+  async getResponse(prompt: string): Promise<GeminiResponse> {
     try {
-      // Check cache first
-      const cacheKey = this.getCacheKey(query);
-      const cachedResponse = this.cache.get<string>(cacheKey);
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      // Generate response from Gemini
-      const result = await this.model.generateContent(
-        `You are a personal finance assistant. Please provide advice and insights about: ${query}`
-      );
-      const response = result.response.text();
-
-      // Cache the response
-      this.cache.set(cacheKey, response, this.cacheTTL);
-
-      return response;
+      // For development/placeholder purposes, just return mock data
+      // In a real implementation, this would call the actual Gemini API
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return {
+        text: `This is a placeholder response for the prompt: "${prompt}". In a real implementation, this would be a response from Google's Gemini AI model.`
+      };
     } catch (error) {
-      console.error('Error getting AI response:', error);
-      throw error;
+      logger.logError('GeminiService', 'Error getting Gemini response', error as Error);
+      return {
+        text: '',
+        error: 'Failed to get response from Gemini'
+      };
     }
   }
 
-  async getFinancialInsights(
-    transactions: any[],
-    budgets: any[],
-    query: string
-  ): Promise<string> {
+  /**
+   * Generate financial insights based on transaction data
+   */
+  async generateInsights(transactionData: any, budgetData: any): Promise<any> {
     try {
-      const prompt = `
-        As a personal finance assistant, analyze the following data and ${query}:
-        
-        Transactions: ${JSON.stringify(transactions)}
-        Budgets: ${JSON.stringify(budgets)}
-        
-        Please provide specific insights and recommendations based on this data.
-      `;
-
-      const result = await this.model.generateContent(prompt);
-      return result.response.text();
+      // For development/placeholder purposes, return mock data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      return {
+        insights: [
+          {
+            type: 'spending',
+            title: 'High Restaurant Expenses',
+            description: 'You spent 25% more on dining out this month compared to your average.',
+            recommendation: 'Consider cooking at home more frequently to reduce expenses.',
+            impact: 'medium'
+          },
+          {
+            type: 'saving',
+            title: 'Savings Opportunity',
+            description: 'Your subscription services increased by $45 this month.',
+            recommendation: 'Review your subscriptions and cancel unused services.',
+            impact: 'low'
+          }
+        ]
+      };
     } catch (error) {
-      console.error('Error getting financial insights:', error);
-      throw error;
+      logger.logError('GeminiService', 'Error generating insights', error as Error);
+      return { insights: [] };
     }
   }
+}
 
-  async getSavingsSuggestions(
-    income: number,
-    expenses: any[],
-    goals: any[]
-  ): Promise<string> {
-    try {
-      const prompt = `
-        As a personal finance assistant, analyze the following financial situation:
-        
-        Monthly Income: ${income}
-        Monthly Expenses: ${JSON.stringify(expenses)}
-        Financial Goals: ${JSON.stringify(goals)}
-        
-        Please provide specific suggestions for:
-        1. Areas where expenses can be reduced
-        2. Potential savings strategies
-        3. Timeline to achieve financial goals
-        4. Investment recommendations
-      `;
-
-      const result = await this.model.generateContent(prompt);
-      return result.response.text();
-    } catch (error) {
-      console.error('Error getting savings suggestions:', error);
-      throw error;
-    }
-  }
-
-  async getBudgetRecommendations(
-    income: number,
-    expenses: any[],
-    categories: string[]
-  ): Promise<string> {
-    try {
-      const prompt = `
-        As a personal finance assistant, create a recommended budget based on:
-        
-        Monthly Income: ${income}
-        Current Expenses: ${JSON.stringify(expenses)}
-        Expense Categories: ${JSON.stringify(categories)}
-        
-        Please provide:
-        1. Recommended budget allocation for each category
-        2. Explanation of the 50/30/20 rule application
-        3. Specific areas for potential optimization
-        4. Long-term financial planning suggestions
-      `;
-
-      const result = await this.model.generateContent(prompt);
-      return result.response.text();
-    } catch (error) {
-      console.error('Error getting budget recommendations:', error);
-      throw error;
-    }
-  }
-} 
+// Export a singleton instance
+export const geminiService = new GeminiService(); 

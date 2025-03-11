@@ -1,6 +1,6 @@
 import React from 'react';
 // import { usePlaid } from '../../../contexts/PlaidContext';
-import { Card } from '../../common/Card';
+import Card from "../../common/Card";
 import { formatCurrency } from '../../../utils/formatters';
 import { PlaidError } from './PlaidError';
 

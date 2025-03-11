@@ -20,19 +20,19 @@ interface Insight {
 export const getInsights = async (
   startDate?: string,
   endDate?: string,
-  types?: string[],
-  minSeverity?: string
+  type?: string,
+  limit?: number
 ): Promise<Insight[]> => {
   try {
-    const { data } = await api.get<Insight[]>('/insights', {
+    const response = await api.get<Insight[]>('/insights', {
       params: {
         startDate,
         endDate,
-        types: types?.join(','),
-        minSeverity
+        type,
+        limit
       }
     });
-    return data;
+    return response;
   } catch (error) {
     console.error('Error fetching insights:', error);
     throw error;
@@ -41,8 +41,8 @@ export const getInsights = async (
 
 export const generateInsights = async (): Promise<Insight[]> => {
   try {
-    const { data } = await api.post<Insight[]>('/insights/generate');
-    return data;
+    const response = await api.post<Insight[]>('/insights/generate');
+    return response;
   } catch (error) {
     console.error('Error generating insights:', error);
     throw error;
@@ -60,8 +60,8 @@ export const dismissInsight = async (id: string): Promise<void> => {
 
 export const getInsightPreferences = async (): Promise<InsightPreferences> => {
   try {
-    const { data } = await api.get<InsightPreferences>('/insights/preferences');
-    return data;
+    const response = await api.get<InsightPreferences>('/insights/preferences');
+    return response;
   } catch (error) {
     console.error('Error fetching insight preferences:', error);
     throw error;
@@ -72,8 +72,8 @@ export const updateInsightPreferences = async (
   preferences: Partial<InsightPreferences>
 ): Promise<InsightPreferences> => {
   try {
-    const { data } = await api.put<InsightPreferences>('/insights/preferences', preferences);
-    return data;
+    const response = await api.put<InsightPreferences>('/insights/preferences', preferences);
+    return response;
   } catch (error) {
     console.error('Error updating insight preferences:', error);
     throw error;

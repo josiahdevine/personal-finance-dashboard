@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -10,11 +10,13 @@ import {
   Tooltip,
   Legend,
   Filler,
-  Scale,
-  CoreScaleOptions,
+  ChartOptions,
+  ChartData
 } from 'chart.js';
+import { useTheme } from '../../hooks/useTheme';
 import { formatCurrency } from '../../utils/formatters';
 
+// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -26,69 +28,178 @@ ChartJS.register(
   Filler
 );
 
-interface Dataset {
-  label: string;
-  data: number[];
-  borderColor: string;
-  backgroundColor: string;
-  fill?: boolean;
+export interface BalanceHistoryDataPoint {
+  date: Date | string;
+  amount: number;
 }
 
 interface BalanceHistoryChartProps {
-  labels: string[];
-  datasets: Dataset[];
+  data: BalanceHistoryDataPoint[];
+  title?: string;
   height?: number;
   showLegend?: boolean;
+  className?: string;
+  gradientColor?: string;
+  lineColor?: string;
+  timeFormat?: 'day' | 'month' | 'year';
 }
 
 export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
-  labels,
-  datasets,
+  data,
+  title = 'Balance History',
   height = 300,
   showLegend = true,
+  className = '',
+  gradientColor = 'rgba(59, 130, 246, 0.2)', // Default blue with alpha
+  lineColor = 'rgb(59, 130, 246)', // Default blue
+  timeFormat = 'month',
 }) => {
-  const chartData = {
-    labels,
-    datasets: datasets.map(dataset => ({
-      ...dataset,
-      tension: 0.4,
-    })),
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
+
+  const formatDate = (date: Date | string): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    switch (timeFormat) {
+      case 'day':
+        return dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      case 'year':
+        return dateObj.toLocaleDateString(undefined, { year: 'numeric' });
+      case 'month':
+      default:
+        return dateObj.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+    }
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: showLegend,
-        position: 'top' as const,
-      },
-      title: {
-        display: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function(this: Scale<CoreScaleOptions>, value: number | string, _index: number, _ticks: any[]) {
-            if (typeof value === 'number') {
-              return formatCurrency(value);
+  const chartData = useMemo((): ChartData<'line'> => {
+    // Sort data by date ascending
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateA - dateB;
+    });
+
+    return {
+      labels: sortedData.map(item => formatDate(item.date)),
+      datasets: [
+        {
+          label: 'Balance',
+          data: sortedData.map(item => item.amount),
+          fill: true,
+          backgroundColor: (context) => {
+            const chart = context.chart;
+            const { ctx, chartArea } = chart;
+            
+            if (!chartArea) {
+              return gradientColor;
             }
-            return value;
-          }
+            
+            const gradient = ctx.createLinearGradient(
+              0, chartArea.top, 0, chartArea.bottom
+            );
+            gradient.addColorStop(0, gradientColor);
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+            return gradient;
+          },
+          borderColor: lineColor,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: lineColor,
+          pointBorderColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+          pointHoverRadius: 5,
+        },
+      ],
+    };
+  }, [data, gradientColor, lineColor, timeFormat, isDarkMode]);
+
+  const chartOptions = useMemo((): ChartOptions<'line'> => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: showLegend,
+          position: 'top' as const,
+          labels: {
+            color: isDarkMode ? '#E5E7EB' : '#374151',
+            font: {
+              family: "'Inter', sans-serif",
+            },
+          },
+        },
+        title: {
+          display: !!title,
+          text: title,
+          color: isDarkMode ? '#E5E7EB' : '#374151',
+          font: {
+            size: 16,
+            weight: 'bold',
+            family: "'Inter', sans-serif",
+          },
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: isDarkMode ? '#374151' : '#FFFFFF',
+          titleColor: isDarkMode ? '#E5E7EB' : '#1F2937',
+          bodyColor: isDarkMode ? '#E5E7EB' : '#1F2937',
+          borderColor: isDarkMode ? '#4B5563' : '#E5E7EB',
+          borderWidth: 1,
+          padding: 12,
+          cornerRadius: 6,
+          boxPadding: 4,
+          usePointStyle: true,
+          callbacks: {
+            label: (context) => {
+              const value = context.raw as number;
+              return `${context.dataset.label}: ${formatCurrency(value)}`;
+            },
+          },
         },
       },
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index' as const,
-    },
-  };
+      scales: {
+        x: {
+          grid: {
+            display: false,
+            drawBorder: false,
+          },
+          ticks: {
+            color: isDarkMode ? '#9CA3AF' : '#6B7280',
+            font: {
+              family: "'Inter', sans-serif",
+            },
+          },
+        },
+        y: {
+          grid: {
+            color: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(243, 244, 246, 0.8)',
+            drawBorder: false,
+          },
+          ticks: {
+            color: isDarkMode ? '#9CA3AF' : '#6B7280',
+            font: {
+              family: "'Inter', sans-serif",
+            },
+            callback: (value) => formatCurrency(value as number, { compact: true }),
+          },
+          beginAtZero: false,
+        },
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      elements: {
+        line: {
+          borderWidth: 2,
+        },
+      },
+    };
+  }, [title, showLegend, isDarkMode]);
 
   return (
-    <div style={{ height }}>
+    <div className={`w-full ${className}`} style={{ height }}>
       <Line data={chartData} options={chartOptions} />
     </div>
   );
-}; 
+};

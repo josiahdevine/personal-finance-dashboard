@@ -1,71 +1,132 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useTheme } from '../../hooks/useTheme';
 
-interface HeroProps {
-  theme: 'dark' | 'light' | 'system';
-}
+export const Hero: React.FC = () => {
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
 
-export const Hero: React.FC<HeroProps> = ({ theme }) => {
-  // Determine actual theme value if 'system' is provided
-  const effectiveTheme = theme === 'system' 
-    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : theme;
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.6, ease: 'easeOut' },
+    },
+  };
+
+  const buttonVariants = {
+    hover: { scale: 1.05, transition: { duration: 0.2 } },
+    tap: { scale: 0.98, transition: { duration: 0.1 } },
+  };
 
   return (
-    <div className={`relative overflow-hidden pt-32 pb-16 sm:pb-24 ${effectiveTheme === 'dark' ? 'bg-black' : 'bg-white'}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mx-auto max-w-md px-4 sm:max-w-2xl sm:px-6 sm:text-center lg:col-span-6 lg:flex lg:items-center lg:px-0 lg:text-left"
+    <section className="relative py-20 md:py-32 overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-indigo-950 opacity-80"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-5"></div>
+        <div className="absolute -top-20 -right-20 w-72 h-72 bg-blue-400 dark:bg-blue-600 rounded-full filter blur-3xl opacity-20"></div>
+        <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-indigo-400 dark:bg-indigo-700 rounded-full filter blur-3xl opacity-20"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          className="text-center"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.h1
+            variants={itemVariants}
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white"
           >
-            <div>
-              <h1 className={`text-4xl font-bold tracking-tight sm:text-6xl lg:mt-6 xl:text-6xl ${effectiveTheme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                <span className="block">Take control of</span>
-                <span className="block text-blue-600">your finances</span>
-              </h1>
-              <p className={`mt-3 text-base sm:mt-5 sm:text-xl lg:text-lg xl:text-xl ${effectiveTheme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
-                Track your spending, manage investments, and reach your financial goals with our AI-powered personal finance dashboard.
-              </p>
-              <div className="mt-8 sm:mt-12">
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            <span className="block">Your Money.</span>
+            <span className="block text-blue-600 dark:text-blue-400">Reimagined.</span>
+          </motion.h1>
+
+          <motion.p
+            variants={itemVariants}
+            className="mt-6 max-w-lg mx-auto text-xl text-gray-600 dark:text-gray-300"
+          >
+            Experience the future of personal finance with AI-powered insights and beautiful visualizations.
+          </motion.p>
+
+          <motion.div
+            variants={itemVariants}
+            className="mt-10 max-w-sm mx-auto sm:max-w-none sm:flex sm:justify-center"
+          >
+            <div className="space-y-4 sm:space-y-0 sm:mx-auto sm:inline-grid sm:grid-cols-2 sm:gap-5">
+              <Link to="/register">
+                <motion.button
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                  className="flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10 w-full"
                 >
                   Get Started
-                </Link>
-                <Link
-                  to="/demo"
-                  className={`ml-4 inline-flex items-center rounded-md border ${
-                    effectiveTheme === 'dark' ? 'border-gray-700 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  } px-6 py-3 text-base font-medium`}
+                </motion.button>
+              </Link>
+              <Link to="/features">
+                <motion.button
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                  className={`flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md ${
+                    isDarkMode 
+                      ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                      : 'bg-white text-blue-600 hover:bg-gray-50'
+                  } md:py-4 md:text-lg md:px-10 w-full`}
                 >
-                  View Demo
-                </Link>
-              </div>
+                  Learn More
+                </motion.button>
+              </Link>
             </div>
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative mt-12 sm:mt-16 lg:col-span-6 lg:mt-0"
-          >
-            <div className="relative mx-auto w-full rounded-lg shadow-xl lg:max-w-md">
-              <div className={`relative block w-full overflow-hidden rounded-lg ${effectiveTheme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
-                <img
-                  className="w-full"
-                  src="/dashboard-preview.png"
-                  alt="Dashboard Preview"
-                />
-              </div>
+        </motion.div>
+
+        {/* Hero image */}
+        <motion.div
+          className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-16 lg:max-w-4xl"
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <div className="relative mx-auto w-full rounded-lg shadow-lg lg:max-w-4xl">
+            <div className={`relative block w-full rounded-lg shadow-lg overflow-hidden ${
+              isDarkMode ? 'border border-gray-700' : ''
+            }`}>
+              <img
+                className="w-full"
+                src="/assets/dashboard-preview.png"
+                alt="FinanceDash dashboard preview"
+                onError={(e) => {
+                  // If image fails to load, show a fallback div
+                  const target = e.target as HTMLImageElement;
+                  const parent = target.parentNode as HTMLElement;
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-full h-96 bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold';
+                  fallback.innerText = 'Financial Dashboard Preview';
+                  parent.replaceChild(fallback, target);
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </section>
   );
-}; 
+};

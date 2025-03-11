@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePlaidLink } from '../contexts/PlaidLinkContext';
 import { toast } from 'react-toastify';
 import apiService from '../services/liveApi';
-import { log, logError } from '../utils/logger';
+import { log, logError } from '../utils/logger.js';
 import { 
   IconRefresh,
   IconCreditCard, 

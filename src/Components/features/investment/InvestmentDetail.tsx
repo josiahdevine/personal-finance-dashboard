@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
-import { Card } from '../../../components/common/Card';
+import Card from "../../../components/common/Card";
 import { ResponsiveGrid } from '../../../components/common/ResponsiveGrid';
-import { Button } from '../../../components/common/Button';
+import Button from "../../../components/common/button/Button";
 import { PeriodSelector } from './PeriodSelector';
-import { LineChart } from '../../../components/Charts/LineChart';
+import LineChart from "../../../components/common/charts/LineChart";
 import { Skeleton } from '../../../components/common/Skeleton';
 
 // Types

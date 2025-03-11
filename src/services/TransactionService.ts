@@ -1,6 +1,14 @@
 import api from './api';
 import { Transaction, TransactionFilters } from '../types/models';
 import { PaginatedResponse, QueryParams } from '../types/api';
+import { AxiosResponse } from 'axios';
+
+// Helper function for extracting response data
+const extractData = <T>(response: T | AxiosResponse<T>): T => {
+  return 'data' in (response as any) 
+    ? (response as any).data 
+    : response as T;
+};
 
 export class TransactionService {
   static async getTransactions(
@@ -11,7 +19,7 @@ export class TransactionService {
       const response = await api.get<PaginatedResponse<Transaction>>('/api/transactions', {
         params: { ...filters, ...pagination }
       });
-      return response.data;
+      return extractData(response);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       throw error;
@@ -21,7 +29,7 @@ export class TransactionService {
   static async getTransaction(id: string): Promise<Transaction> {
     try {
       const response = await api.get<Transaction>(`/api/transactions/${id}`);
-      return response.data;
+      return extractData(response);
     } catch (error) {
       console.error(`Error fetching transaction ${id}:`, error);
       throw error;
@@ -31,7 +39,7 @@ export class TransactionService {
   static async updateTransaction(id: string, data: Partial<Transaction>): Promise<Transaction> {
     try {
       const response = await api.put<Transaction>(`/api/transactions/${id}`, data);
-      return response.data;
+      return extractData(response);
     } catch (error) {
       console.error(`Error updating transaction ${id}:`, error);
       throw error;
@@ -62,10 +70,13 @@ export class TransactionService {
     endDate: string
   ): Promise<{ totalIncome: number; totalExpenses: number; categoryBreakdown: Record<string, number> }> {
     try {
-      const response = await api.get('/api/transactions/stats', {
-        params: { startDate, endDate }
-      });
-      return response.data;
+      const response = await api.get<{ totalIncome: number; totalExpenses: number; categoryBreakdown: Record<string, number> }>(
+        '/api/transactions/stats',
+        {
+          params: { startDate, endDate }
+        }
+      );
+      return extractData(response);
     } catch (error) {
       console.error('Error fetching transaction stats:', error);
       throw error;
@@ -77,11 +88,11 @@ export class TransactionService {
     filters?: TransactionFilters
   ): Promise<Blob> {
     try {
-      const response = await api.get('/api/transactions/export', {
+      const response = await api.get<Blob>('/api/transactions/export', {
         params: { format, ...filters },
         responseType: 'blob'
       });
-      return response.data;
+      return extractData(response);
     } catch (error) {
       console.error('Error exporting transactions:', error);
       throw error;

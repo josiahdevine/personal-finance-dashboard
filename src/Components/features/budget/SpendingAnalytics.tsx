@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card } from '../../../components/common/Card';
+import Card from "../../../components/common/Card";
 import { Skeleton } from '../../../components/common/Skeleton';
 import { BudgetCategory } from './BudgetDashboard';
 

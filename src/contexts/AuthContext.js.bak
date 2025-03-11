@@ -1,0 +1,39 @@
+/**
+ * @deprecated This file is deprecated. Please import from src/contexts/AuthContext.tsx instead.
+ * This re-export is maintained for backward compatibility and will be removed in a future release.
+ */
+
+import React from 'react';
+import { 
+  AuthProvider as ActualAuthProvider, 
+  useAuth as actualUseAuth 
+} from './AuthContext.tsx';
+
+// Re-export the context and hooks with enhanced logging
+import { log, logError } from '../utils/logger';
+
+// Create wrapped versions that include the original logging
+export const AuthContext = {
+  Provider: ActualAuthProvider,
+  Consumer: ({ children }) => {
+    log('AuthContext', 'Legacy Consumer being used');
+    return children(actualUseAuth());
+  }
+};
+
+export const useAuth = () => {
+  log('AuthContext', 'Legacy useAuth hook called');
+  try {
+    return actualUseAuth();
+  } catch (error) {
+    logError('AuthContext', 'Error in legacy useAuth hook', error);
+    throw error;
+  }
+};
+
+export const AuthProvider = (props) => {
+  log('AuthContext', 'Legacy AuthProvider being used');
+  return <ActualAuthProvider {...props} />;
+};
+
+export default AuthContext; 

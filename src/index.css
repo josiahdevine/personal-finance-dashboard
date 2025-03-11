@@ -4,6 +4,7 @@
 
 /* Import theme tokens */
 @import './styles/theme-tokens.css';
+@import './styles/design-tokens.css';
 
 @layer base {
   body {

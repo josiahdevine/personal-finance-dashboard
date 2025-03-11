@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import LinkAccounts from '../components/LinkAccounts';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { log } from '../utils/logger';
+import { log } from '../utils/logger.js';
 
 function LinkAccountsPage() {
   const { currentUser } = useAuth();

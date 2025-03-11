@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { Login } from '../Login';
-import { AuthProvider } from '../../../context/AuthContext';
+import { AuthProvider } from '../../../contexts/AuthContext';
 import { server } from '../../../test/mocks/server';
 import { http, HttpResponse } from 'msw';
 

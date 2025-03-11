@@ -14,7 +14,11 @@ export class BudgetCategoryRepository extends BaseRepository<BudgetCategory> {
   }
 
   async update(id: string, data: Partial<BudgetCategory>): Promise<BudgetCategory> {
-    const validated = validateBudgetCategory({ ...await this.findById(id), ...data });
+    const existingCategory = await this.findById(id);
+    if (!existingCategory) {
+      throw new Error(`Budget category with id ${id} not found`);
+    }
+    const validated = validateBudgetCategory({ ...existingCategory, ...data });
     return super.update(id, validated);
   }
 }
@@ -30,7 +34,11 @@ export class BudgetEntryRepository extends BaseRepository<BudgetEntry> {
   }
 
   async update(id: string, data: Partial<BudgetEntry>): Promise<BudgetEntry> {
-    const validated = validateBudgetEntry({ ...await this.findById(id), ...data });
+    const existingEntry = await this.findById(id);
+    if (!existingEntry) {
+      throw new Error(`Budget entry with id ${id} not found`);
+    }
+    const validated = validateBudgetEntry({ ...existingEntry, ...data });
     return super.update(id, validated);
   }
 

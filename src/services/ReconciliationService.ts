@@ -20,27 +20,22 @@ interface ReconciliationItem {
   difference?: number;
 }
 
-export const uploadReconciliationFile = async (file: File): Promise<{ jobId: string }> => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
+export const uploadStatement = async (file: File): Promise<{ jobId: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
 
-    const { data } = await api.post<{ jobId: string }>('/reconciliation/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    return data;
-  } catch (error) {
-    console.error('Error uploading reconciliation file:', error);
-    throw error;
-  }
+  const response = await api.post<{ jobId: string }>('/reconciliation/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response;
 };
 
 export const getReconciliationSummary = async (jobId: string): Promise<ReconciliationSummary> => {
   try {
-    const { data } = await api.get<ReconciliationSummary>(`/reconciliation/${jobId}/summary`);
-    return data;
+    const response = await api.get<ReconciliationSummary>(`/reconciliation/${jobId}/summary`);
+    return response;
   } catch (error) {
     console.error('Error fetching reconciliation summary:', error);
     throw error;
@@ -49,13 +44,13 @@ export const getReconciliationSummary = async (jobId: string): Promise<Reconcili
 
 export const getReconciliationItems = async (
   jobId: string,
-  status?: 'matched' | 'unmatched'
+  status?: 'matched' | 'unmatched' | 'all'
 ): Promise<ReconciliationItem[]> => {
   try {
-    const { data } = await api.get<ReconciliationItem[]>(`/reconciliation/${jobId}/items`, {
+    const response = await api.get<ReconciliationItem[]>(`/reconciliation/${jobId}/items`, {
       params: { status }
     });
-    return data;
+    return response;
   } catch (error) {
     console.error('Error fetching reconciliation items:', error);
     throw error;
@@ -64,8 +59,8 @@ export const getReconciliationItems = async (
 
 export class ReconciliationService {
   static async getUnreconciledTransactions(accountId: string): Promise<Transaction[]> {
-    const { data } = await api.get<Transaction[]>(`/reconciliation/${accountId}/unreconciled`);
-    return data;
+    const response = await api.get<Transaction[]>(`/reconciliation/${accountId}/unreconciled`);
+    return response;
   }
 
   static async matchTransactions(
@@ -79,22 +74,24 @@ export class ReconciliationService {
     await api.post(`/reconciliation/unmatch/${transactionId}`);
   }
 
-  static async importReconciliationData(
+  static async importTransactions(
     accountId: string,
-    file: File
+    file: File,
+    options?: { skipDuplicates?: boolean; dateFormat?: string }
   ): Promise<ReconciliationItem[]> {
     const formData = new FormData();
     formData.append('file', file);
     
-    const { data } = await api.post<ReconciliationItem[]>(
+    const response = await api.post<ReconciliationItem[]>(
       `/reconciliation/${accountId}/import`,
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'multipart/form-data'
         },
+        params: options
       }
     );
-    return data;
+    return response;
   }
 } 

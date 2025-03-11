@@ -1,0 +1,273 @@
+{
+  "ai": {
+    "files": [
+      "AiAssistant.tsx",
+      "README.md"
+    ],
+    "__tests__": {
+      "files": [
+        "AiAssistant.test.tsx"
+      ]
+    }
+  },
+  "auth": {
+    "files": [
+      "Login.tsx",
+      "Register.tsx"
+    ],
+    "__tests__": {
+      "files": [
+        "Login.test.tsx"
+      ]
+    }
+  },
+  "common": {
+    "files": [
+      "ColorPicker.tsx",
+      "DeleteConfirmation.tsx",
+      "Modal.tsx",
+      "ThemeToggle.tsx",
+      "TimeFrameSelector.tsx",
+      "VoiceInput.tsx"
+    ],
+    "data-grid": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "data-table": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "date-input": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "multi-step-form": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "number-input": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "responsive-grid": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "stat-card": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "text-input": {
+      "files": [
+        "index.tsx"
+      ]
+    }
+  },
+  "demo": {},
+  "error-boundary": {
+    "files": [
+      "ErrorBoundary.tsx"
+    ]
+  },
+  "files": [
+    "ErrorBoundary.tsx",
+    "Footer.tsx",
+    "LandingPage.tsx",
+    "ManualAccountForm.tsx",
+    "NetWorthApplet.tsx",
+    "Pricing.tsx",
+    "ResponsiveWrapper.js"
+  ],
+  "examples": {},
+  "features": {
+    "accounts": {
+      "files": [
+        "AccountList.tsx"
+      ]
+    },
+    "analytics": {
+      "files": [
+        "AssetAllocation.tsx",
+        "CashFlowAnalysis.tsx",
+        "CashFlowForecast.tsx",
+        "CategoryBreakdown.tsx",
+        "NetWorthChart.tsx",
+        "PredictiveAnalysis.tsx",
+        "RiskAssessment.tsx",
+        "SpendingBreakdown.tsx",
+        "TrendAnalysis.tsx"
+      ]
+    },
+    "ask-ai": {
+      "files": [
+        "index.tsx"
+      ]
+    },
+    "bills": {
+      "files": [
+        "BillForm.tsx",
+        "index.tsx"
+      ]
+    },
+    "budget": {
+      "files": [
+        "BudgetAllocation.tsx",
+        "BudgetCategoryBreakdown.tsx",
+        "BudgetDashboard.tsx",
+        "SpendingAnalytics.tsx"
+      ]
+    },
+    "cash-flow": {
+      "files": [
+        "CashFlowAlerts.tsx",
+        "CashFlowChart.tsx",
+        "CashFlowDashboard.tsx",
+        "CashFlowSummary.tsx",
+        "ModelValidationStats.tsx",
+        "PredictionAlerts.tsx",
+        "RecurringTransactions.tsx",
+        "ScenarioAnalysis.tsx"
+      ]
+    },
+    "dashboard": {
+      "files": [
+        "AccountSummary.tsx",
+        "BudgetOverview.tsx",
+        "CashFlowWidget.tsx",
+        "DashboardMetrics.tsx",
+        "GoalsProgress.tsx",
+        "GoalsProgressWidget.tsx",
+        "HealthScoreWidget.tsx",
+        "InsightsList.tsx",
+        "InsightsWidget.tsx",
+        "RecentActivity.tsx",
+        "RecentTransactionsWidget.tsx"
+      ]
+    },
+    "investment": {
+      "files": [
+        "AssetAllocation.tsx",
+        "InvestmentDetail.tsx",
+        "PerformanceChart.tsx",
+        "PeriodSelector.tsx",
+        "PortfolioDashboard.tsx",
+        "PortfolioSummary.tsx",
+        "RecentTransactions.tsx"
+      ]
+    },
+    "plaid": {
+      "files": [
+        "AccountSync.tsx",
+        "PlaidAccountList.tsx",
+        "PlaidError.tsx",
+        "PlaidLink.tsx"
+      ],
+      "plaid-link": {
+        "files": [
+          "index.tsx",
+          "PlaidLink.test.tsx"
+        ]
+      }
+    },
+    "settings": {
+      "files": [
+        "AccountSettings.tsx",
+        "APIKeySettings.tsx",
+        "BackupSettings.tsx",
+        "CategorySettings.tsx",
+        "ImportExportSettings.tsx",
+        "IntegrationSettings.tsx",
+        "NotificationSettings.tsx",
+        "PreferencesSettings.tsx",
+        "ProfileSettings.tsx",
+        "SecuritySettings.tsx",
+        "SettingsLayout.tsx"
+      ]
+    },
+    "transactions": {
+      "files": [
+        "TransactionList.tsx"
+      ]
+    }
+  },
+  "goals": {
+    "files": [
+      "index.tsx"
+    ]
+  },
+  "icons": {
+    "files": [
+      "ThemeIcons.tsx"
+    ]
+  },
+  "layout": {
+    "files": [
+      "DashboardLayout.tsx",
+      "Header.tsx",
+      "index.tsx",
+      "index.tsx.new",
+      "ResponsiveContainer.tsx",
+      "Sidebar.tsx"
+    ]
+  },
+  "navigation": {
+    "files": [
+      "index.js",
+      "index.tsx",
+      "Navigation.tsx",
+      "PublicNavbar.tsx"
+    ]
+  },
+  "plaid": {
+    "files": [
+      "index.tsx",
+      "PlaidLink.tsx"
+    ],
+    "__tests__": {
+      "files": [
+        "PlaidLink.test.tsx"
+      ]
+    }
+  },
+  "plaid-integration": {
+    "files": [
+      "index.tsx"
+    ]
+  },
+  "salary-journal": {
+    "files": [
+      "index.tsx"
+    ]
+  },
+  "transactions": {
+    "files": [
+      "index.tsx"
+    ]
+  },
+  "ui": {
+    "files": [
+      "Alert.tsx",
+      "Avatar.tsx",
+      "Badge.tsx",
+      "Checkbox.tsx",
+      "LoadingSpinner.tsx",
+      "ProgressBar.tsx",
+      "Tabs.tsx",
+      "Toggle.tsx"
+    ]
+  },
+  "__tests__": {
+    "files": [
+      "accessibility.test.tsx",
+      "visual-regression.test.tsx"
+    ]
+  }
+}

@@ -2,6 +2,17 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { BalanceHistoryChart, BalanceHistoryDataPoint } from '../BalanceHistoryChart';
 import { ThemeProvider } from '../../../contexts/ThemeContext';
+import { DisplayMode } from '../../../types/enums';
+
+// Mock useTheme hook
+jest.mock('../../../hooks/useTheme', () => ({
+  useTheme: () => ({
+    theme: {
+      mode: DisplayMode.LIGHT,
+      isDark: false
+    }
+  })
+}));
 
 // Mock react-chartjs-2
 jest.mock('react-chartjs-2', () => ({

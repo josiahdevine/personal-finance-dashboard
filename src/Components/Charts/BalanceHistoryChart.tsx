@@ -55,7 +55,7 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
   timeFormat = 'month',
 }) => {
   const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
+  const isDarkMode = theme.isDark;
 
   const formatDate = (date: Date | string): string => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -71,20 +71,25 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
     }
   };
 
-  const chartData = useMemo((): ChartData<'line'> => {
-    // Sort data by date ascending
-    const sortedData = [...data].sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-      return dateA - dateB;
-    });
-
+  // Process data for the chart
+  const { labels, values } = useMemo(() => {
+    const sortedData = [...(data || [])].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
     return {
       labels: sortedData.map(item => formatDate(item.date)),
+      values: sortedData.map(item => item.amount)
+    };
+  }, [data, formatDate]);
+
+  const chartData = useMemo((): ChartData<'line'> => {
+    return {
+      labels,
       datasets: [
         {
           label: 'Balance',
-          data: sortedData.map(item => item.amount),
+          data: values,
           fill: true,
           backgroundColor: (context) => {
             const chart = context.chart;
@@ -110,7 +115,7 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
         },
       ],
     };
-  }, [data, gradientColor, lineColor, timeFormat, isDarkMode]);
+  }, [labels, values, gradientColor, lineColor, isDarkMode]);
 
   const chartOptions = useMemo((): ChartOptions<'line'> => {
     return {
@@ -152,7 +157,7 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
           callbacks: {
             label: (context) => {
               const value = context.raw as number;
-              return `${context.dataset.label}: ${formatCurrency(value)}`;
+              return `${context.dataset.label}: ${formatCurrency(value, 'USD')}`;
             },
           },
         },
@@ -160,8 +165,9 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
       scales: {
         x: {
           grid: {
-            display: false,
-            drawBorder: false,
+            display: true,
+            color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            tickLength: 0,
           },
           ticks: {
             color: isDarkMode ? '#9CA3AF' : '#6B7280',
@@ -172,15 +178,17 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
         },
         y: {
           grid: {
-            color: isDarkMode ? 'rgba(75, 85, 99, 0.3)' : 'rgba(243, 244, 246, 0.8)',
-            drawBorder: false,
+            display: true,
+            color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
           },
           ticks: {
             color: isDarkMode ? '#9CA3AF' : '#6B7280',
             font: {
               family: "'Inter', sans-serif",
             },
-            callback: (value) => formatCurrency(value as number, { compact: true }),
+            callback: function(value) {
+              return formatCurrency(value, 'USD');
+            },
           },
           beginAtZero: false,
         },

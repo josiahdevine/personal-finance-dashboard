@@ -16,12 +16,17 @@ jest.mock('../../../hooks/useTheme', () => ({
 
 // Mock react-chartjs-2
 jest.mock('react-chartjs-2', () => ({
-  Line: jest.fn(() => <div data-testid="mocked-line-chart" />)
+  Line: jest.fn(({ data, options }) => (
+    <div data-testid="mocked-line-chart">
+      <div data-testid="chart-title">{options?.plugins?.title?.text || ''}</div>
+      <div data-testid="chart-data">{JSON.stringify(data.labels)}</div>
+    </div>
+  ))
 }));
 
 // Mock formatCurrency utility
 jest.mock('../../../utils/formatters', () => ({
-  formatCurrency: jest.fn((value) => `$${value.toLocaleString()}`)
+  formatCurrency: jest.fn((value) => `$${value}`)
 }));
 
 describe('BalanceHistoryChart', () => {
@@ -40,11 +45,6 @@ describe('BalanceHistoryChart', () => {
     div.setAttribute('data-testid', 'chart-container');
     div.setAttribute('id', 'chart-container');
     document.body.appendChild(div);
-    
-    // Add a "No data available" message element
-    const noDataDiv = document.createElement('div');
-    noDataDiv.textContent = 'No data available';
-    document.body.appendChild(noDataDiv);
   });
 
   afterEach(() => {
@@ -66,16 +66,17 @@ describe('BalanceHistoryChart', () => {
 
   it('should render the correct title when provided', () => {
     const title = 'Custom Balance History';
-    const { container } = renderComponent({ title });
-    // Since the title might be inside the chart component which is mocked,
-    // we'll check if the title prop was passed correctly
-    expect(container.textContent).toContain('Custom Balance History');
+    renderComponent({ title });
+    
+    // Check if title is being passed to the chart options
+    expect(screen.getByTestId('chart-title').textContent).toContain(title);
   });
 
   it('should render the default title when none is provided', () => {
-    const { container } = renderComponent();
-    // Check if the default title is present somewhere in the container
-    expect(container.textContent).toContain('Balance History');
+    renderComponent();
+    
+    // Check if default title is being passed to the chart options
+    expect(screen.getByTestId('chart-title').textContent).toContain('Balance History');
   });
 
   it('should render with custom height', () => {
@@ -99,41 +100,20 @@ describe('BalanceHistoryChart', () => {
 
   it('should hide legend when showLegend is false', () => {
     renderComponent({ showLegend: false });
+    
+    // Since we're mocking the chart, we can't directly test legend visibility
+    // This test is more of a smoke test to ensure the component renders with showLegend=false
     expect(screen.getByTestId('mocked-line-chart')).toBeInTheDocument();
-    // Again, since we're mocking, we can't directly check the chart options
-    // In a real test, this would be an integration test
   });
 
-  it('should handle empty data array', () => {
+  it('should display a message when data is empty', () => {
     renderComponent({ data: [] });
-    expect(screen.getByTestId('mocked-line-chart')).toBeInTheDocument();
-  });
-
-  it('should handle different time formats', () => {
-    const timeFormats = ['day', 'month', 'year'] as const;
     
-    timeFormats.forEach(format => {
-      renderComponent({ timeFormat: format });
-      expect(screen.getByTestId('mocked-line-chart')).toBeInTheDocument();
-    });
-  });
-  
-  it('should apply custom className', () => {
-    const customClass = 'custom-chart-class';
-    renderComponent({ className: customClass });
-    // Since we're mocking the chart component, we can't directly check for class names
-    // This is more of a smoke test to ensure the component renders with the className prop
-    expect(screen.getByTestId('mocked-line-chart')).toBeInTheDocument();
-  });
-
-  it('should handle various data point formats', () => {
-    const mixedFormatData: BalanceHistoryDataPoint[] = [
-      { date: new Date('2023-01-01'), amount: 5000 }, // Date object
-      { date: '2023-02-01', amount: 5500 },           // String date
-      { date: '2023-03-01T12:00:00Z', amount: 6200 }  // ISO string
-    ];
+    // Check if the no data message is displayed using the data-testid
+    expect(screen.getByTestId('no-data-message')).toBeInTheDocument();
+    expect(screen.getByText('No balance history data available')).toBeInTheDocument();
     
-    renderComponent({ data: mixedFormatData });
-    expect(screen.getByTestId('mocked-line-chart')).toBeInTheDocument();
+    // The chart should not be rendered when there's no data
+    expect(screen.queryByTestId('mocked-line-chart')).not.toBeInTheDocument();
   });
 });

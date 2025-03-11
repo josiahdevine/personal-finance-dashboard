@@ -1,8 +1,8 @@
 import { AccountAggregationService } from '../AccountAggregationService';
-import PlaidService from '../PlaidService';
+import PlaidService from '../plaidService';
 import { Account } from '../../types/models';
 
-jest.mock('../PlaidService', () => ({
+jest.mock('../plaidService', () => ({
   __esModule: true,
   default: {
     getAccounts: jest.fn()
@@ -40,44 +40,38 @@ describe('AccountAggregationService', () => {
     }
   ];
 
-  const mockPlaidAccounts: Account[] = [
+  const mockPlaidAccounts = [
     {
       id: 'plaid1',
-      plaidAccountId: 'plaid-acc-1',
-      userId: 'user123',
+      plaid_account_id: 'plaid-acc-1',
       name: 'Plaid Savings',
-      officialName: 'Plaid Banking Savings',
+      official_name: 'Plaid Banking Savings',
       type: 'savings',
       subtype: 'savings',
-      institutionId: 'inst1',
-      institutionName: 'Plaid Bank',
-      balance: {
-        current: 10000,
-        available: 9500,
-        limit: null,
-        isoCurrencyCode: 'USD',
-      },
-      createdAt: '2023-01-01T00:00:00Z',
-      updatedAt: '2023-01-01T00:00:00Z'
+      balance: 10000,
+      available_balance: 9500,
+      limit_amount: null,
+      currency_code: 'USD',
+      mask: '1234',
+      institution_name: 'Plaid Bank',
+      institution_color: '#0000FF',
+      institution_logo: null
     },
     {
       id: 'plaid2',
-      plaidAccountId: 'plaid-acc-2',
-      userId: 'user123',
+      plaid_account_id: 'plaid-acc-2',
       name: 'Plaid Checking',
-      officialName: 'Plaid Banking Checking',
+      official_name: 'Plaid Banking Checking',
       type: 'checking',
       subtype: 'checking',
-      institutionId: 'inst1',
-      institutionName: 'Plaid Bank',
-      balance: {
-        current: 5000,
-        available: 4800,
-        limit: null,
-        isoCurrencyCode: 'USD',
-      },
-      createdAt: '2023-01-01T00:00:00Z',
-      updatedAt: '2023-01-01T00:00:00Z'
+      balance: 5000,
+      available_balance: 4800,
+      limit_amount: null,
+      currency_code: 'USD',
+      mask: '5678',
+      institution_name: 'Plaid Bank',
+      institution_color: '#0000FF',
+      institution_logo: null
     }
   ];
 
@@ -88,6 +82,7 @@ describe('AccountAggregationService', () => {
 
   describe('getAllAccounts', () => {
     it('should return combined manual and plaid accounts', async () => {
+      // Mock the manual accounts fetch response
       (global.fetch as jest.Mock).mockImplementation((url) => {
         if (url.includes('/api/accounts/manual') && url.includes(userId)) {
           return Promise.resolve({
@@ -98,13 +93,25 @@ describe('AccountAggregationService', () => {
         return Promise.reject(new Error('Unexpected URL'));
       });
 
+      // Mock PlaidService.getAccounts
       (PlaidService.getAccounts as jest.Mock).mockResolvedValue(mockPlaidAccounts);
 
       const accounts = await service.getAllAccounts(userId);
 
+      // Check the length - should have 2 manual + 2 plaid
       expect(accounts.length).toBe(4);
-      expect(accounts.find(a => a.id === 'manual1')).toBeDefined();
-      expect(accounts.find(a => a.id === 'plaid-acc-1')).toBeDefined();
+      
+      // Find a manual account by ID
+      const manualAccount = accounts.find(a => a.id === 'manual1');
+      expect(manualAccount).toBeDefined();
+      expect(manualAccount?.source).toBe('manual');
+      
+      // Find a plaid account by ID
+      const plaidAccount = accounts.find(a => a.id === 'plaid-acc-1');
+      expect(plaidAccount).toBeDefined();
+      expect(plaidAccount?.source).toBe('plaid');
+      
+      // Check source distribution
       expect(accounts.filter(a => a.source === 'manual').length).toBe(2);
       expect(accounts.filter(a => a.source === 'plaid').length).toBe(2);
     });
@@ -149,10 +156,10 @@ describe('AccountAggregationService', () => {
 
       const summary = await service.getAccountSummary(userId);
 
-      expect(summary.totalAssets).toBe(15000);
-      expect(summary.accounts.length).toBe(2);
-      expect(summary.accounts[0].balance.current).toBe(5000);
-      expect(summary.accounts[1].balance.current).toBe(10000);
+      expect(summary.totalBalance).toBe(15000);
+      expect(summary.accountsByType.savings).toBeDefined();
+      expect(summary.accountsByType.savings.count).toBe(2);
+      expect(summary.accountsByType.savings.totalBalance).toBe(15000);
     });
   });
 
@@ -187,23 +194,23 @@ describe('AccountAggregationService', () => {
 
   describe('aggregatePlaidAccounts', () => {
     it('should transform plaid accounts to aggregated format', async () => {
+      // Mock the PlaidService.getAccounts response
       (PlaidService.getAccounts as jest.Mock).mockResolvedValue(mockPlaidAccounts);
 
-      const result = await service['aggregatePlaidAccounts'](userId);
+      const result = await service['aggregatePlaidAccounts']();
 
       expect(result.length).toBe(2);
-      expect(result[0]).toEqual({
-        id: 'plaid-acc-1',
-        name: 'Plaid Savings',
-        type: 'savings',
-        balance: {
-          current: 10000,
-          available: 9500
-        },
-        currency: 'USD',
-        source: 'plaid',
-        institution: 'Plaid Bank'
-      });
+      // Check just the essential fields since Date objects will not match exactly in equality check
+      expect(result[0].id).toBe('plaid-acc-1');
+      expect(result[0].name).toBe('Plaid Savings');
+      expect(result[0].type).toBe('savings');
+      expect(result[0].balance.current).toBe(10000);
+      expect(result[0].balance.available).toBe(9500);
+      expect(result[0].currency).toBe('USD');
+      expect(result[0].source).toBe('plaid');
+      expect(result[0].institution).toBe('Plaid Bank');
+      // Verify lastUpdated is a Date object
+      expect(result[0].lastUpdated).toBeInstanceOf(Date);
     });
   });
 });

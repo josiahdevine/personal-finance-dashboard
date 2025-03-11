@@ -1,47 +1,89 @@
 # Personal Finance Dashboard Documentation
 
+> **GLOBAL RULE**: All project documentation MUST be maintained in this `/docs` directory structure. No documentation should be placed elsewhere in the codebase.
+
 ## Documentation Structure
 
 ### `/api`
 API documentation including endpoints, request/response formats, and authentication.
-
-### `/database`
-Database-related documentation:
-- [Database Connector](database/database-connector.md) - Core database connection and query handling
-- [User Synchronization](database/user-sync.md) - Firebase user synchronization system
-
-### `/utils`
-Utility function documentation and helper modules.
+- [API Reference](api/api-reference.md) - Comprehensive API endpoint reference
 
 ### `/components`
 React component documentation and usage guidelines.
+- [UI Components Reference](components/ui-components-reference.md) - Core UI component documentation
+- [Component Guidelines](components/guidelines.md) - Standards for component development
+- [Performance Optimized Components](components/performance-optimized-components.md) - Performance-focused components
+
+### `/database`
+Database-related documentation:
+- [Database Schema](database/DATABASE-SCHEMA.md) - Full database schema reference
+- [Database Connector](database/database-connector.md) - Core database connection and query handling
+- [User Synchronization](database/user-sync.md) - Firebase user synchronization system
+
+### `/development`
+Development guidelines, processes, and technical details:
+- [Custom Hooks Reference](development/custom-hooks-reference.md) - React hooks usage and implementation
+- [Code Quality Tools](development/code-quality-tools.md) - Linting, testing, and code quality tools
+- [Architectural Enhancements](development/architectural-enhancements.md) - System architecture improvements
+- [ESM Migration Guide](development/esm-migration-guide.md) - ES Modules migration process
+- [Mobile Roadmap](development/MOBILE-ROADMAP.md) - Mobile development plan
+- [Next Steps](development/NEXT_STEPS.md) - Upcoming development priorities
+- [Code Quality](development/code-quality.md) - Code quality standards
 
 ### `/deployment`
 Deployment guides and configuration documentation.
 
+### `/integrations`
+Third-party integration documentation:
+- [Plaid Integration](integrations/plaid/README.md) - Complete Plaid integration documentation
+
+### `/frontend`
+Frontend-specific documentation.
+
 ### `/guides`
-General guides and tutorials:
-- Getting Started
-- Development Setup
-- Best Practices
-- Troubleshooting
+General guides and tutorials.
+
+### `/refactoring`
+Refactoring plans and guidelines.
+
+### `/security`
+Security documentation and best practices.
+
+### `/testing`
+Testing strategies, patterns, and procedures.
+
+## Project Documentation
+
+- [UI Design System Progress](ui-design-system-progress.md) - Current status of design system implementation
+- [Style Guide](style-guide.md) - Project style guidelines
+- [Marketing Strategy](marketing-strategy.md) - Marketing and user acquisition plans
+- [Implementation Timeline](implementation-timeline.md) - Project timeline and milestones
+- [Implementation Progress Summary](implementation-progress-summary.md) - Current implementation status
+- [Competitive Analysis](competitive-analysis.md) - Analysis of competing products
+- [Project Status Report](project-status-report.md) - Overall project status
+- [Component Structure](COMPONENT_STRUCTURE.md) - Component organization reference
+- [Manual Setup](MANUAL_SETUP.md) - Manual project setup instructions
+
+## Deprecated Documentation
+
+The following documents have been replaced or superseded by newer versions:
+- `integrations/plaid/plaid-implementation.md` - Superseded by `integrations/plaid/plaid-latest-implementation-guide.md`
 
 ## Quick Links
 
 ### Setup & Installation
 - [Development Environment Setup](guides/development-setup.md)
-- [Database Setup](database/setup.md)
-- [Firebase Configuration](deployment/firebase-setup.md)
+- [Plaid Development Setup](integrations/plaid/plaid-development-setup.md)
+- [Manual Setup](MANUAL_SETUP.md)
 
 ### Development
 - [Component Guidelines](components/guidelines.md)
-- [API Integration](api/integration.md)
-- [State Management](utils/state-management.md)
+- [Custom Hooks Reference](development/custom-hooks-reference.md)
+- [UI Components Reference](components/ui-components-reference.md)
 
 ### Deployment
 - [Production Deployment](deployment/production.md)
-- [Environment Configuration](deployment/environment.md)
-- [Monitoring & Logging](deployment/monitoring.md)
+- [Plaid Production Deployment](integrations/plaid/plaid-production-deployment.md)
 
 ## Contributing to Documentation
 
@@ -53,11 +95,12 @@ General guides and tutorials:
 5. Include troubleshooting sections for common issues
 
 ### Adding New Documentation
-1. Create new documentation in the appropriate directory
-2. Update this README with links to new documentation
-3. Follow the established format and style
-4. Include necessary metadata and tags
-5. Cross-reference related documentation
+1. **ALWAYS place new documentation in this `/docs` directory structure**
+2. Create new documentation in the appropriate subdirectory
+3. Update this README with links to new documentation
+4. Follow the established format and style
+5. Include necessary metadata and tags
+6. Cross-reference related documentation
 
 ### Updating Existing Documentation
 1. Review and update documentation when making code changes
@@ -84,4 +127,4 @@ General guides and tutorials:
 - For immediate assistance: Contact the development team
 
 ## License
-This documentation is covered under the project's main license. See LICENSE file in the root directory. 
+This documentation is covered under the project's main license. See LICENSE file in the root directory.

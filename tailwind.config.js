@@ -6,10 +6,26 @@ module.exports = {
   ],
   darkMode: 'class',
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       colors: {
-        // Primary Brand Colors
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        
+        // shadcn/ui colors
         primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+          // Keep existing shades for backwards compatibility
           50: '#E6EEFF',
           100: '#C2D4FF',
           200: '#99B3FF',
@@ -21,8 +37,10 @@ module.exports = {
           800: '#001166',
           900: '#000033',
         },
-        // Secondary Brand Colors - green for positive financial indicators
         secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+          // Keep existing shades for backwards compatibility
           50: '#E6FAF5',
           100: '#B3F1E3',
           200: '#80E9D2',
@@ -34,8 +52,10 @@ module.exports = {
           800: '#004133',
           900: '#00201A',
         },
-        // Accent/Warning Colors
         accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+          // Keep existing shades for backwards compatibility
           50: '#FFEAEA',
           100: '#FFCCCC',
           200: '#FFADAD',
@@ -47,7 +67,23 @@ module.exports = {
           800: '#800000',
           900: '#4D0000',
         },
-        // Neutral Colors
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        popover: {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        // Keep existing neutral colors
         neutral: {
           50: '#F7F9FC',  // Background light
           100: '#EAF0F7',
@@ -84,35 +120,20 @@ module.exports = {
           strongNegative: '#E60000',
         },
       },
-      fontFamily: {
-        sans: ['"SF Pro Display"', '-apple-system', 'BlinkMacSystemFont', '"Inter"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
-        mono: ['"SF Mono"', '"Roboto Mono"', '"SFMono-Regular"', 'Consolas', '"Liberation Mono"', 'Menlo', 'Courier', 'monospace'],
-      },
-      spacing: {
-        'xs': '0.25rem',  /* 4px */
-        'sm': '0.5rem',   /* 8px */
-        'md': '1rem',     /* 16px */
-        'lg': '1.5rem',   /* 24px */
-        'xl': '2rem',     /* 32px */
-        '2xl': '3rem',    /* 48px */
-        '3xl': '4rem',    /* 64px */
-      },
-      boxShadow: {
-        'elevation-1': '0 1px 2px rgba(0, 0, 0, 0.05)',
-        'elevation-2': '0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.07)',
-        'elevation-3': '0 4px 8px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.07)',
-        'elevation-4': '0 8px 16px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.07)',
-        'elevation-5': '0 16px 32px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0, 0, 0, 0.07)',
-      },
-      animation: {
-        'gradient-x': 'gradient-x 15s ease infinite',
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-in-out',
-        'slide-down': 'slideDown 0.3s ease-in-out',
-        'scale-in': 'scaleIn 0.2s ease-in-out',
-        'spinner': 'spin 1s linear infinite',
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
         'gradient-x': {
           '0%, 100%': {
             'background-size': '200% 200%',
@@ -140,6 +161,16 @@ module.exports = {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        'gradient-x': 'gradient-x 15s ease infinite',
+        'fade-in': 'fadeIn 0.3s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-in-out',
+        'slide-down': 'slideDown 0.3s ease-in-out',
+        'scale-in': 'scaleIn 0.2s ease-in-out',
+        'spinner': 'spin 1s linear infinite',
+      },
       transitionTimingFunction: {
         'standard': 'cubic-bezier(0.4, 0.0, 0.2, 1)',
         'decelerate': 'cubic-bezier(0.0, 0.0, 0.2, 1)',
@@ -151,10 +182,28 @@ module.exports = {
         'md': '200ms',
         'lg': '300ms',
         'xl': '500ms',
-      }
+      },
+      spacing: {
+        'xs': '0.25rem',  /* 4px */
+        'sm': '0.5rem',   /* 8px */
+        'md': '1rem',     /* 16px */
+        'lg': '1.5rem',   /* 24px */
+        'xl': '2rem',     /* 32px */
+        '2xl': '3rem',    /* 48px */
+        '3xl': '4rem',    /* 64px */
+      },
+      boxShadow: {
+        'elevation-1': '0 1px 2px rgba(0, 0, 0, 0.05)',
+        'elevation-2': '0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.07)',
+        'elevation-3': '0 4px 8px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.07)',
+        'elevation-4': '0 8px 16px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.07)',
+        'elevation-5': '0 16px 32px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0, 0, 0, 0.07)',
+      },
+      fontFamily: {
+        sans: ['"SF Pro Display"', '-apple-system', 'BlinkMacSystemFont', '"Inter"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['"SF Mono"', '"Roboto Mono"', '"SFMono-Regular"', 'Consolas', '"Liberation Mono"', 'Menlo', 'Courier', 'monospace'],
+      },
     },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-  ],
-}; 
+  plugins: [require("tailwindcss-animate"), require('@tailwindcss/forms')],
+}

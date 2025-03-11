@@ -98,6 +98,46 @@ A comprehensive personal finance management application built with React, TypeSc
    - Mobile-specific features
    - PWA capabilities
 
+## Project Organization
+
+### Documentation
+
+All project documentation is maintained in the `/docs` directory structure. See [Documentation Guidelines](/docs/README.md) for more details on our documentation organization.
+
+Key documentation areas:
+- [API Documentation](/docs/api/)
+- [Component Documentation](/docs/components/)
+- [Database Schema and Migrations](/docs/database/)
+- [Development Guidelines](/docs/development/)
+- [Integration Guides](/docs/integrations/)
+
+### Database Migrations
+
+All database migrations are centralized in the `/migrations` directory with the following structure:
+- `/migrations/sql/`: Contains all SQL migration files
+- `/migrations/scripts/`: Contains migration execution scripts
+
+To run all migrations:
+```bash
+node migrations/scripts/run-all-migrations.js
+```
+
+See [Database Migrations Guide](/docs/database/migrations/README.md) for detailed information.
+
+### Component Organization
+
+UI components follow a structured organization:
+- All shadcn/ui components are located in `src/components/ui/`
+- Layout components are in `src/components/layout/`
+- Feature-specific components are organized by feature area
+
+### Type System
+
+The project uses a comprehensive type system with:
+- Strong typing for all domain objects
+- Type guards and validation utilities
+- Standardized type definitions for API responses
+
 ## Technology Stack
 
 ### Frontend

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -57,7 +57,7 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
   const { theme } = useTheme();
   const isDarkMode = theme.isDark;
 
-  const formatDate = (date: Date | string): string => {
+  const formatDate = useCallback((date: Date | string): string => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     
     switch (timeFormat) {
@@ -69,7 +69,7 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
       default:
         return dateObj.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
     }
-  };
+  }, [timeFormat]);
 
   // Process data for the chart
   const { labels, values } = useMemo(() => {
@@ -204,6 +204,21 @@ export const BalanceHistoryChart: React.FC<BalanceHistoryChartProps> = ({
       },
     };
   }, [title, showLegend, isDarkMode]);
+
+  // If there's no data, show a message instead of the chart
+  if (!data || data.length === 0) {
+    return (
+      <div 
+        className={`w-full flex items-center justify-center ${className}`} 
+        style={{ height }}
+        data-testid="no-data-message"
+      >
+        <p className="text-gray-500 dark:text-gray-400">
+          No balance history data available
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full ${className}`} style={{ height }}>

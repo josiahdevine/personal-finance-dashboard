@@ -19,7 +19,11 @@ export class BudgetCategoryRepository extends BaseRepository<BudgetCategory> {
       throw new Error(`Budget category with id ${id} not found`);
     }
     const validated = validateBudgetCategory({ ...existingCategory, ...data });
-    return super.update(id, validated);
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update budget category with id ${id}`);
+    }
+    return result;
   }
 }
 
@@ -39,7 +43,11 @@ export class BudgetEntryRepository extends BaseRepository<BudgetEntry> {
       throw new Error(`Budget entry with id ${id} not found`);
     }
     const validated = validateBudgetEntry({ ...existingEntry, ...data });
-    return super.update(id, validated);
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update budget entry with id ${id}`);
+    }
+    return result;
   }
 
   async getBudgetSummary(userId: string, month: Date): Promise<{

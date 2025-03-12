@@ -14,8 +14,16 @@ export class SalaryRepository extends BaseRepository<SalaryEntry> {
   }
 
   async update(id: string, data: Partial<SalaryEntry>): Promise<SalaryEntry> {
-    const validated = validateSalaryEntry({ ...await this.findById(id), ...data });
-    return super.update(id, validated);
+    const existingSalary = await this.findById(id);
+    if (!existingSalary) {
+      throw new Error(`Salary entry with id ${id} not found`);
+    }
+    const validated = validateSalaryEntry({ ...existingSalary, ...data });
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update salary entry with id ${id}`);
+    }
+    return result;
   }
 
   async getCurrentSalary(userId: string): Promise<SalaryEntry | null> {

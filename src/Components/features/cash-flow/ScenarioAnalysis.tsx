@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Card from "../../common/Card";
-import { Select } from '../../common/Select';
+import { EnhancedSelect } from '../../../components/ui/enhanced-select';
 
 interface CashFlowPrediction {
   date: string;
@@ -79,7 +79,7 @@ export const ScenarioAnalysis: React.FC<ScenarioAnalysisProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Select Transaction
           </label>
-          <Select
+          <EnhancedSelect
             value={selectedTransaction}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedTransaction(e.target.value)}
             options={[
@@ -97,7 +97,7 @@ export const ScenarioAnalysis: React.FC<ScenarioAnalysisProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Adjustment Type
           </label>
-          <Select
+          <EnhancedSelect
             value={adjustmentType}
             onChange={e => setAdjustmentType(e.target.value as 'remove' | 'modify')}
             options={[

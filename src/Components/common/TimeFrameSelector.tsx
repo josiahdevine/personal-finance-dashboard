@@ -1,6 +1,8 @@
 import React from 'react';
+import { Button } from '../../components/ui/button';
 import { TimeFrame } from '../../types/common';
 import { useTimeFrame } from '../../contexts/TimeFrameContext';
+import { cn } from '../../lib/utils';
 
 interface TimeFrameOption {
   label: string;
@@ -18,23 +20,28 @@ const timeFrameOptions: TimeFrameOption[] = [
   { label: '5Y', value: '5y' }
 ];
 
+/**
+ * TimeFrameSelector component for selecting time frames.
+ * Uses ShadCN UI Button component for a consistent look and feel.
+ */
 export const TimeFrameSelector: React.FC = () => {
   const { timeFrame, setTimeFrame } = useTimeFrame();
 
   return (
     <div className="flex items-center space-x-2">
       {timeFrameOptions.map((option) => (
-        <button
+        <Button
           key={option.value}
+          variant={timeFrame === option.value ? 'default' : 'outline'}
+          size="sm"
           onClick={() => setTimeFrame(option.value)}
-          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors
-            ${timeFrame === option.value
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'
-            }`}
+          className={cn(
+            "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+            timeFrame !== option.value && "text-gray-600 hover:text-gray-900"
+          )}
         >
           {option.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

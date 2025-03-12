@@ -14,8 +14,16 @@ export class InvestmentRepository extends BaseRepository<Investment> {
   }
 
   async update(id: string, data: Partial<Investment>): Promise<Investment> {
-    const validated = validateInvestment({ ...await this.findById(id), ...data });
-    return super.update(id, validated);
+    const existingInvestment = await this.findById(id);
+    if (!existingInvestment) {
+      throw new Error(`Investment with id ${id} not found`);
+    }
+    const validated = validateInvestment({ ...existingInvestment, ...data });
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update investment with id ${id}`);
+    }
+    return result;
   }
 
   async getPortfolioSummary(userId: string): Promise<{

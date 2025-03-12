@@ -1,61 +1,10 @@
 import React, { useState, useEffect } from 'react';
-{{ ... }}
-import Card from '../common/Card';
-{{ ... }}
-```
-
-Should be changed to:
-
-```tsx
-import React, { useState, useEffect } from 'react';
-{{ ... }}
-import { default as Card } from '../common/Card';
-{{ ... }}
-```
-
-Or more simply:
-
-```tsx
-import React, { useState, useEffect } from 'react';
-{{ ... }}
-import Card from '../common/Card';
-{{ ... }}
-```
-
-Should be changed to:
-
-```tsx
-import React, { useState, useEffect } from 'react';
-{{ ... }}
-import { Card } from '../common/Card';
-{{ ... }}
-```
-
-However, since you want to use default import, the correct change would be:
-
-```tsx
-import React, { useState, useEffect } from 'react';
-{{ ... }}
-import Card from '../common/Card';
-{{ ... }}
-```
-
-Should be changed to:
-
-```tsx
-import React, { useState, useEffect } from 'react';
-{{ ... }}
-import Card from '../common/Card';
-{{ ... }}
-```
-
-No change is needed in this case, as the import statement is already using the default import syntax.
-
-Here is the full updated code:
-
-```tsx
-import React, { useState, useEffect } from 'react';
-import Card from '../common/Card';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from "../ui/card";
 
 interface Transaction {
   id: string;
@@ -75,9 +24,38 @@ const TransactionsAnalysis: React.FC = () => {
   useEffect(() => {
     const fetchRecentTransactions = async () => {
       try {
-        const response = await fetch('/api/transactions/recent');
-        const data = await response.json();
-        setRecentTransactions(data);
+        // Mock data for development
+        const mockData = [
+          {
+            id: '1',
+            description: 'Grocery Shopping',
+            amount: 89.50,
+            date: '2023-07-05',
+            category: 'Food',
+            type: 'expense' as const,
+            account: 'Chase Checking'
+          },
+          {
+            id: '2',
+            description: 'Salary Deposit',
+            amount: 3500.00,
+            date: '2023-07-01',
+            category: 'Income',
+            type: 'income' as const,
+            account: 'Chase Checking'
+          },
+          {
+            id: '3',
+            description: 'Netflix Subscription',
+            amount: 15.99,
+            date: '2023-07-03',
+            category: 'Entertainment',
+            type: 'expense' as const,
+            account: 'Bank of America Credit'
+          }
+        ];
+        
+        setRecentTransactions(mockData);
       } catch (err) {
         setError('Failed to fetch recent transactions');
         console.error('Error fetching transactions:', err);
@@ -119,73 +97,38 @@ const TransactionsAnalysis: React.FC = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <Card>
-          <Card.Header>
-            <h2 className="text-lg font-semibold text-gray-900">Total Income</h2>
-          </Card.Header>
-          <Card.Body>
+          <CardHeader>
+            <CardTitle>Total Income</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold text-green-600">
               ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
-          </Card.Body>
+          </CardContent>
         </Card>
 
         <Card>
-          <Card.Header>
-            <h2 className="text-lg font-semibold text-gray-900">Total Expenses</h2>
-          </Card.Header>
-          <Card.Body>
+          <CardHeader>
+            <CardTitle>Total Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold text-red-600">
               ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
-          </Card.Body>
+          </CardContent>
         </Card>
 
         <Card>
-          <Card.Header>
-            <h2 className="text-lg font-semibold text-gray-900">Net Amount</h2>
-          </Card.Header>
-          <Card.Body>
+          <CardHeader>
+            <CardTitle>Net Amount</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className={`text-2xl font-bold ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               ${netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
-          </Card.Body>
+          </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <Card.Header>
-          <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-        </Card.Header>
-        <Card.Body>
-          <div className="divide-y divide-gray-200">
-            {recentTransactions.map(transaction => (
-              <div key={transaction.id} className="py-4 flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">
-                    {transaction.description}
-                  </h3>
-                  <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
-                    <span>{new Date(transaction.date).toLocaleDateString()}</span>
-                    <span>•</span>
-                    <span>{transaction.category}</span>
-                    <span>•</span>
-                    <span>{transaction.account}</span>
-                  </div>
-                </div>
-                <div className={`text-sm font-medium ${
-                  transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {transaction.type === 'income' ? '+' : '-'}$
-                  {Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-            ))}
-            {recentTransactions.length === 0 && (
-              <p className="py-4 text-gray-500 text-center">No recent transactions</p>
-            )}
-          </div>
-        </Card.Body>
-      </Card>
     </div>
   );
 };

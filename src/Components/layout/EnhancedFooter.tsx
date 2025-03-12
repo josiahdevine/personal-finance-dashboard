@@ -17,6 +17,7 @@ import {
   RiGithubFill,
   RiInstagramLine
 } from 'react-icons/ri';
+import { BaseComponentProps } from '../../types/components';
 
 interface FooterLink {
   title: string;
@@ -24,7 +25,11 @@ interface FooterLink {
   description?: string;
 }
 
-export const EnhancedFooter: React.FC = () => {
+interface EnhancedFooterProps extends BaseComponentProps {
+  className?: string;
+}
+
+export const EnhancedFooter: React.FC<EnhancedFooterProps> = ({ className }) => {
   const { isDarkMode } = useTheme();
   const currentYear = new Date().getFullYear();
 
@@ -85,7 +90,10 @@ export const EnhancedFooter: React.FC = () => {
   ];
 
   return (
-    <footer className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+    <footer className={cn(
+      `${isDarkMode ? 'bg-gray-900' : 'bg-white'} border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`,
+      className
+    )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="flex flex-col lg:flex-row justify-between mb-8">
           {/* Logo and Social */}

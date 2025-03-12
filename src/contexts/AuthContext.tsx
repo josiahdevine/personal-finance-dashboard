@@ -13,21 +13,22 @@ import {
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import logger from '../utils/logger.js';
-import { User } from '../types/models';
+import type { User } from '../types/models';
+import { validateUser } from '../types/guards';
 
 interface AuthContextType {
-  user: User | null;
+  user: User | undefined;
   firebaseUser: FirebaseUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: Error | null;
   state: {
-    user: User | null;
+    user: User | undefined;
     isAuthenticated: boolean;
     isLoading: boolean;
     error: Error | null;
   };
-  currentUser: User | null;
+  currentUser: User | undefined;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   createUserWithEmail: (email: string, password: string, name?: string) => Promise<void>;
@@ -43,8 +44,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export { AuthContext };
 
-const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<User | null> => {
-  if (!firebaseUser) return null;
+const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<User | undefined> => {
+  if (!firebaseUser) return undefined;
   
   try {
     // Fetch additional user data from your database here
@@ -55,13 +56,19 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<User 
     if (contentType && contentType.indexOf("application/json") === -1) {
       console.warn("Received non-JSON response from user API");
       // Return basic user info without attempting to parse JSON
-      return {
+      const basicUser: User = {
         id: firebaseUser.uid,
         email: firebaseUser.email || '',
         name: firebaseUser.displayName || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        settings: {
+          theme: 'system',
+          notifications: true,
+          currency: 'USD'
+        }
       };
+      return validateUser(basicUser) ? basicUser : undefined;
     }
     
     if (!response.ok) {
@@ -69,77 +76,48 @@ const mapFirebaseUser = async (firebaseUser: FirebaseUser | null): Promise<User 
     }
     
     const userData = await response.json();
-    
-    return {
+    const mappedUser: User = {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       name: firebaseUser.displayName || '',
       createdAt: userData.createdAt || new Date().toISOString(),
       updatedAt: userData.updatedAt || new Date().toISOString(),
-      ...userData // Merge with additional user data from your database
+      settings: {
+        theme: userData.settings?.theme || 'system',
+        notifications: userData.settings?.notifications ?? true,
+        currency: userData.settings?.currency || 'USD'
+      },
+      ...userData
     };
+    
+    return validateUser(mappedUser) ? mappedUser : undefined;
   } catch (error) {
     logger.logError('AuthContext', 'Error fetching user data', error as Error);
     // Return basic user data if database fetch fails
-    return {
+    const fallbackUser: User = {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       name: firebaseUser.displayName || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      settings: {
+        theme: 'system',
+        notifications: true,
+        currency: 'USD'
+      }
     };
+    return validateUser(fallbackUser) ? fallbackUser : undefined;
   }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | undefined>(undefined);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   
   // Get the isAuthenticated value from both firebaseUser and user
   const isAuthenticated = Boolean(firebaseUser && user);
-
-  // Initialize Firebase auth state listener
-  useEffect(() => {
-    setIsLoading(true);
-    
-    // Persist the auth state
-    const persistedUser = localStorage.getItem('user');
-    if (persistedUser) {
-      try {
-        setUser(JSON.parse(persistedUser));
-      } catch (err) {
-        console.error('Error parsing persisted user data:', err);
-        localStorage.removeItem('user');
-      }
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setFirebaseUser(firebaseUser);
-      try {
-        if (firebaseUser) {
-          const mappedUser = await mapFirebaseUser(firebaseUser);
-          setUser(mappedUser);
-          
-          // Persist the user data
-          if (mappedUser) {
-            localStorage.setItem('user', JSON.stringify(mappedUser));
-          }
-        } else {
-          setUser(null);
-          localStorage.removeItem('user');
-        }
-      } catch (error) {
-        console.error('Error mapping Firebase user:', error);
-        setError(error instanceof Error ? error : new Error('Unknown error during authentication'));
-      } finally {
-        setIsLoading(false);
-      }
-    });
-    
-    return () => unsubscribe();
-  }, []);
 
   const signInWithGoogle = async () => {
     setIsLoading(true);
@@ -202,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       await auth.signOut();
-      setUser(null);
+      setUser(undefined);
       localStorage.removeItem('user');
     } catch (error) {
       setError(error instanceof Error ? error : new Error('Error during sign out'));
@@ -235,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!response.ok) throw new Error('Failed to update user profile');
 
-      const updatedUser = await response.json();
+      const updatedUser: User = await response.json();
       setUser(updatedUser);
     } catch (error) {
       logger.logError('AuthContext', 'Profile update error', error as Error);
@@ -306,6 +284,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login: signInWithEmail,  // Alias for signInWithEmail
     register: createUserWithEmail  // Alias for createUserWithEmail
   };
+
+  // Initialize Firebase auth state listener
+  useEffect(() => {
+    setIsLoading(true);
+    
+    // Persist the auth state
+    const persistedUser = localStorage.getItem('user');
+    if (persistedUser) {
+      try {
+        const parsedUser: User = JSON.parse(persistedUser);
+        if (validateUser(parsedUser)) {
+          setUser(parsedUser);
+        } else {
+          localStorage.removeItem('user');
+        }
+      } catch (err) {
+        console.error('Error parsing persisted user data:', err);
+        localStorage.removeItem('user');
+      }
+    }
+    
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setFirebaseUser(firebaseUser);
+      try {
+        if (firebaseUser) {
+          const mappedUser = await mapFirebaseUser(firebaseUser);
+          setUser(mappedUser);
+          
+          // Persist the user data
+          if (mappedUser) {
+            localStorage.setItem('user', JSON.stringify(mappedUser));
+          }
+        } else {
+          setUser(undefined);
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('Error mapping Firebase user:', error);
+        setError(error instanceof Error ? error : new Error('Unknown error during authentication'));
+      } finally {
+        setIsLoading(false);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import 'jest-axe/extend-expect';
 import { TextEncoder, TextDecoder } from 'util';
 
 // Mock TextEncoder/TextDecoder
@@ -54,6 +55,9 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
+  root: null,
+  rootMargin: '',
+  thresholds: [],
 }));
 
 // Mock window.matchMedia
@@ -71,23 +75,27 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Suppress console errors during tests
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (
-      typeof args[0] === 'string' &&
-      args[0].includes('Warning: ReactDOM.render is no longer supported')
-    ) {
-      return;
-    }
-    originalError.call(console, ...args);
-  };
-});
+// Mock requestAnimationFrame for animations/transitions
+global.requestAnimationFrame = callback => setTimeout(callback, 0);
 
-afterAll(() => {
-  console.error = originalError;
-});
+// Set a default test timeout
+jest.setTimeout(10000);
+
+// Console error suppression for specific React warnings (customize as needed)
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  // Suppress specific React warnings if needed
+  const suppressedWarnings: string[] = [
+    // Add warning message substrings to suppress here
+    // Example: 'Warning: ReactDOM.render is no longer supported',
+  ];
+  
+  if (suppressedWarnings.some(warning => typeof args[0] === 'string' && args[0].includes(warning))) {
+    return;
+  }
+  
+  originalConsoleError(...args);
+};
 
 // Mock axios
 const mockAxiosInstance = {

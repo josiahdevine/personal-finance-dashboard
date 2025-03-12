@@ -3,6 +3,7 @@ import { Card, CardHeader, CardContent } from "../../ui/card";
 import { Switch } from "../../ui/switch";
 import { useSettings } from '../../../hooks/useSettings';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { EnhancedSelect } from '../../../components/ui/enhanced-select';
 
 export const PreferencesSettings: React.FC = () => {
   const { settings, updateSettings } = useSettings();
@@ -51,29 +52,31 @@ export const PreferencesSettings: React.FC = () => {
 
           <div>
             <h3 className="text-lg font-medium">Currency Display</h3>
-            <select
+            <EnhancedSelect
               value={settings.currency}
               onChange={(e) => updateSettings({ currency: e.target.value })}
               className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
-            </select>
+              options={[
+                { value: "USD", label: "USD ($)" },
+                { value: "EUR", label: "EUR (€)" },
+                { value: "GBP", label: "GBP (£)" },
+                { value: "JPY", label: "JPY (¥)" }
+              ]}
+            />
           </div>
 
           <div>
             <h3 className="text-lg font-medium">Date Format</h3>
-            <select
+            <EnhancedSelect
               value={settings.dateFormat}
               onChange={(e) => updateSettings({ dateFormat: e.target.value })}
               className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-            </select>
+              options={[
+                { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
+                { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
+                { value: "YYYY-MM-DD", label: "YYYY-MM-DD" }
+              ]}
+            />
           </div>
         </div>
       </CardContent>

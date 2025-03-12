@@ -72,7 +72,15 @@ export class TransactionRepository extends BaseRepository<Transaction> {
   }
 
   async update(id: string, data: Partial<Transaction>): Promise<Transaction> {
-    const validated = validateTransaction({ ...await this.findById(id), ...data });
-    return super.update(id, validated);
+    const existingTransaction = await this.findById(id);
+    if (!existingTransaction) {
+      throw new Error(`Transaction with id ${id} not found`);
+    }
+    const validated = validateTransaction({ ...existingTransaction, ...data });
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update transaction with id ${id}`);
+    }
+    return result;
   }
 } 

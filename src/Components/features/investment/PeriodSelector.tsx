@@ -1,5 +1,5 @@
 import React from 'react';
-import Button from "../../../components/common/button/Button";
+import { Button } from "../../../components/ui/button";
 
 export type TimePeriod = '1m' | '3m' | '6m' | '1y' | 'all';
 
@@ -20,6 +20,10 @@ const defaultLabels: Record<TimePeriod, string> = {
   'all': 'All'
 };
 
+/**
+ * PeriodSelector component for selecting time periods.
+ * Uses ShadCN UI Button component for a consistent look and feel.
+ */
 export const PeriodSelector: React.FC<PeriodSelectorProps> = ({
   activePeriod,
   periods = defaultPeriods,
@@ -32,7 +36,7 @@ export const PeriodSelector: React.FC<PeriodSelectorProps> = ({
       {periods.map((period) => (
         <Button
           key={period}
-          variant={activePeriod === period ? 'primary' : 'secondary'}
+          variant={activePeriod === period ? 'default' : 'secondary'}
           size="sm"
           onClick={() => onPeriodChange(period)}
           aria-pressed={activePeriod === period}

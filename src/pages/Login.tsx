@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Helmet } from 'react-helmet-async';
-import { Input } from "../components/ui/input";
-
-interface LocationState {
-  from?: {
-    pathname: string;
-  };
-}
+import { EnhancedInput } from "../components/ui/enhanced-input";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,8 +11,6 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const locationState = location.state as LocationState;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +19,9 @@ const Login: React.FC = () => {
       setError('');
       setLoading(true);
       await login(email, password);
-      navigate(locationState?.from?.pathname || '/dashboard');
+      navigate('/dashboard');
     } catch (err) {
-      setError('Failed to sign in');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -68,39 +59,43 @@ const Login: React.FC = () => {
               </div>
             )}
             <div className="space-y-4">
-              <div>
-                <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email address
-                </label>
-                <Input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                />
-              </div>
+              <EnhancedInput
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                label="Email address"
+              />
+              <EnhancedInput
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                label="Password"
+              />
             </div>
 
             <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  Remember me
+                </label>
+              </div>
+
               <div className="text-sm">
                 <Link
                   to="/forgot-password"

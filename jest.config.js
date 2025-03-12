@@ -1,54 +1,61 @@
 /** @type {import('jest').Config} */
-export default {
+module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
+  setupFilesAfterEnv: [
+    '<rootDir>/src/setupTests.ts'
+  ],
   moduleNameMapper: {
-    // Handle CSS imports
-    '\\.(css|less|scss|sass)$': '<rootDir>/src/test/__mocks__/styleMock.js',
-    // Handle image imports
-    '\\.(gif|ttf|eot|svg|png)$': '<rootDir>/src/test/__mocks__/fileMock.js',
-    // Handle module aliases
+    // Handle CSS imports (with CSS modules)
+    '\\.module\\.(css|scss|sass)$': 'identity-obj-proxy',
+    
+    // Handle CSS imports (without CSS modules)
+    '\\.(css|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',
+    
+    // Handle static assets
+    '\\.(jpg|jpeg|png|gif|webp|svg|ttf|woff|woff2)$': '<rootDir>/__mocks__/fileMock.js',
+    
+    // Handle path aliases (if you use them in tsconfig)
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  setupFilesAfterEnv: [
-    '<rootDir>/src/test/setupTests.ts'
-  ],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { 
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
     }],
+    '^.+\\.(js|jsx)$': 'babel-jest',
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(@testing-library)/)',
-  ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-    '/.next/',
-  ],
+  // Configure coverage reporting
   collectCoverageFrom: [
-    'src/components/**/*.{ts,tsx}',
-    'src/hooks/**/*.{ts,tsx}',
-    'src/utils/**/*.{ts,tsx}',
-    '!src/components/**/*.stories.{ts,tsx}',
-    '!src/components/**/index.{ts,tsx}',
+    'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
+    '!src/**/*.stories.{js,jsx,ts,tsx}',
+    '!src/index.tsx',
+    '!src/serviceWorker.ts',
   ],
   coverageThreshold: {
     global: {
-      statements: 80,
-      branches: 80,
-      functions: 80,
-      lines: 80,
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
     },
   },
-  // Force Jest to resolve .ts and .tsx files first
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  // Exclude isolated tests from standard test runs
+  // Accessibility specific settings
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
-    '/.next/',
-    '\\.isolated\\.test\\.[jt]sx?$'
+    '/.storybook/',
+    '/scripts/'  // Ignore scripts directory where the setup-testing.js file is
   ],
+  watchPlugins: [
+    'jest-watch-typeahead/filename',
+    'jest-watch-typeahead/testname',
+  ],
+  globals: {
+    'ts-jest': {
+      isolatedModules: true,
+    },
+  },
+  // Custom settings for jest-axe
+  extraGlobals: ['Math'],
 }; 

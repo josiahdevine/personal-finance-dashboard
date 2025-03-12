@@ -1,7 +1,5 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { useLocation } from 'react-router-dom';
 import { EnhancedSidebar } from '../navigation/EnhancedSidebar';
 
 // Define interface for Sidebar props
@@ -16,20 +14,23 @@ export type SidebarProps = {
   user?: any; // Using any temporarily to avoid type conflicts
 };
 
+/**
+ * @deprecated This component is deprecated. Please use EnhancedSidebar from "../navigation/EnhancedSidebar" instead.
+ * This component will be removed in a future version.
+ */
 export const Sidebar: React.FC<SidebarProps> = ({ 
   className = "", 
-  isOpen = false,
-  onClose = () => {/* No operation - optional callback */},
+  isOpen: _isOpen = false,
+  onClose: _onClose = () => {/* No operation - optional callback */},
   mobileOnly = false,
-  desktopOnly = false,
+  desktopOnly: _desktopOnly = false,
   collapsed = false,
   onToggle,
   user
 }) => {
+  console.warn('Sidebar from src/components/layout/Sidebar.tsx is deprecated. Please use EnhancedSidebar from "../navigation/EnhancedSidebar" instead.');
+  
   const { currentUser } = useAuth();
-  const { theme } = useTheme();
-  const location = useLocation();
-  const isDarkMode = theme === 'dark';
 
   // Use the EnhancedSidebar internally
   return (

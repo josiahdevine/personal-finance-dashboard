@@ -1,0 +1,2 @@
+// Export the consolidated ErrorBoundary component
+export { default } from './FixedErrorBoundary';

@@ -256,10 +256,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         onClick={onMobileMenuToggle}
         className={`
           p-2 rounded-md transition-colors duration-150 ease-in-out
-          ${theme === 'dark'
-            ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/50'
-            : 'text-gray-500 hover:text-gray-600 hover:bg-gray-100'
-          }
+          ${typeof theme === 'object' ? (theme.isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/50' : 'text-gray-500 hover:text-gray-600 hover:bg-gray-100') : (theme === 'dark' ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/50' : 'text-gray-500 hover:text-gray-600 hover:bg-gray-100')}
           focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500
         `}
         aria-expanded={showMobileMenu}

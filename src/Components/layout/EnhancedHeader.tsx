@@ -10,11 +10,12 @@ import {
 } from '@heroicons/react/24/outline';
 import {
   Search as SearchIcon,
-  User as UserIcon
+  User as UserIcon,
+  Menu as MenuIcon
 } from 'lucide-react';
 import type { ThemeMode } from '../../types/theme';
 import { Button } from '../ui/button';
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator } from '../ui/command';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -25,17 +26,21 @@ import {
 } from '../ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Separator } from '../ui/separator';
+import { cn } from '../../lib/utils';
+import { BaseComponentProps } from '../../types/components';
 
-export interface EnhancedHeaderProps {
-  theme: ThemeMode;
-  onThemeToggle: () => void;
-  className?: string;
+export interface EnhancedHeaderProps extends BaseComponentProps {
+  theme?: ThemeMode;
+  onThemeToggle?: () => void;
+  onMenuClick?: () => void;
+  isSidebarCollapsed?: boolean;
 }
 
 export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ 
-  theme, 
+  theme = 'light', 
   onThemeToggle,
-  className = '' 
+  className,
+  onMenuClick
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated, user, signInWithEmail, signInWithGoogle, signOut } = useAuth();
@@ -232,101 +237,94 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-border bg-background ${className}`}>
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/')}
-            className="text-2xl font-bold"
-          >
-            FinanceDash
-          </button>
-        </div>
-
-        {/* Command search bar - moved to center */}
-        <div className="hidden md:flex flex-1 justify-center items-center mx-4">
-          <Button 
-            variant="outline" 
-            className="relative w-full max-w-sm justify-start gap-2 pl-3"
-            onClick={() => setShowCommandMenu(true)}
-          >
-            <SearchIcon className="h-4 w-4" />
-            <span className="text-muted-foreground">Search...</span>
-            <kbd className="pointer-events-none absolute right-2 top-2 inline-flex h-5 select-none items-center gap-1 rounded border px-1.5 font-mono text-xs font-medium opacity-100">
-              <span>⌘</span>K
-            </kbd>
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Theme Toggle */}
+    <header className={cn(
+      "flex h-16 items-center justify-between px-4 w-full border-b border-border bg-background",
+      className
+    )}>
+      <div className="flex items-center gap-4">
+        {onMenuClick && (
           <Button
             variant="ghost"
             size="icon"
-            onClick={onThemeToggle}
-            aria-label="Toggle dark mode"
+            onClick={onMenuClick}
+            className="md:hidden"
           >
-            {isDark ? (
-              <SunIcon className="h-5 w-5" />
-            ) : (
-              <MoonIcon className="h-5 w-5" />
-            )}
+            <MenuIcon className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
           </Button>
+        )}
 
-          {/* Login or user dropdown depending on authentication status */}
-          <div className="ml-4">
-            {renderAuthSection()}
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="8" fill="hsl(var(--primary))" />
+              <path d="M22 12H10C9.44772 12 9 12.4477 9 13V19C9 19.5523 9.44772 20 10 20H22C22.5523 20 23 19.5523 23 19V13C23 12.4477 22.5523 12 22 12Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16C15 16.5523 15.4477 17 16 17Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M20 12V10C20 9.46957 19.7893 8.96086 19.4142 8.58579C19.0391 8.21071 18.5304 8 18 8H14C13.4696 8 12.9609 8.21071 12.5858 8.58579C12.2107 8.96086 12 9.46957 12 10V12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 20V22C12 22.5304 12.2107 23.0391 12.5858 23.4142C12.9609 23.7893 13.4696 24 14 24H18C18.5304 24 19.0391 23.7893 19.4142 23.4142C19.7893 23.0391 20 22.5304 20 22V20" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
+          <span className="hidden md:inline-block text-lg font-bold">FinanceDash</span>
         </div>
       </div>
 
-      {/* Command Menu */}
-      {showCommandMenu && (
-        <div 
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
-          onClick={() => setShowCommandMenu(false)}
-        >
-          <div 
-            className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Command className="rounded-lg border shadow-md">
-              <CommandInput 
-                placeholder="Search navigation..." 
-                value={searchQuery}
-                onValueChange={setSearchQuery}
-              />
+      <div className="flex flex-1 items-center justify-center px-4">
+        <Popover open={showCommandMenu} onOpenChange={setShowCommandMenu}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={showCommandMenu}
+              className="w-full max-w-sm justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <SearchIcon className="h-4 w-4" />
+                <span className="hidden sm:inline-block">Search...</span>
+              </div>
+              <kbd className="hidden sm:inline-block pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full max-w-sm p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Type a command or search..." value={searchQuery} onValueChange={setSearchQuery} />
               <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup heading="Navigation">
+                <CommandGroup>
                   {filteredItems.map((item) => (
                     <CommandItem
                       key={item.value}
-                      onSelect={() => handleCommandSelect(item.value)}
+                      value={item.value}
+                      onSelect={handleCommandSelect}
                     >
                       {item.label}
                     </CommandItem>
                   ))}
                 </CommandGroup>
-                
-                {isAuthenticated && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup heading="Quick Actions">
-                      <CommandItem onSelect={() => { handleLogout(); setShowCommandMenu(false); }}>
-                        Sign Out
-                      </CommandItem>
-                      <CommandItem onSelect={() => { navigate('/settings'); setShowCommandMenu(false); }}>
-                        Account Settings
-                      </CommandItem>
-                    </CommandGroup>
-                  </>
-                )}
               </CommandList>
             </Command>
-          </div>
-        </div>
-      )}
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onThemeToggle}
+          className="hidden md:flex"
+        >
+          {isDark ? (
+            <SunIcon className="h-5 w-5" />
+          ) : (
+            <MoonIcon className="h-5 w-5" />
+          )}
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+
+        {renderAuthSection()}
+      </div>
     </header>
   );
 };

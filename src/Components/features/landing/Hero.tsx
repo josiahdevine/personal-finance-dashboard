@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { Button } from "../../ui/button";
-import { AuthSheet } from '../../auth/AuthSheet';
 
 interface HeroProps {
   title?: string;
@@ -92,11 +91,15 @@ export const Hero: React.FC<HeroProps> = ({
           variants={itemVariants}
           className="mt-10 flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 items-center"
         >
-          <AuthSheet defaultTab="register">
-            <Button size="lg" className="px-8 h-12 text-lg">
+          <Button 
+            size="lg" 
+            className="px-8 h-12 text-lg"
+            asChild
+          >
+            <Link to="/register">
               Get Started
-            </Button>
-          </AuthSheet>
+            </Link>
+          </Button>
           
           <Button 
             variant="outline" 

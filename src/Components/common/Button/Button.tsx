@@ -1,6 +1,12 @@
 import React from 'react';
 import './Button.css';
 
+/**
+ * @deprecated This Button component is deprecated and will be removed in a future version.
+ * Please use the ShadCN Button component from 'src/components/ui/button.tsx' instead.
+ * For migration instructions, see docs/components/BUTTON_MIGRATION_GUIDE.md
+ */
+
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success' | 'text' | 'ghost';
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -18,6 +24,10 @@ export interface ButtonProps {
   className?: string;
 }
 
+/**
+ * @deprecated This Button component is deprecated. Please use ShadCN UI Button instead.
+ * For migration instructions, see docs/components/BUTTON_MIGRATION_GUIDE.md
+ */
 const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
@@ -31,6 +41,10 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
 }) => {
+  React.useEffect(() => {
+    console.warn('The Button component from src/components/common/button/Button.tsx is deprecated. Please use the ShadCN UI Button component instead. See docs/components/BUTTON_MIGRATION_GUIDE.md for migration instructions.');
+  }, []);
+
   const baseClasses = 'btn';
   const variantClasses = `btn-${variant}`;
   const sizeClasses = `btn-${size}`;

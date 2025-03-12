@@ -13,9 +13,17 @@ interface ApiRequestOptions {
   onError?: (error: Error) => void;
 }
 
-interface ApiResponse<T> {
-  data: T;
-  [key: string]: any;
+// Our API consistently returns responses with nested data structure
+interface ApiResponseWrapper<T> {
+  data: {
+    data: T;
+    message?: string;
+    success?: boolean;
+  };
+  status: number;
+  statusText: string;
+  headers: any;
+  config: any;
 }
 
 export function useApiRequest<T>(options: ApiRequestOptions = {}) {
@@ -30,14 +38,15 @@ export function useApiRequest<T>(options: ApiRequestOptions = {}) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const response = await api.get<ApiResponse<T>>(url, { params });
-      setState({ data: response.data.data, isLoading: false, error: null });
+      const response = await api.get<any>(url, { params }) as ApiResponseWrapper<T>;
+      const responseData = response.data.data;
+      setState({ data: responseData, isLoading: false, error: null });
       
       if (options.onSuccess) {
-        options.onSuccess(response.data.data);
+        options.onSuccess(responseData);
       }
       
-      return response.data.data;
+      return responseData;
     } catch (error: any) {
       logger.error('API', `GET request failed: ${url}`, error);
       setState({ data: null, isLoading: false, error });
@@ -55,14 +64,15 @@ export function useApiRequest<T>(options: ApiRequestOptions = {}) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const response = await api.post<ApiResponse<T>>(url, data);
-      setState({ data: response.data.data, isLoading: false, error: null });
+      const response = await api.post<any>(url, data) as ApiResponseWrapper<T>;
+      const responseData = response.data.data;
+      setState({ data: responseData, isLoading: false, error: null });
       
       if (options.onSuccess) {
-        options.onSuccess(response.data.data);
+        options.onSuccess(responseData);
       }
       
-      return response.data.data;
+      return responseData;
     } catch (error: any) {
       logger.error('API', `POST request failed: ${url}`, error);
       setState({ data: null, isLoading: false, error });
@@ -80,14 +90,15 @@ export function useApiRequest<T>(options: ApiRequestOptions = {}) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const response = await api.put<ApiResponse<T>>(url, data);
-      setState({ data: response.data.data, isLoading: false, error: null });
+      const response = await api.put<any>(url, data) as ApiResponseWrapper<T>;
+      const responseData = response.data.data;
+      setState({ data: responseData, isLoading: false, error: null });
       
       if (options.onSuccess) {
-        options.onSuccess(response.data.data);
+        options.onSuccess(responseData);
       }
       
-      return response.data.data;
+      return responseData;
     } catch (error: any) {
       logger.error('API', `PUT request failed: ${url}`, error);
       setState({ data: null, isLoading: false, error });
@@ -100,44 +111,20 @@ export function useApiRequest<T>(options: ApiRequestOptions = {}) {
     }
   }, [options]);
   
-  // Make a PATCH request
-  const patch = useCallback(async (url: string, data?: any) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      const response = await api.patch<ApiResponse<T>>(url, data);
-      setState({ data: response.data.data, isLoading: false, error: null });
-      
-      if (options.onSuccess) {
-        options.onSuccess(response.data.data);
-      }
-      
-      return response.data.data;
-    } catch (error: any) {
-      logger.error('API', `PATCH request failed: ${url}`, error);
-      setState({ data: null, isLoading: false, error });
-      
-      if (options.onError) {
-        options.onError(error);
-      }
-      
-      throw error;
-    }
-  }, [options]);
-  
   // Make a DELETE request
-  const del = useCallback(async (url: string, params?: any) => {
+  const remove = useCallback(async (url: string, params?: any) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const response = await api.delete<ApiResponse<T>>(url, { params });
-      setState({ data: response.data.data, isLoading: false, error: null });
+      const response = await api.delete<any>(url, { params }) as ApiResponseWrapper<T>;
+      const responseData = response.data.data;
+      setState({ data: responseData, isLoading: false, error: null });
       
       if (options.onSuccess) {
-        options.onSuccess(response.data.data);
+        options.onSuccess(responseData);
       }
       
-      return response.data.data;
+      return responseData;
     } catch (error: any) {
       logger.error('API', `DELETE request failed: ${url}`, error);
       setState({ data: null, isLoading: false, error });
@@ -155,7 +142,6 @@ export function useApiRequest<T>(options: ApiRequestOptions = {}) {
     get,
     post,
     put,
-    patch,
-    delete: del
+    delete: remove
   };
 }

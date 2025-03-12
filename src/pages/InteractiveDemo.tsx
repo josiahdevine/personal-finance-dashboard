@@ -3,7 +3,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { DemoVideo } from '../components/features/landing/DemoVideo';
 import { UnifiedDemo } from '../components/features/landing/UnifiedDemo';
 import { Testimonials } from '../components/features/landing/Testimonials';
-import { IntegrationLogos } from '../components/features/landing/IntegrationLogos';
+import { IntegrationLogos } from '../components/Landing/IntegrationLogos';
 import { Separator } from '../components/ui/separator';
 import { EnhancedFooter } from '../components/layout/EnhancedFooter';
 
@@ -44,7 +44,7 @@ export const InteractiveDemo: React.FC = () => {
         <section className="mb-20">
           <h2 className="text-3xl font-bold mb-6 text-center">Seamless Integrations</h2>
           <div className="max-w-5xl mx-auto">
-            <IntegrationLogos theme={theme} />
+            <IntegrationLogos />
           </div>
         </section>
         
@@ -54,7 +54,7 @@ export const InteractiveDemo: React.FC = () => {
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-6 text-center">What Our Users Say</h2>
           <div className="max-w-6xl mx-auto">
-            <Testimonials theme={theme} />
+            <Testimonials />
           </div>
         </section>
       </div>

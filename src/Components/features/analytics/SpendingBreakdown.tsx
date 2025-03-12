@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Doughnut } from 'react-chartjs-2';
-import Card from "../../common/Card";
+import { Card, CardHeader, CardContent, CardFooter } from "../../ui/card";
 // import { usePlaid } from '../../../contexts/PlaidContext';
 import { formatCurrency } from '../../../utils/formatters';
 import type { ChartOptions } from 'chart.js';
@@ -80,15 +80,15 @@ export const SpendingBreakdown: React.FC = () => {
 
   return (
     <Card>
-      <Card.Header>
+      <CardHeader>
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-medium">Spending Breakdown</h2>
           <span className="text-sm text-gray-600">
             Total: {formatCurrency(totalSpent)}
           </span>
         </div>
-      </Card.Header>
-      <Card.Body>
+      </CardHeader>
+      <CardContent>
         {!transactions ? (
           <div className="animate-pulse h-64 bg-gray-200 rounded" />
         ) : (
@@ -96,9 +96,9 @@ export const SpendingBreakdown: React.FC = () => {
             <Doughnut data={chartData} options={options} />
           </div>
         )}
-      </Card.Body>
-      <Card.Footer>
-        <div className="grid grid-cols-2 gap-4">
+      </CardContent>
+      <CardFooter className="flex-col">
+        <div className="grid grid-cols-2 gap-4 w-full">
           {sortedCategories.map(([category, amount]) => (
             <div key={category} className="flex justify-between">
               <span className="text-sm text-gray-600">{category}</span>
@@ -108,7 +108,7 @@ export const SpendingBreakdown: React.FC = () => {
             </div>
           ))}
         </div>
-      </Card.Footer>
+      </CardFooter>
     </Card>
   );
 }; 

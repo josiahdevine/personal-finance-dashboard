@@ -1,61 +1,40 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 import useDeviceDetect from '../../utils/useDeviceDetect';
-import { Navigation } from '../../components/navigation/Navigation';
-import {
-  HomeIcon,
-  CreditCardIcon,
-  CurrencyDollarIcon,
-  ReceiptRefundIcon,
-  FlagIcon,
-  ChartBarIcon,
-  ClockIcon,
-  ArrowTrendingUpIcon,
-  LinkIcon,
-  ChatBubbleLeftRightIcon,
-} from '@heroicons/react/24/outline';
+import { EnhancedHeader } from './EnhancedHeader';
 
-const navigationItems = [
-  { id: 'overview', title: 'Overview', path: '/dashboard', icon: <HomeIcon /> },
-  { id: 'bills', title: 'Bills', path: '/dashboard/bills', icon: <CreditCardIcon /> },
-  { id: 'salary', title: 'Salary Journal', path: '/dashboard/salary', icon: <CurrencyDollarIcon /> },
-  { id: 'transactions', title: 'Transactions', path: '/dashboard/transactions', icon: <ReceiptRefundIcon /> },
-  { id: 'goals', title: 'Goals', path: '/dashboard/goals', icon: <FlagIcon /> },
-  { id: 'analytics', title: 'Analytics', path: '/dashboard/analytics', icon: <ChartBarIcon /> },
-  { id: 'subscriptions', title: 'Subscriptions', path: '/dashboard/subscriptions', icon: <ClockIcon /> },
-  { id: 'investments', title: 'Investments', path: '/dashboard/investments', icon: <ArrowTrendingUpIcon /> },
-  { id: 'plaid', title: 'Plaid Integration', path: '/dashboard/plaid', icon: <LinkIcon /> },
-  { id: 'ask-ai', title: 'Ask AI', path: '/dashboard/ask-ai', icon: <ChatBubbleLeftRightIcon /> }
-];
-
+/**
+ * @deprecated This Layout component is deprecated and will be removed in a future version.
+ * Please use the DashboardLayout component from 'src/components/layout/DashboardLayout.tsx' instead.
+ */
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 /**
- * Main layout component that wraps the application content
- * Provides responsive layout adjustments based on device type
+ * @deprecated This Layout component is deprecated. Please use DashboardLayout instead.
  */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { isMobile, isTablet, isLandscape } = useDeviceDetect();
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const { isMobile, isLandscape } = useDeviceDetect();
+  const { theme, toggleTheme } = useTheme();
 
-  // Determine appropriate padding based on device type
-  const containerPadding = isMobile
-    ? 'px-4'
-    : isTablet
-      ? 'px-6'
-      : 'px-8';
+  React.useEffect(() => {
+    console.warn('The Layout component from src/components/layout/index.tsx is deprecated. Please use DashboardLayout instead.');
+  }, []);
 
-  // Use smaller padding for mobile in landscape orientation
+  // Adjust padding based on device
+  const containerPadding = isMobile 
+    ? isLandscape ? 'px-4' : 'px-2' 
+    : 'px-6';
+  
   const verticalPadding = (isMobile && isLandscape) ? 'py-3' : 'py-6';
 
   return (
     <div className={`min-h-screen bg-gray-100 dark:bg-gray-900 ${containerPadding}`}>
-      <Navigation 
-        items={navigationItems}
-        showMobileMenu={showMobileMenu}
-        onMobileMenuToggle={() => setShowMobileMenu(!showMobileMenu)}
-        onNavItemClick={() => setShowMobileMenu(false)}
+      <EnhancedHeader 
+        theme={theme}
+        onThemeToggle={toggleTheme}
+        className="w-full"
       />
       <main className={`container mx-auto ${verticalPadding}`}>
         {children}

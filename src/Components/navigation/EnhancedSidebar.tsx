@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
-import { Separator } from "../ui/separator";
 import { ScrollArea } from "../ui/scroll-area";
-import { Avatar, AvatarImage, AvatarFallback } from "../ui/shadcn-avatar";
+import { Avatar, AvatarFallback } from "../ui/shadcn-avatar";
 import {
   ChevronLeft,
   LayoutDashboard,
@@ -16,59 +15,85 @@ import {
   Bell,
   Settings,
   PieChart,
-  Menu
+  Menu,
+  ChevronRight,
+  Building
 } from "lucide-react";
-import { User } from '../../types/user';
+import type { User } from '../../types/models';
 import { BaseComponentProps } from '../../types/components';
+import { cva } from 'class-variance-authority';
 
-// Navigation item type definition
 interface NavigationItem {
   title: string;
   path: string;
   icon: React.ReactNode;
-  badge?: number | string;
-  onClick?: () => void;
+  badge?: number;
 }
 
-// Define the navigation sections
 interface NavigationSection {
   title: string;
   items: NavigationItem[];
 }
 
 export interface EnhancedSidebarProps extends BaseComponentProps {
+  user?: User;
   collapsed?: boolean;
   onToggle?: () => void;
-  user?: User | null;
   mobile?: boolean;
 }
 
-export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
+const sidebarVariants = cva(
+  "fixed h-[calc(100vh-4rem)] top-16 left-0 z-40 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300",
+  {
+    variants: {
+      collapsed: {
+        true: `w-[70px]`,
+        false: `w-[240px]`,
+      },
+      mobile: {
+        true: "hidden",
+        false: "block",
+      },
+    },
+    defaultVariants: {
+      collapsed: false,
+      mobile: false,
+    },
+  }
+);
+
+const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
+  user,
+  className,
   collapsed = false,
   onToggle,
-  className = '',
-  user,
-  mobile = false
+  mobile = false,
 }) => {
-  const location = useLocation();
-  const [isMobileView, setIsMobileView] = useState(mobile);
+  const [isCollapsed, setIsCollapsed] = useState(collapsed);
+  const [isMobile] = useState(mobile);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Function to get user initials for the avatar
-  const getUserInitials = () => {
-    if (!user?.displayName) return '?';
-    
-    const names = user.displayName.split(' ');
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
-  };
-  
-  // Check if a link is active
-  const _isActive = (path: string) => {
-    if (path === '/dashboard' && location.pathname === '/dashboard') {
-      return true;
-    }
-    return location.pathname.startsWith(path) && path !== '/dashboard';
+  useEffect(() => {
+    setIsCollapsed(collapsed);
+  }, [collapsed]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      if (mobile && !isCollapsed) {
+        setIsCollapsed(true);
+        onToggle?.();
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isCollapsed, onToggle]);
+
+  const handleToggle = () => {
+    setIsCollapsed(!isCollapsed);
+    onToggle?.();
   };
 
   // Default navigation items
@@ -82,40 +107,46 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
           icon: <LayoutDashboard className="h-5 w-5" />,
         },
         {
-          title: 'Transactions',
-          path: '/dashboard/transactions',
+          title: 'Bills & Expenses',
+          path: '/dashboard/bills',
           icon: <CreditCard className="h-5 w-5" />,
         },
         {
-          title: 'Accounts',
-          path: '/dashboard/accounts',
+          title: 'Transactions',
+          path: '/dashboard/transactions',
           icon: <Wallet className="h-5 w-5" />,
+        },
+        {
+          title: 'Bank Accounts',
+          path: '/dashboard/accounts',
+          icon: <Building className="h-5 w-5" />,
         },
       ],
     },
     {
-      title: 'Analysis',
+      title: 'Analytics',
       items: [
-        {
-          title: 'Budget',
-          path: '/dashboard/budget',
-          icon: <Clock className="h-5 w-5" />,
-        },
-        {
-          title: 'Reports',
-          path: '/dashboard/reports',
-          icon: <BarChart3 className="h-5 w-5" />,
-        },
         {
           title: 'Analytics',
           path: '/dashboard/analytics',
-          icon: <PieChart className="h-5 w-5" />,
+          icon: <BarChart3 className="h-5 w-5" />,
+        },
+        {
+          title: 'Salary Journal',
+          path: '/dashboard/salary-journal',
+          icon: <Clock className="h-5 w-5" />,
         },
       ],
     },
     {
-      title: 'Settings',
+      title: 'Other',
       items: [
+        {
+          title: 'Ask AI',
+          path: '/dashboard/ask-ai',
+          icon: <PieChart className="h-5 w-5" />,
+          badge: 1,
+        },
         {
           title: 'Notifications',
           path: '/dashboard/notifications',
@@ -131,182 +162,76 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
     },
   ];
 
-  useEffect(() => {
-    const handleResize = () => {
-      const mobileView = window.innerWidth < 768;
-      setIsMobileView(mobileView);
-    };
-    
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // For mobile view, use Sheet component
-  if (isMobileView) {
-    return (
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            className={cn("h-10 w-10", className)}
-          >
-            <Menu className="h-4 w-4" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="p-0">
-          <div className="flex flex-col h-full">
-            <div className="h-16 flex items-center px-4 border-b">
-              <div className="flex items-center justify-start">
-                <div className="w-8 h-8 mr-2">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="32" height="32" rx="8" fill="hsl(var(--primary))" />
-                    <path d="M22 12H10C9.44772 12 9 12.4477 9 13V19C9 19.5523 9.44772 20 10 20H22C22.5523 20 23 19.5523 23 19V13C23 12.4477 22.5523 12 22 12Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16C15 16.5523 15.4477 17 16 17Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M20 12V10C20 9.46957 19.7893 8.96086 19.4142 8.58579C19.0391 8.21071 18.5304 8 18 8H14C13.4696 8 12.9609 8.21071 12.5858 8.58579C12.2107 8.96086 12 9.46957 12 10V12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 20V22C12 22.5304 12.2107 23.0391 12.5858 23.4142C12.9609 23.7893 13.4696 24 14 24H18C18.5304 24 19.0391 23.7893 19.4142 23.4142C19.7893 23.0391 20 22.5304 20 22V20" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+  const renderSidebarContent = () => (
+    <div className={cn("h-full flex flex-col", className)}>
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-3">
+          {user && (
+            <div className={cn("flex items-center", isCollapsed ? "justify-center" : "space-x-3")}>
+              <Avatar>
+                {user.name && (
+                  <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                )}
+              </Avatar>
+              {!isCollapsed && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">{user.name}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
-                <span className="font-bold text-lg">FinanceDash</span>
-              </div>
+              )}
             </div>
-            <ScrollArea className="flex-1 px-2">
-              <div className="py-4">
-                {navigationSections.map((section, index) => (
-                  <div key={index} className="mb-6">
-                    <div className="text-xs uppercase font-medium text-muted-foreground px-4 mb-2">
-                      {section.title}
-                    </div>
-                    <div className="space-y-1">
-                      {section.items.map((item, itemIndex) => (
-                        <NavLink
-                          key={itemIndex}
-                          to={item.path}
-                          onClick={() => {
-                            setIsOpen(false);
-                            item.onClick?.();
-                          }}
-                          className={({ isActive }) => 
-                            cn(
-                              "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
-                              (isActive || _isActive(item.path)) ? 
-                                "bg-primary text-primary-foreground" : 
-                                "hover:bg-accent hover:text-accent-foreground"
-                            )
-                          }
-                        >
-                          <div className="mr-2">
-                            {item.icon}
-                          </div>
-                          <span>{item.title}</span>
-                          {item.badge && (
-                            <div className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-white">
-                              {item.badge}
-                            </div>
-                          )}
-                        </NavLink>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            {user && (
-              <div className="border-t p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-9 w-9">
-                    {user.photoURL ? (
-                      <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} /> 
-                    ) : (
-                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium">{user.displayName || 'User'}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  // For desktop view, use standard sidebar
-  return (
-    <div
-      className={cn(
-        "flex h-full flex-col border-r bg-background transition-all duration-300",
-        collapsed ? "w-[70px]" : "w-[240px]",
-        className
-      )}
-    >
-      <div className="h-16 flex items-center px-4 border-b">
-        <div className="flex items-center justify-start">
-          <div className="w-8 h-8 mr-2">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="hsl(var(--primary))" />
-              <path d="M22 12H10C9.44772 12 9 12.4477 9 13V19C9 19.5523 9.44772 20 10 20H22C22.5523 20 23 19.5523 23 19V13C23 12.4477 22.5523 12 22 12Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16C15 16.5523 15.4477 17 16 17Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M20 12V10C20 9.46957 19.7893 8.96086 19.4142 8.58579C19.0391 8.21071 18.5304 8 18 8H14C13.4696 8 12.9609 8.21071 12.5858 8.58579C12.2107 8.96086 12 9.46957 12 10V12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 20V22C12 22.5304 12.2107 23.0391 12.5858 23.4142C12.9609 23.7893 13.4696 24 14 24H18C18.5304 24 19.0391 23.7893 19.4142 23.4142C19.7893 23.0391 20 22.5304 20 22V20" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          {!collapsed && <span className="font-bold text-lg">FinanceDash</span>}
+          )}
+          {!isCollapsed && <span className="font-bold text-lg">FinanceDash</span>}
         </div>
         <Button
           variant="ghost"
           size="icon"
-          onClick={onToggle}
-          className="ml-auto"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={handleToggle}
+          className="hidden md:flex"
         >
-          <ChevronLeft 
-            className={cn(
-              "h-4 w-4 transition-transform duration-300", 
-              collapsed && "rotate-180"
-            )} 
-          />
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
         </Button>
       </div>
-      <ScrollArea className="flex-1 px-2">
+
+      <ScrollArea className="flex-1">
         <div className="py-4">
           {navigationSections.map((section, index) => (
-            <div key={index} className="mb-6">
-              {!collapsed && (
-                <div className="text-xs uppercase font-medium text-muted-foreground px-4 mb-2">
+            <div key={section.title} className={cn("pb-4", index !== navigationSections.length - 1 && "mb-4")}>
+              {!isCollapsed && (
+                <h4 className="px-4 mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
                   {section.title}
-                </div>
+                </h4>
               )}
               <div className="space-y-1">
-                {section.items.map((item, itemIndex) => (
+                {section.items.map((item) => (
                   <NavLink
-                    key={itemIndex}
+                    key={item.path}
                     to={item.path}
-                    onClick={item.onClick}
-                    title={collapsed ? item.title : undefined}
-                    className={({ isActive }) => 
+                    className={({ isActive }) =>
                       cn(
-                        "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
-                        collapsed ? "justify-center" : "",
-                        (isActive || _isActive(item.path)) ? 
-                          "bg-primary text-primary-foreground" : 
-                          "hover:bg-accent hover:text-accent-foreground"
+                        "flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors",
+                        "hover:bg-gray-100 dark:hover:bg-gray-800",
+                        isActive
+                          ? "text-primary bg-primary/10"
+                          : "text-gray-600 dark:text-gray-300",
+                        isCollapsed && "justify-center"
                       )
                     }
                   >
-                    <div className={collapsed ? "" : "mr-2"}>
-                      {item.icon}
-                    </div>
-                    {!collapsed && <span>{item.title}</span>}
-                    {!collapsed && item.badge && (
-                      <div className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-white">
-                        {item.badge}
-                      </div>
+                    {item.icon}
+                    {!isCollapsed && (
+                      <>
+                        <span>{item.title}</span>
+                        {item.badge && (
+                          <span className="ml-auto bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                            {item.badge}
+                          </span>
+                        )}
+                      </>
                     )}
                   </NavLink>
                 ))}
@@ -315,29 +240,32 @@ export const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
           ))}
         </div>
       </ScrollArea>
-      {user && (
-        <>
-          <Separator />
-          <div className="p-4">
-            <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-              <Avatar className="h-9 w-9">
-                {user.photoURL ? (
-                  <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} /> 
-                ) : (
-                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                )}
-              </Avatar>
-              {!collapsed && (
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">{user.displayName || 'User'}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
     </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden fixed left-4 top-3 z-40"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0 w-[240px]">
+          {renderSidebarContent()}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <aside className={cn(sidebarVariants({ collapsed: isCollapsed, mobile: isMobile }))}>
+      {renderSidebarContent()}
+    </aside>
   );
 };
 

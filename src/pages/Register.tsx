@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Helmet } from 'react-helmet-async';
-import { Input } from "../components/ui/input";
+import { EnhancedInput } from "../components/ui/enhanced-input";
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -56,59 +56,47 @@ const Register: React.FC = () => {
           )}
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name
-                </label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Email address
-                </label>
-                <Input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              <EnhancedInput
+                id="name"
+                name="name"
+                type="text"
+                required
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                label="Full Name"
+              />
+              <EnhancedInput
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                label="Email address"
+              />
+              <EnhancedInput
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                label="Password"
+              />
             </div>
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {loading ? 'Creating account...' : 'Sign up'}
+                {loading ? 'Creating account...' : 'Create Account'}
               </button>
             </div>
           </form>

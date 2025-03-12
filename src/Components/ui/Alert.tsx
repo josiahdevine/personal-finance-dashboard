@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 
 interface AlertProps {
   variant?: 'info' | 'success' | 'warning' | 'error';
+  // For backward compatibility with code that uses 'type' instead of 'variant'
+  type?: 'info' | 'success' | 'warning' | 'error';
   title?: string;
-  children: React.ReactNode;
+  // Allow passing content as 'message' prop OR as children
+  message?: string;
+  children?: React.ReactNode;
   dismissible?: boolean;
   icon?: React.ReactNode;
   onDismiss?: () => void;
+  onClose?: () => void; // Alias for onDismiss for backward compatibility
   className?: string;
 }
 
@@ -43,19 +48,26 @@ const variantStyles = {
 
 export const Alert: React.FC<AlertProps> = ({
   variant = 'info',
+  type,
   title,
+  message,
   children,
   dismissible = false,
   icon,
   onDismiss,
+  onClose,
   className = ''
 }) => {
   const [isVisible, setIsVisible] = useState(true);
-  const styles = variantStyles[variant];
+  // Use type prop if variant is not provided (for backward compatibility)
+  const actualVariant = type || variant;
+  const styles = variantStyles[actualVariant];
 
   const handleDismiss = () => {
     setIsVisible(false);
+    // Support both callback names
     onDismiss?.();
+    onClose?.();
   };
 
   if (!isVisible) {
@@ -82,7 +94,7 @@ export const Alert: React.FC<AlertProps> = ({
             </h3>
           )}
           <div className={`${title ? 'mt-2' : ''} text-sm ${styles.content}`}>
-            {children}
+            {message || children}
           </div>
         </div>
         {dismissible && (

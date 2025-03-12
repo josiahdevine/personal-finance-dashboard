@@ -1,35 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { usePlaidLink, PlaidLinkOnSuccess, PlaidLinkOnSuccessMetadata, PlaidLinkOnEvent, PlaidLinkOnEventMetadata, PlaidLinkError, PlaidLinkOnExit, PlaidLinkOptions } from 'react-plaid-link';
+import { usePlaidLink, PlaidLinkOnSuccessMetadata, PlaidLinkError, PlaidLinkOnEventMetadata, PlaidLinkOptions } from 'react-plaid-link';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import PlaidService from '../../../services/plaidService';
 import Button from '../../common/button/Button';
-
-// Add mocks for missing components
-// These will be replaced when we implement the actual components
-const Spinner = ({ size, className }: { size?: string, className?: string }) => (
-  <div className={`spinner ${size || ''} ${className || ''}`}>Loading...</div>
-);
-
-const Alert = ({ 
-  type, 
-  message, 
-  className,
-  onClose
-}: { 
-  type: string, 
-  message: string, 
-  className?: string,
-  onClose?: () => void 
-}) => (
-  <div className={`alert alert-${type} ${className || ''}`}>
-    {message}
-    {onClose && (
-      <button onClick={onClose} className="alert-close-btn">×</button>
-    )}
-  </div>
-);
+import { Alert } from '../../ui/Alert';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
 
 export interface PlaidLinkProps {
   onSuccess?: (metadata: PlaidLinkOnSuccessMetadata) => void;
@@ -40,11 +17,6 @@ export interface PlaidLinkProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   isFullWidth?: boolean;
   customButton?: React.ReactNode;
-}
-
-// Define the response type for createLinkToken
-interface LinkTokenResponse {
-  link_token: string;
 }
 
 export const PlaidLink: React.FC<PlaidLinkProps> = ({
@@ -95,6 +67,12 @@ export const PlaidLink: React.FC<PlaidLinkProps> = ({
     if (!user) return;
     try {
       const result = await createLinkToken([user.id]);
+      
+      // Type assertion for the result
+      interface LinkTokenResponse {
+        link_token: string;
+      }
+      
       if (result && typeof result === 'object' && 'link_token' in result) {
         const typedResult = result as LinkTokenResponse;
         setToken(typedResult.link_token || '');
@@ -112,9 +90,10 @@ export const PlaidLink: React.FC<PlaidLinkProps> = ({
   if (!user) {
     return (
       <Alert 
-        type="warning" 
+        variant="warning" 
         message="Please log in to connect your bank account."
         className={className}
+        dismissible={false}
       />
     );
   }
@@ -131,10 +110,11 @@ export const PlaidLink: React.FC<PlaidLinkProps> = ({
     <div className={className}>
       {error && (
         <Alert 
-          type="error" 
-          message={error} 
+          variant="error" 
+          message={error}
           className="mb-4"
-          onClose={() => setError(null)}
+          dismissible={true}
+          onDismiss={() => setError(null)}
         />
       )}
       
@@ -144,12 +124,12 @@ export const PlaidLink: React.FC<PlaidLinkProps> = ({
         variant={variant}
         size={size}
         isFullWidth={isFullWidth}
-        className={typeof theme === 'string' && theme === 'dark' ? 'plaid-button-dark' : 'plaid-button-light'}
+        className={typeof theme === 'object' ? (theme.isDark ? 'plaid-button-dark' : 'plaid-button-light') : ''}
       >
         {isLoading ? (
           <span className="flex items-center justify-center">
-            <Spinner size="small" className="mr-2" />
-            Connecting...
+            <LoadingSpinner size="sm" />
+            <span className="ml-2">Connecting...</span>
           </span>
         ) : (
           buttonText
@@ -157,4 +137,4 @@ export const PlaidLink: React.FC<PlaidLinkProps> = ({
       </Button>
     </div>
   );
-}; 
+};

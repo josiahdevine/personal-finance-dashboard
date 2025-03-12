@@ -3,11 +3,13 @@ import React from 'react';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   color?: string;
+  className?: string;
 }
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
   size = 'md',
-  color = 'indigo'
+  color = 'indigo',
+  className = ''
 }) => {
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -22,7 +24,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   return (
-    <div className="flex justify-center items-center">
+    <div className={`flex justify-center items-center ${className}`}>
       <div
         className={`
           animate-spin rounded-full border-2 border-t-transparent
@@ -34,4 +36,6 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   );
 };
 
+// Export both as named export and default export to support both import styles
+export { LoadingSpinner };
 export default LoadingSpinner; 

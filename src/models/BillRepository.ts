@@ -19,7 +19,11 @@ export class BillRepository extends BaseRepository<Bill> {
       throw new Error(`Bill with id ${id} not found`);
     }
     const validated = validateBill({ ...existingBill, ...data });
-    return super.update(id, validated);
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update bill with id ${id}`);
+    }
+    return result;
   }
 
   async getUpcomingBills(userId: string, days = 30): Promise<Bill[]> {
@@ -80,7 +84,11 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
       throw new Error(`Subscription with id ${id} not found`);
     }
     const validated = validateSubscription({ ...existingSubscription, ...data });
-    return super.update(id, validated);
+    const result = await super.update(id, validated);
+    if (!result) {
+      throw new Error(`Failed to update subscription with id ${id}`);
+    }
+    return result;
   }
 
   async getUpcomingRenewals(userId: string, days = 30): Promise<Subscription[]> {

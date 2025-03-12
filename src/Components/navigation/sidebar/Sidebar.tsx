@@ -15,8 +15,8 @@ interface SidebarProps {
 }
 
 /**
- * @deprecated Use EnhancedSidebar component instead
- * This component is maintained for backward compatibility
+ * @deprecated This component is deprecated. Please use EnhancedSidebar from "../EnhancedSidebar" instead.
+ * This component will be removed in a future version.
  */
 const Sidebar: React.FC<SidebarProps> = ({
   collapsed = false,
@@ -24,15 +24,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   className = '',
   user,
 }) => {
-  // Adapter for user object to match the EnhancedSidebar user type
+  console.warn('Sidebar from src/components/navigation/sidebar/Sidebar.tsx is deprecated. Please use EnhancedSidebar from "../EnhancedSidebar" instead.');
+  
+  // Convert user prop to the shape expected by EnhancedSidebar
   const adaptedUser = user ? {
-    uid: user.email || 'unknown',
-    email: user.email || null,
-    displayName: user.name || null,
-    photoURL: user.avatar || null,
-    emailVerified: false,
-    phoneNumber: null,
-    role: user.role
+    id: user.email || 'unknown',
+    email: user.email || '',
+    name: user.name || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    settings: {
+      theme: 'light' as 'light' | 'dark' | 'system',
+      notifications: false,
+      currency: 'USD'
+    }
   } : null;
 
   return (

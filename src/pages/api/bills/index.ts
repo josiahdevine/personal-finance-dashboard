@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { z } from 'zod';
-import PlaidService from '../../../services/plaidService';
+import PlaidService, { PlaidTransaction } from '../../../services/plaidService';
 import { BillsRepository } from '../../../models/BillsRepository';
 
 const billSchema = z.object({
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       case 'GET':
         // Get both Plaid and manual bills
         const [accounts, manualBills] = await Promise.all([
-          PlaidService.getAccounts(userId),
+          PlaidService.getAccounts(),
           billsRepo.getUserBills(userId),
         ]);
 
@@ -41,25 +41,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         startDate.setDate(startDate.getDate() - 30); // Last 30 days
         const endDate = new Date();
 
-        const transactions = await Promise.all(
-          accounts.map(() => PlaidService.getTransactions(
-            userId,
-            startDate.toISOString().split('T')[0],
-            endDate.toISOString().split('T')[0]
-          ))
-        );
+        // Prepare the parameters for the transaction request
+        const transactionParams = {
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: endDate.toISOString().split('T')[0],
+          account_ids: accounts.map(account => account.plaid_account_id)
+        };
+
+        // Get all transactions in one call
+        const transactionResponse = await PlaidService.getTransactions(transactionParams);
 
         // Transform transactions into bills
-        const transformedPlaidBills = transactions.flat().map(transaction => ({
-          id: transaction.id,
-          name: transaction.description,
+        const transformedPlaidBills = transactionResponse.transactions.map((transaction: PlaidTransaction) => ({
+          id: transaction.plaid_transaction_id,
+          name: transaction.name,
           amount: transaction.amount,
           dueDate: transaction.date,
-          category: transaction.category[0] || 'Uncategorized',
+          category: transaction.category || 'Uncategorized',
           isRecurring: true,
           frequency: 'monthly',
-          plaidAccountId: transaction.accountId,
-          plaidBillId: transaction.id,
+          plaidAccountId: transaction.account_id,
+          plaidBillId: transaction.plaid_transaction_id,
           isManual: false,
           status: transaction.pending ? 'pending' : 'posted',
           lastPaymentDate: transaction.date,

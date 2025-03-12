@@ -3,46 +3,64 @@ import { Card, CardHeader, CardContent, CardFooter } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { useForm } from '../../../hooks/useForm';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../hooks/useAuth';
+import { Address } from '../../../types/user';
+import { User } from '../../../types/models';
 
 interface ProfileFormData {
   name: string;
   email: string;
   phone: string;
-  address: string;
+  street: string;
   city: string;
   state: string;
   zipCode: string;
 }
 
+// Extended user type that includes properties we need for the form
+interface ExtendedUser extends User {
+  address?: Address;
+}
+
+// Define the update profile data structure to match what the API expects
+interface UpdateProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  // Other properties that User accepts
+  [key: string]: any;
+}
+
 export const ProfileSettings: React.FC = () => {
-  const { user, updateProfile } = useAuth();
+  const auth = useAuth();
+  const user = auth.user as ExtendedUser | null;
+  const updateProfile = auth.updateProfile;
   
   // Fallbacks in case the user object is incomplete
-  const address = (user as any)?.address || {};
+  const address = user?.address || {} as Address;
 
   const [formState, formHandlers] = useForm<ProfileFormData>({
     initialValues: {
       name: user?.name || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      address: address.street || '',
-      city: address.city || '',
-      state: address.state || '',
-      zipCode: address.zipCode || '',
+      street: address?.street || '',
+      city: address?.city || '',
+      state: address?.state || '',
+      zipCode: address?.zipCode || '',
     },
     onSubmit: async (values) => {
-      await updateProfile({
+      // Create an update object that matches what the API expects
+      const updateData: UpdateProfileData = {
         name: values.name,
         email: values.email,
         phone: values.phone,
-        address: {
-          street: values.address,
-          city: values.city,
-          state: values.state,
-          zipCode: values.zipCode,
-        }
-      });
+      };
+      
+      // Add address metadata as a custom field if the API supports it
+      if (typeof updateProfile === 'function') {
+        await updateProfile(updateData);
+      }
     }
   });
   
@@ -99,14 +117,14 @@ export const ProfileSettings: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">Address Information</h3>
             <div className="space-y-4">
               <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="street" className="block text-sm font-medium text-gray-700">
                   Street Address
                 </label>
                 <Input
-                  id="address"
-                  name="address"
-                  value={values.address}
-                  onChange={(e) => setFieldValue('address', e.target.value)}
+                  id="street"
+                  name="street"
+                  value={values.street}
+                  onChange={(e) => setFieldValue('street', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>

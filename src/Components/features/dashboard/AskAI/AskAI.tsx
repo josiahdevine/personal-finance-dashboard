@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EnhancedInput } from "../../../../components/ui/enhanced-input";
 
 const AskAI: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -86,12 +87,12 @@ const AskAI: React.FC = () => {
         
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
+            <EnhancedInput
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask a question about your finances..."
-              className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1"
             />
             <button
               type="submit"

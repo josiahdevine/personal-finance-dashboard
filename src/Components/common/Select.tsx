@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { EnhancedSelect } from '../../components/ui/enhanced-select';
 
-interface SelectOption {
+// Re-export the SelectOption interface for backward compatibility
+export interface SelectOption {
   value: string;
   label: string;
 }
 
-interface SelectProps {
+// Keep the same props interface for backward compatibility
+export interface SelectProps {
   value: string;
   onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   options: SelectOption[];
@@ -17,39 +20,20 @@ interface SelectProps {
   required?: boolean;
 }
 
-export const Select: React.FC<SelectProps> = ({
-  value,
-  onChange,
-  options,
-  className = '',
-  placeholder,
-  id,
-  name,
-  disabled = false,
-  required = false,
-}) => {
-  return (
-    <select
-      id={id}
-      name={name}
-      value={value}
-      onChange={onChange}
-      className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
-      disabled={disabled}
-      required={required}
-    >
-      {placeholder && (
-        <option value="" disabled>
-          {placeholder}
-        </option>
-      )}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use the EnhancedSelect component from src/components/ui/enhanced-select.tsx instead.
+ * See docs/components/SELECT_MIGRATION_GUIDE.md for migration instructions.
+ */
+export const Select: React.FC<SelectProps> = (props) => {
+  useEffect(() => {
+    console.warn(
+      'Warning: Select component is deprecated. Please use EnhancedSelect from src/components/ui/enhanced-select.tsx. ' +
+      'See docs/components/SELECT_MIGRATION_GUIDE.md for migration instructions.'
+    );
+  }, []);
+
+  return <EnhancedSelect {...props} />;
 };
 
 export default Select; 

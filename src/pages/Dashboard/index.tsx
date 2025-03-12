@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Navigation } from '../../components/navigation/Navigation';
+import { EnhancedHeader } from '../../components/layout/EnhancedHeader';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AccountSummary } from '../../components/features/dashboard/AccountSummary';
 import { HealthScoreWidget } from '../../components/features/dashboard/HealthScoreWidget';
 import { RecentTransactionsWidget } from '../../components/features/dashboard/RecentTransactionsWidget';
@@ -8,21 +9,22 @@ import { BudgetOverview } from '../../components/features/dashboard/BudgetOvervi
 import { CashFlowWidget } from '../../components/features/dashboard/CashFlowWidget';
 import { ResponsiveGrid } from '../../components/layout/ResponsiveContainer';
 import {
-  HomeIcon, 
-  CreditCardIcon, 
-  CurrencyDollarIcon, 
-  ReceiptRefundIcon, 
-  FlagIcon, 
-  ChartBarIcon, 
-  ClockIcon, 
-  ArrowTrendingUpIcon, 
-  LinkIcon, 
+  HomeIcon,
+  CreditCardIcon,
+  ArrowTrendingUpIcon,
+  BanknotesIcon,
+  ChartBarIcon,
+  CogIcon,
+  BellIcon,
+  CalendarIcon,
+  UserIcon,
+  DocumentTextIcon,
+  QuestionMarkCircleIcon,
+  ArrowPathIcon,
+  CurrencyDollarIcon,
+  WalletIcon,
+  ClockIcon,
   ChatBubbleLeftRightIcon,
-  ShoppingBagIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  LifebuoyIcon,
-  TruckIcon
 } from '@heroicons/react/24/outline';
 import { IconType } from 'react-icons';
 
@@ -37,12 +39,12 @@ const navigationItems = [
   { id: 'overview', title: 'Overview', path: '/dashboard', icon: iconWrapper(HomeIcon) },
   { id: 'bills', title: 'Bills', path: '/dashboard/bills', icon: iconWrapper(CreditCardIcon) },
   { id: 'salary', title: 'Salary Journal', path: '/dashboard/salary', icon: iconWrapper(CurrencyDollarIcon) },
-  { id: 'transactions', title: 'Transactions', path: '/dashboard/transactions', icon: iconWrapper(ReceiptRefundIcon) },
-  { id: 'goals', title: 'Goals', path: '/dashboard/goals', icon: iconWrapper(FlagIcon) },
+  { id: 'transactions', title: 'Transactions', path: '/dashboard/transactions', icon: iconWrapper(CreditCardIcon) },
+  { id: 'goals', title: 'Goals', path: '/dashboard/goals', icon: iconWrapper(HomeIcon) },
   { id: 'analytics', title: 'Analytics', path: '/dashboard/analytics', icon: iconWrapper(ChartBarIcon) },
   { id: 'subscriptions', title: 'Subscriptions', path: '/dashboard/subscriptions', icon: iconWrapper(ClockIcon) },
   { id: 'investments', title: 'Investments', path: '/dashboard/investments', icon: iconWrapper(ArrowTrendingUpIcon) },
-  { id: 'plaid', title: 'Plaid Integration', path: '/dashboard/plaid', icon: iconWrapper(LinkIcon) },
+  { id: 'plaid', title: 'Plaid Integration', path: '/dashboard/plaid', icon: iconWrapper(CreditCardIcon) },
   { id: 'ask-ai', title: 'Ask AI', path: '/dashboard/ask-ai', icon: iconWrapper(ChatBubbleLeftRightIcon) }
 ];
 
@@ -70,11 +72,11 @@ const mockHealthScore = {
 // Mock budget data
 const mockBudgetCategories = [
   { category: 'Housing', spent: 1200, budgeted: 1500, categoryIcon: <HomeIcon className="h-4 w-4" /> },
-  { category: 'Food', spent: 450, budgeted: 500, categoryIcon: <ShoppingBagIcon className="h-4 w-4" /> },
-  { category: 'Transportation', spent: 180, budgeted: 250, categoryIcon: <TruckIcon className="h-4 w-4" /> },
-  { category: 'Education', spent: 300, budgeted: 300, categoryIcon: <AcademicCapIcon className="h-4 w-4" /> },
-  { category: 'Healthcare', spent: 150, budgeted: 200, categoryIcon: <HeartIcon className="h-4 w-4" /> },
-  { category: 'Insurance', spent: 120, budgeted: 150, categoryIcon: <LifebuoyIcon className="h-4 w-4" /> },
+  { category: 'Food', spent: 450, budgeted: 500, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
+  { category: 'Transportation', spent: 180, budgeted: 250, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
+  { category: 'Education', spent: 300, budgeted: 300, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
+  { category: 'Healthcare', spent: 150, budgeted: 200, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
+  { category: 'Insurance', spent: 120, budgeted: 150, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
 ];
 
 // Mock transaction data
@@ -173,10 +175,9 @@ const mockProjectedHigh = 4100;
 const mockDaysUntilLow = 12;
 
 const Dashboard: React.FC = () => {
-  const { state: { isAuthenticated } } = useAuth();
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     window.location.href = '/login';
     return null;
@@ -184,11 +185,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Navigation 
-        items={navigationItems}
-        showMobileMenu={showMobileMenu}
-        onMobileMenuToggle={() => setShowMobileMenu(!showMobileMenu)}
-        onNavItemClick={() => setShowMobileMenu(false)}
+      <EnhancedHeader 
+        theme={theme}
+        onThemeToggle={toggleTheme}
+        className="w-full"
       />
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="p-4 lg:p-6 max-w-7xl mx-auto">

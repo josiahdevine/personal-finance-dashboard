@@ -6,6 +6,7 @@ import { TimeFrameProvider } from './contexts/TimeFrameContext';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from './contexts/ThemeContext';
 import { AggregatedAccount } from './services/AccountAggregationService';
+import { Transaction } from './types/Transaction';
 
 // Pages and Components
 import { LandingPage } from './components/LandingPage';
@@ -13,13 +14,13 @@ import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import Overview from './components/features/dashboard/Overview';
-import { Transactions } from './pages/Dashboard/Transactions';
-import { SalaryJournal } from './pages/Dashboard/SalaryJournal';
-import { Bills } from './pages/Dashboard/Bills';
+import { TransactionSummary } from './components/features/transactions';
+import SalaryJournal from './components/features/dashboard/SalaryJournal';
+import Bills from './components/features/bills';
 import BudgetPlanning from './components/features/dashboard/BudgetPlanning';
 import Analytics from './components/features/dashboard/Analytics';
 import Notifications from './components/features/dashboard/Notifications';
-import AskAI from './components/features/dashboard/AskAI';
+import AskAI from './components/features/ask-ai';
 import Settings from './components/features/dashboard/Settings';
 import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
@@ -121,6 +122,58 @@ const AccountsContainer: React.FC = () => {
   );
 };
 
+// Add a TransactionsContainer component to provide the required props to TransactionSummary
+const TransactionsContainer: React.FC = () => {
+  // This would typically fetch transactions from an API or state
+  // For now, we'll use mock data
+  const mockTransactions: Transaction[] = [
+    {
+      id: '1',
+      date: '2023-07-15',
+      description: 'Grocery Shopping',
+      amount: -75.50,
+      category_id: 'Food',
+      account_id: 'checking',
+      user_id: 'user123',
+      pending: false,
+      transaction_type: 'debit',
+      payment_channel: 'in store',
+      created_at: '2023-07-15T12:00:00Z',
+      updated_at: '2023-07-15T12:00:00Z'
+    },
+    {
+      id: '2',
+      date: '2023-07-14',
+      description: 'Salary Deposit',
+      amount: 2500.00,
+      category_id: 'Income',
+      account_id: 'checking',
+      user_id: 'user123',
+      pending: false,
+      transaction_type: 'credit',
+      payment_channel: 'online',
+      created_at: '2023-07-14T09:00:00Z',
+      updated_at: '2023-07-14T09:00:00Z'
+    },
+    {
+      id: '3',
+      date: '2023-07-10',
+      description: 'Rent Payment',
+      amount: -1200.00,
+      category_id: 'Housing',
+      account_id: 'checking',
+      user_id: 'user123',
+      pending: false,
+      transaction_type: 'debit',
+      payment_channel: 'online',
+      created_at: '2023-07-10T15:30:00Z',
+      updated_at: '2023-07-10T15:30:00Z'
+    }
+  ];
+
+  return <TransactionSummary transactions={mockTransactions} />;
+};
+
 const AppContent: React.FC = () => {
   const { isDarkMode } = useTheme();
   const auth = useAuth();
@@ -141,7 +194,7 @@ const AppContent: React.FC = () => {
             {/* Protected Dashboard Routes - User must be authenticated */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<OverviewContainer />} />
-              <Route path="transactions" element={<Transactions />} />
+              <Route path="transactions" element={<TransactionsContainer />} />
               <Route path="salary-journal" element={<SalaryJournal />} />
               <Route path="bills" element={<Bills />} />
               <Route path="budget" element={<BudgetPlanning />} />

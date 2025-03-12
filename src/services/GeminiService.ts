@@ -52,7 +52,7 @@ export class GeminiService {
   /**
    * Generate financial insights based on transaction data
    */
-  async generateInsights(transactionData: any, budgetData: any): Promise<any> {
+  async generateInsights(_transactionData: any, _budgetData: any): Promise<any> {
     try {
       // For development/placeholder purposes, return mock data
       await new Promise(resolve => setTimeout(resolve, 1500));

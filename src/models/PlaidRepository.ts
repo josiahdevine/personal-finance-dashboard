@@ -5,7 +5,8 @@ import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 
 export class PlaidRepository extends BaseRepository<PlaidAccount> {
   private plaidClient: PlaidApi;
-
+  private cache: Map<string, any>;
+  
   constructor() {
     super('plaid_accounts');
     
@@ -20,18 +21,53 @@ export class PlaidRepository extends BaseRepository<PlaidAccount> {
     });
 
     this.plaidClient = new PlaidApi(configuration);
+    this.cache = new Map<string, any>();
+  }
+
+  /**
+   * Get a cache key for the specified entity
+   */
+  protected getCacheKey(key: string): string {
+    return `plaid_repo_${key}`;
+  }
+
+  /**
+   * Get an item from cache
+   */
+  protected getCache<T>(key: string): T | null {
+    const cacheKey = this.getCacheKey(key);
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey) as T;
+    }
+    return null;
+  }
+
+  /**
+   * Set an item in cache
+   */
+  protected setCache<T>(key: string, value: T, ttlMs: number = 5 * 60 * 1000): void {
+    const cacheKey = this.getCacheKey(key);
+    this.cache.set(cacheKey, value);
+    
+    // Set expiration
+    setTimeout(() => {
+      this.cache.delete(cacheKey);
+    }, ttlMs);
   }
 
   async findByUserId(userId: string): Promise<PlaidAccount[]> {
     const cacheKey = this.getCacheKey(`user_${userId}`);
-    const cached = this.getCache(cacheKey);
-    if (cached) return [cached];
+    const cached = this.getCache<PlaidAccount[]>(cacheKey);
+    if (cached) return cached;
 
     const results = await query(
       'SELECT * FROM plaid_accounts WHERE user_id = $1',
       [userId]
     ).then(rows => rows as PlaidAccount[]);
 
+    // Cache the results
+    this.setCache(cacheKey, results);
+    
     return results;
   }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 interface Integration {
   id: number;
@@ -8,21 +9,18 @@ interface Integration {
   logoDark: string;
 }
 
-interface IntegrationLogosProps {
-  theme: 'light' | 'dark';
-}
-
 /**
  * IntegrationLogos - Displays partner bank and financial service logos
  * 
  * Features:
  * - Responsive grid layout for different screen sizes
  * - Animation with staggered entrance
- * - Dark/light theme support with appropriate logos
- * - Proper accessibility attributes
+ * - Dark/light theme support for logos
+ * - Accessible with proper aria labels
  */
-export const IntegrationLogos: React.FC<IntegrationLogosProps> = ({ theme }) => {
-  const isDark = theme === 'dark';
+export const IntegrationLogos: React.FC = () => {
+  const { isDarkMode } = useTheme();
+  const theme = isDarkMode ? 'dark' : 'light';
   
   const integrations: Integration[] = [
     {
@@ -100,7 +98,7 @@ export const IntegrationLogos: React.FC<IntegrationLogosProps> = ({ theme }) => 
             className="flex items-center justify-center h-16 w-32"
           >
             <img
-              src={isDark ? integration.logoDark : integration.logoLight}
+              src={theme === 'dark' ? integration.logoDark : integration.logoLight}
               alt={`${integration.name} logo`}
               className="max-h-full max-w-full object-contain opacity-80 hover:opacity-100 transition-opacity"
               height={64}

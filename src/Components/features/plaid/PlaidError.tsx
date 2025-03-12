@@ -1,5 +1,5 @@
 import React from 'react';
-import Card from "../../common/Card";
+import { Card, CardContent } from "../../ui/card";
 
 interface PlaidErrorProps {
   error: Error;
@@ -9,7 +9,7 @@ interface PlaidErrorProps {
 export const PlaidError: React.FC<PlaidErrorProps> = ({ error, onRetry }) => {
   return (
     <Card>
-      <Card.Body>
+      <CardContent className="py-6">
         <div className="text-center space-y-4">
           <div className="text-red-600">
             <svg
@@ -41,7 +41,7 @@ export const PlaidError: React.FC<PlaidErrorProps> = ({ error, onRetry }) => {
             </button>
           )}
         </div>
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 }; 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Toggle } from '../components/ui/Toggle';
-import { Tabs } from '../components/ui/Tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Checkbox } from '../components/ui/Checkbox';
 import { Alert } from '../components/ui/Alert';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -10,7 +10,6 @@ export const UIComponentDemo: React.FC = () => {
   const [activeTab, setActiveTab] = useState('form');
   const [toggleState, setToggleState] = useState(false);
   const [checkboxState, setCheckboxState] = useState(false);
-  const [variantTab, setVariantTab] = useState('1');
 
   const tabs = [
     { id: 'form', label: 'Form Components', badge: '4' },
@@ -23,13 +22,18 @@ export const UIComponentDemo: React.FC = () => {
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-8">UI Component Demo</h1>
 
-      <Tabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        variant="boxed"
-        className="mb-8"
-      />
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          {tabs.map(tab => (
+            <TabsTrigger key={tab.id} value={tab.id}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value={activeTab}>
+          {/* Content will be conditionally rendered below */}
+        </TabsContent>
+      </Tabs>
 
       <div className="space-y-12">
         {activeTab === 'form' && (
@@ -201,37 +205,63 @@ export const UIComponentDemo: React.FC = () => {
             <div className="space-y-8">
               <div>
                 <h3 className="text-lg font-medium mb-4">Tab Variants</h3>
-                <div className="space-y-8">
-                  <Tabs
-                    tabs={[
-                      { id: '1', label: 'Tab 1' },
-                      { id: '2', label: 'Tab 2' },
-                      { id: '3', label: 'Tab 3' }
-                    ]}
-                    activeTab={variantTab}
-                    onChange={setVariantTab}
-                    variant="underline"
-                  />
-                  <Tabs
-                    tabs={[
-                      { id: '1', label: 'Tab 1' },
-                      { id: '2', label: 'Tab 2' },
-                      { id: '3', label: 'Tab 3' }
-                    ]}
-                    activeTab={variantTab}
-                    onChange={setVariantTab}
-                    variant="pills"
-                  />
-                  <Tabs
-                    tabs={[
-                      { id: '1', label: 'Tab 1' },
-                      { id: '2', label: 'Tab 2' },
-                      { id: '3', label: 'Tab 3' }
-                    ]}
-                    activeTab={variantTab}
-                    onChange={setVariantTab}
-                    variant="boxed"
-                  />
+                <div className="space-y-6">
+                  <Tabs defaultValue="tab1">
+                    <TabsList>
+                      {[
+                        { id: 'tab1', label: 'Underline Tab 1' },
+                        { id: 'tab2', label: 'Underline Tab 2' }
+                      ].map(tab => (
+                        <TabsTrigger key={tab.id} value={tab.id}>
+                          {tab.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    <TabsContent value="tab1">
+                      Content for tab 1
+                    </TabsContent>
+                    <TabsContent value="tab2">
+                      Content for tab 2
+                    </TabsContent>
+                  </Tabs>
+
+                  <Tabs defaultValue="tab1">
+                    <TabsList>
+                      {[
+                        { id: 'tab1', label: 'Pills Tab 1' },
+                        { id: 'tab2', label: 'Pills Tab 2' }
+                      ].map(tab => (
+                        <TabsTrigger key={tab.id} value={tab.id}>
+                          {tab.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    <TabsContent value="tab1">
+                      Content for tab 1
+                    </TabsContent>
+                    <TabsContent value="tab2">
+                      Content for tab 2
+                    </TabsContent>
+                  </Tabs>
+
+                  <Tabs defaultValue="tab1">
+                    <TabsList>
+                      {[
+                        { id: 'tab1', label: 'Boxed Tab 1' },
+                        { id: 'tab2', label: 'Boxed Tab 2' }
+                      ].map(tab => (
+                        <TabsTrigger key={tab.id} value={tab.id}>
+                          {tab.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    <TabsContent value="tab1">
+                      Content for tab 1
+                    </TabsContent>
+                    <TabsContent value="tab2">
+                      Content for tab 2
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             </div>

@@ -44,7 +44,8 @@ foreach ($file in $mockFiles) {
 
 # Fix the PowerShell command by properly escaping quotes
 Write-Host "`n🚀 Starting Netlify Functions server on port 8889..." -ForegroundColor Cyan
-$netlifyCommand = "cd '$pwd'; netlify dev --port 8889"
+$currentDir = $pwd.Path.Replace("\", "\\")
+$netlifyCommand = "cd `"$currentDir`"; netlify dev --port 8889"
 Start-Process powershell -ArgumentList "-Command", $netlifyCommand
 
 # Give the backend a moment to start

@@ -62,13 +62,13 @@ const sidebarVariants = cva(
   }
 );
 
-const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
+const EnhancedSidebar = ({
   user,
   className,
   collapsed = false,
   onToggle,
   mobile = false,
-}) => {
+}: EnhancedSidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [isMobile] = useState(mobile);
   const [isOpen, setIsOpen] = useState(false);

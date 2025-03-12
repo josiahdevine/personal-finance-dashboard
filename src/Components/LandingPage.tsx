@@ -24,9 +24,11 @@ export const LandingPage: React.FC = () => {
   const { isDarkMode } = useTheme();
 
   return (
-    <div className="flex min-h-screen">
-      {/* EnhancedSidebar */}
-      <EnhancedSidebar />
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* EnhancedSidebar - Hidden on mobile */}
+      <div className="hidden md:block">
+        <EnhancedSidebar />
+      </div>
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col" ref={containerRef}>
@@ -34,12 +36,9 @@ export const LandingPage: React.FC = () => {
         <EnhancedHeader />
         
         {/* Main Content Area */}
-        <div className={`flex-grow ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+        <main className={`flex-grow ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
           {/* Hero Section */}
-          <motion.div
-            style={{ y }}
-            className="relative min-h-[80vh] flex items-center justify-center overflow-hidden"
-          >
+          <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
             {/* Animated gradient background */}
             <div className="absolute inset-0">
               <div className={`absolute inset-0 ${
@@ -98,17 +97,15 @@ export const LandingPage: React.FC = () => {
                 </Button>
               </motion.div>
             </div>
-          </motion.div>
+          </section>
 
           {/* Features Section */}
-          <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} py-20`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <UnifiedDemo />
-            </div>
-          </div>
+          <section className="w-full py-20 bg-white dark:bg-gray-900">
+            <UnifiedDemo />
+          </section>
 
           {/* Integration Section */}
-          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} py-20`}>
+          <section className="w-full py-20 bg-gray-100 dark:bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <motion.div
                 initial={{ y: 40, opacity: 0 }}
@@ -117,21 +114,21 @@ export const LandingPage: React.FC = () => {
                 viewport={{ once: true }}
                 className="text-center mb-16"
               >
-                <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
                   Seamlessly integrated with your favorite banks
                 </h2>
               </motion.div>
               <IntegrationLogos theme={isDarkMode ? 'dark' : 'light'} />
             </div>
-          </div>
+          </section>
 
           {/* Testimonials Section */}
-          <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} py-20`}>
+          <section className="w-full py-20 bg-white dark:bg-gray-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <Testimonials theme={isDarkMode ? 'dark' : 'light'} />
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
         
         {/* Enhanced Footer */}
         <EnhancedFooter />

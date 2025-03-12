@@ -8,7 +8,7 @@ import { useTheme } from './contexts/ThemeContext';
 import { AggregatedAccount } from './services/AccountAggregationService';
 
 // Pages and Components
-import { LandingPageNew } from './components/LandingPageNew';
+import { LandingPage } from './components/LandingPage';
 import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -131,10 +131,10 @@ const AppContent: React.FC = () => {
         <main className="flex-grow">
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<LandingPageNew />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/features" element={<LandingPageNew />} />
+            <Route path="/features" element={<LandingPage />} />
             <Route path="/responsive-demo" element={<ResponsiveDemo />} />
             <Route path="/performance-demo" element={<PerformanceComponentsDemo />} />
 

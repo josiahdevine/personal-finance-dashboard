@@ -1,5 +1,5 @@
 import React from 'react';
-import { EnhancedSidebar } from '../EnhancedSidebar';
+import EnhancedSidebar from '../EnhancedSidebar';
 
 // Preserving the original SidebarProps interface for backward compatibility
 interface SidebarProps {
@@ -38,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       notifications: false,
       currency: 'USD'
     }
-  } : null;
+  } : undefined;
 
   return (
     <EnhancedSidebar

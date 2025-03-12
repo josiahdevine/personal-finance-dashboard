@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
-import { EnhancedSidebar } from '../../navigation/EnhancedSidebar';
+import EnhancedSidebar from '../../navigation/EnhancedSidebar';
 import { EnhancedHeader } from '../EnhancedHeader';
 import './DashboardLayout.css';
 import { useTheme } from '../../../contexts/ThemeContext';

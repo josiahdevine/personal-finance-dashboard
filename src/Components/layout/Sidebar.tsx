@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { EnhancedSidebar } from '../navigation/EnhancedSidebar';
+import EnhancedSidebar from '../navigation/EnhancedSidebar';
 
 // Define interface for Sidebar props
 export type SidebarProps = {

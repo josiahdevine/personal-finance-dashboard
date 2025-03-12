@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { cn } from '../../lib/utils';
-import { Button } from "../ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
-import { ScrollArea } from "../ui/scroll-area";
-import { Avatar, AvatarFallback } from "../ui/shadcn-avatar";
+import { cn } from '../../../lib/utils';
+import { Button } from "../../ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "../../ui/sheet";
+import { ScrollArea } from "../../ui/scroll-area";
+import { Avatar, AvatarFallback } from "../../ui/shadcn-avatar";
 import {
   ChevronLeft,
   LayoutDashboard,
@@ -19,8 +19,8 @@ import {
   ChevronRight,
   Building
 } from "lucide-react";
-import type { User } from '../../types/models';
-import { BaseComponentProps } from '../../types/components';
+import type { User } from '../../../types/models';
+import { BaseComponentProps } from '../../../types/components';
 import { cva } from 'class-variance-authority';
 
 interface NavigationItem {
@@ -37,6 +37,7 @@ interface NavigationSection {
 
 export interface EnhancedSidebarProps extends BaseComponentProps {
   user?: User;
+  className?: string;
   collapsed?: boolean;
   onToggle?: () => void;
   mobile?: boolean;

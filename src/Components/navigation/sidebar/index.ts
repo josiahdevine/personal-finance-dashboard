@@ -8,7 +8,7 @@
  * In the future, components should import directly from '../EnhancedSidebar'
  */
 
-export { EnhancedSidebar as Sidebar } from '../EnhancedSidebar';
-export { EnhancedSidebar } from '../EnhancedSidebar';
+export { default as Sidebar } from '../EnhancedSidebar';
+export { default as EnhancedSidebar } from '../EnhancedSidebar';
 export type { EnhancedSidebarProps } from '../EnhancedSidebar';
 export type { EnhancedSidebarProps as SidebarProps } from '../EnhancedSidebar'; 

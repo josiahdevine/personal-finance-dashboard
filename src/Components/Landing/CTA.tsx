@@ -2,10 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../hooks/useTheme';
+import { DisplayMode } from '../../types/enums';
 
 export const CTA: React.FC = () => {
   const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
+  const isDarkMode = theme.mode === DisplayMode.DARK;
 
   const containerVariants = {
     hidden: { opacity: 0 },

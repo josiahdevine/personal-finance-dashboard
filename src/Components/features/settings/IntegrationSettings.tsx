@@ -1,12 +1,12 @@
 import React from 'react';
-import Card from "../../common/Card";
+import { Card, CardHeader, CardContent } from "../../ui/card";
 import Button from "../../common/button/Button";
 import { useIntegrations } from '../../../hooks/useIntegrations';
-import { Switch } from '../../common/Switch';
+import { Switch } from '../../ui/switch';
 import { 
   ArrowPathIcon, 
   CheckCircleIcon, 
-  XCircleIcon 
+  ExclamationCircleIcon 
 } from '@heroicons/react/24/outline';
 
 // Mock data and types for development
@@ -34,10 +34,10 @@ export const IntegrationSettings: React.FC = () => {
 
   return (
     <Card>
-      <Card.Header>
+      <CardHeader>
         <h2 className="text-xl font-semibold">Connected Services</h2>
-      </Card.Header>
-      <Card.Body>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           {integrations.map((integration) => (
             <div 
@@ -99,7 +99,7 @@ export const IntegrationSettings: React.FC = () => {
                       </label>
                       <Switch
                         checked={value}
-                        onChange={(checked) => 
+                        onCheckedChange={(checked: boolean) => 
                           updateIntegration(integration.id, {
                             settings: {
                               ...integration.settings,
@@ -107,6 +107,7 @@ export const IntegrationSettings: React.FC = () => {
                             }
                           })
                         }
+                        className="mt-1"
                       />
                     </div>
                   ))}
@@ -124,7 +125,7 @@ export const IntegrationSettings: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <XCircleIcon className="h-5 w-5 text-red-500" />
+                      <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
                       <span className="text-sm text-red-600">
                         {integration.status}
                       </span>
@@ -135,7 +136,7 @@ export const IntegrationSettings: React.FC = () => {
             </div>
           ))}
         </div>
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 }; 

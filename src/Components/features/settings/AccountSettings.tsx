@@ -4,6 +4,7 @@ import { useAccounts } from '../../../hooks/useAccounts';
 import { formatCurrency } from '../../../utils/formatters';
 import Button from "../../common/button/Button";
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { AccountType } from '../../../types/financial';
 
 export const AccountSettings: React.FC = () => {
   const { accounts, deleteAccount, openEditModal, openAddModal } = useAccounts();
@@ -35,11 +36,11 @@ export const AccountSettings: React.FC = () => {
               >
                 <div className="flex items-center space-x-4">
                   <div className={`w-2 h-2 rounded-full ${
-                    (account as any).status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                    account.type === AccountType.CHECKING ? 'bg-green-500' : 'bg-blue-500'
                   }`} />
                   <div>
                     <h3 className="font-medium">{account.name}</h3>
-                    <p className="text-sm text-gray-500">{account.institution}</p>
+                    <p className="text-sm text-gray-500">{account.type}</p>
                   </div>
                 </div>
                 

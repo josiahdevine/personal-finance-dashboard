@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../common/Card';
+import { Card, CardHeader, CardContent, CardFooter } from "../ui/card";
 
 interface Goal {
   id: string;
@@ -64,10 +64,10 @@ const GoalsTracker: React.FC = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <Card.Header>
+          <CardHeader>
             <h2 className="text-lg font-semibold text-gray-900">Overall Progress</h2>
-          </Card.Header>
-          <Card.Body>
+          </CardHeader>
+          <CardContent>
             <div className="text-center">
               <div className="text-3xl font-bold text-indigo-600">
                 {totalProgress.toFixed(1)}%
@@ -82,15 +82,15 @@ const GoalsTracker: React.FC = () => {
                 style={{ width: `${Math.min(totalProgress, 100)}%` }}
               ></div>
             </div>
-          </Card.Body>
+          </CardContent>
         </Card>
       </div>
 
       <Card>
-        <Card.Header>
+        <CardHeader>
           <h2 className="text-lg font-semibold text-gray-900">Financial Goals</h2>
-        </Card.Header>
-        <Card.Body>
+        </CardHeader>
+        <CardContent>
           <div className="divide-y divide-gray-200">
             {sortedGoals.map(goal => {
               const progress = (goal.currentAmount / goal.targetAmount) * 100;
@@ -133,7 +133,7 @@ const GoalsTracker: React.FC = () => {
               <p className="py-4 text-gray-500 text-center">No goals set</p>
             )}
           </div>
-        </Card.Body>
+        </CardContent>
       </Card>
     </div>
   );

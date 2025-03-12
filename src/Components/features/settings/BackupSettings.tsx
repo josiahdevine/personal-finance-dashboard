@@ -1,5 +1,5 @@
 import React from 'react';
-import Card from "../../common/Card";
+import { Card, CardHeader, CardContent } from "../../ui/card";
 import Button from "../../common/button/Button";
 import { useBackups } from '../../../hooks/useBackups';
 import { CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
@@ -20,7 +20,7 @@ export const BackupSettings: React.FC = () => {
 
   return (
     <Card>
-      <Card.Header className="flex justify-between items-center">
+      <CardHeader className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Data Backups</h2>
         <Button
           variant="primary"
@@ -31,8 +31,8 @@ export const BackupSettings: React.FC = () => {
           <CloudArrowUpIcon className="h-5 w-5 mr-2" />
           Create Backup
         </Button>
-      </Card.Header>
-      <Card.Body>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           <div className="bg-blue-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-blue-800">
@@ -85,7 +85,7 @@ export const BackupSettings: React.FC = () => {
             )}
           </div>
         </div>
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 }; 

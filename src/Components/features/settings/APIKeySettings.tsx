@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Card from "../../common/Card";
+import { Card, CardHeader, CardContent } from "../../ui/card";
 import Button from "../../common/button/Button";
 import { useAPIKeys } from '../../../hooks/useAPIKeys';
 import { EyeIcon, EyeSlashIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -23,7 +23,7 @@ export const APIKeySettings: React.FC = () => {
 
   return (
     <Card>
-      <Card.Header className="flex justify-between items-center">
+      <CardHeader className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">API Keys</h2>
         <Button
           variant="primary"
@@ -34,8 +34,8 @@ export const APIKeySettings: React.FC = () => {
           <PlusIcon className="h-5 w-5 mr-2" />
           Create API Key
         </Button>
-      </Card.Header>
-      <Card.Body>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           {apiKeys.length === 0 ? (
             <p className="text-center text-gray-500 py-4">
@@ -86,7 +86,7 @@ export const APIKeySettings: React.FC = () => {
             ))
           )}
         </div>
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 }; 

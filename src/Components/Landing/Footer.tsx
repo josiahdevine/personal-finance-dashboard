@@ -10,8 +10,8 @@ import {
 } from 'react-icons/ri';
 
 export const Footer: React.FC = () => {
-  const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
+  const themeContext = useTheme();
+  const isDark = themeContext.theme.isDark;
   const currentYear = new Date().getFullYear();
 
   const navigation = {
@@ -43,50 +43,50 @@ export const Footer: React.FC = () => {
       {
         name: 'Twitter',
         href: 'https://twitter.com/financedash',
-        icon: <RiTwitterXFill className="w-5 h-5" />,
+        icon: <RiTwitterXFill className="w-4 h-4" />,
       },
       {
         name: 'LinkedIn',
         href: 'https://linkedin.com/company/financedash',
-        icon: <RiLinkedinFill className="w-5 h-5" />,
+        icon: <RiLinkedinFill className="w-4 h-4" />,
       },
       {
         name: 'Facebook',
-        href: 'https://facebook.com/financedash',
-        icon: <RiFacebookFill className="w-5 h-5" />,
+        href: 'https://facebook.com/company/financedash',
+        icon: <RiFacebookFill className="w-4 h-4" />,
       },
       {
         name: 'GitHub',
         href: 'https://github.com/financedash',
-        icon: <RiGithubFill className="w-5 h-5" />,
+        icon: <RiGithubFill className="w-4 h-4" />,
       },
       {
         name: 'Instagram',
         href: 'https://instagram.com/financedash',
-        icon: <RiInstagramLine className="w-5 h-5" />,
+        icon: <RiInstagramLine className="w-4 h-4" />,
       },
     ],
   };
 
   return (
-    <footer className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
+    <footer className={`${isDark ? 'bg-gray-900' : 'bg-white'} border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:py-12 lg:px-8">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           <div className="space-y-8 xl:col-span-1">
             <Link to="/" className="flex items-center">
-              <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 FinanceDash
               </span>
             </Link>
-            <p className={`text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-base ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
               Making personal finance management simple, smart, and secure for everyone.
             </p>
-            <div className="flex space-x-6">
+            <div className="flex space-x-4">
               {navigation.social.map((item) => (
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'} transition-colors`}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={item.name}
@@ -99,7 +99,7 @@ export const Footer: React.FC = () => {
           <div className="mt-12 grid grid-cols-2 gap-8 xl:mt-0 xl:col-span-2">
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
                   Product
                 </h3>
                 <ul className="mt-4 space-y-4">
@@ -107,7 +107,7 @@ export const Footer: React.FC = () => {
                     <li key={item.name}>
                       <Link
                         to={item.href}
-                        className={`text-base ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+                        className={`text-base ${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
                       >
                         {item.name}
                       </Link>
@@ -116,7 +116,7 @@ export const Footer: React.FC = () => {
                 </ul>
               </div>
               <div className="mt-12 md:mt-0">
-                <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
                   Company
                 </h3>
                 <ul className="mt-4 space-y-4">
@@ -124,7 +124,7 @@ export const Footer: React.FC = () => {
                     <li key={item.name}>
                       <Link
                         to={item.href}
-                        className={`text-base ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+                        className={`text-base ${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
                       >
                         {item.name}
                       </Link>
@@ -135,7 +135,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
                   Support
                 </h3>
                 <ul className="mt-4 space-y-4">
@@ -143,7 +143,7 @@ export const Footer: React.FC = () => {
                     <li key={item.name}>
                       <Link
                         to={item.href}
-                        className={`text-base ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+                        className={`text-base ${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
                       >
                         {item.name}
                       </Link>
@@ -152,7 +152,7 @@ export const Footer: React.FC = () => {
                 </ul>
               </div>
               <div className="mt-12 md:mt-0">
-                <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
+                <h3 className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-500'} tracking-wider uppercase`}>
                   Legal
                 </h3>
                 <ul className="mt-4 space-y-4">
@@ -160,7 +160,7 @@ export const Footer: React.FC = () => {
                     <li key={item.name}>
                       <Link
                         to={item.href}
-                        className={`text-base ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+                        className={`text-base ${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
                       >
                         {item.name}
                       </Link>
@@ -171,14 +171,14 @@ export const Footer: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className={`mt-12 pt-8 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} flex flex-col md:flex-row justify-between items-center`}>
-          <p className={`text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+        <div className={`mt-12 pt-8 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'} flex flex-col md:flex-row justify-between items-center`}>
+          <p className={`text-base ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             &copy; {currentYear} FinanceDash, Inc. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-4">
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className={`text-sm ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'} flex items-center`}
+              className={`text-sm ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-900'} flex items-center`}
               aria-label="Scroll to top"
             >
               <span>Back to top</span>

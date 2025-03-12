@@ -25,8 +25,8 @@ const OptimizedTransactionList: React.FC<OptimizedTransactionListProps> = ({
     });
   }, [transactions]);
 
-  // Memoized row height calculation
-  const getItemSize = useCallback(() => 72, []); // Fixed row height for better performance
+  // Fixed row height for better performance
+  const ITEM_SIZE = 72;
 
   // Memoized row renderer function
   const rowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
@@ -63,10 +63,9 @@ const OptimizedTransactionList: React.FC<OptimizedTransactionListProps> = ({
 
   // Dynamic list height based on available transactions (max 5 items visible at once)
   const listHeight = useMemo(() => {
-    const itemHeight = 72; // Same as getItemSize
     const maxVisibleItems = 5;
-    return Math.min(sortedTransactions.length * itemHeight, maxVisibleItems * itemHeight);
-  }, [sortedTransactions.length]);
+    return Math.min(sortedTransactions.length * ITEM_SIZE, maxVisibleItems * ITEM_SIZE);
+  }, [sortedTransactions.length, ITEM_SIZE]);
 
   return (
     <div className={`optimized-transaction-list ${className}`}>
@@ -83,7 +82,7 @@ const OptimizedTransactionList: React.FC<OptimizedTransactionListProps> = ({
           height={listHeight}
           width="100%"
           itemCount={sortedTransactions.length}
-          itemSize={getItemSize}
+          itemSize={ITEM_SIZE}
         >
           {rowRenderer}
         </List>

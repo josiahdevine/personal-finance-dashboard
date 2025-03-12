@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../hooks/useTheme';
+import { DisplayMode } from '../../types/enums';
 
 interface Testimonial {
   id: string;
@@ -15,7 +16,7 @@ interface Testimonial {
 
 export const Testimonials: React.FC = () => {
   const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
+  const isDarkMode = theme.mode === DisplayMode.DARK;
   const [activeIndex, setActiveIndex] = useState(0);
   const [autoplay, setAutoplay] = useState(true);
 

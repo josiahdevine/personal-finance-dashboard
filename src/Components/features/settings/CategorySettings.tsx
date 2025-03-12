@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import Card from "../../common/Card";
-import { useCategories } from '../../../hooks/useCategories';
+import { Card, CardHeader, CardContent } from "../../ui/card";
 import Button from "../../common/button/Button";
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useCategories } from '../../../hooks/useCategories';
+import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ColorPicker } from '../../common/ColorPicker';
 import type { Category, CreateCategoryData } from '../../../types/models';
 
@@ -37,7 +37,7 @@ export const CategorySettings: React.FC = () => {
 
   return (
     <Card>
-      <Card.Header className="flex justify-between items-center">
+      <CardHeader className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Spending Categories</h2>
         <Button
           variant="primary"
@@ -54,8 +54,8 @@ export const CategorySettings: React.FC = () => {
           <PlusIcon className="h-5 w-5 mr-2" />
           Add Category
         </Button>
-      </Card.Header>
-      <Card.Body>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           {editingCategory && (
             <form onSubmit={handleSubmit} className="space-y-4 mb-6">
@@ -130,7 +130,7 @@ export const CategorySettings: React.FC = () => {
                       }}
                       className="p-2"
                     >
-                      <PencilIcon className="h-5 w-5 text-gray-500" />
+                      <PencilSquareIcon className="h-5 w-5 text-gray-500" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -145,7 +145,7 @@ export const CategorySettings: React.FC = () => {
             ))}
           </div>
         </div>
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 }; 

@@ -6,10 +6,9 @@ import { TimeFrameProvider } from './contexts/TimeFrameContext';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from './contexts/ThemeContext';
 import { AggregatedAccount } from './services/AccountAggregationService';
-import { Account } from './types/financial';
 
 // Pages and Components
-import { LandingPage } from './components/LandingPage';
+import { LandingPageNew } from './components/LandingPageNew';
 import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -25,8 +24,6 @@ import Settings from './components/features/dashboard/Settings';
 import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
 import ErrorBoundary from './components/ErrorBoundary';
-import { PublicNavbar } from './components/navigation/PublicNavbar';
-import Footer from './components/Footer';
 import ResponsiveDemo from './pages/ResponsiveDemo';
 import PerformanceComponentsDemo from './pages/PerformanceComponentsDemo';
 
@@ -63,17 +60,17 @@ const OverviewContainer: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
   };
   
-  const aggregatedAccounts = accounts.map((account: Account): AggregatedAccount => ({
+  const aggregatedAccounts = accounts.map((account): AggregatedAccount => ({
     id: account.id,
     name: account.name,
     type: account.type,
     balance: { 
       current: account.balance 
     },
-    currency: account.currency_code,
+    currency: account.currency_code || 'USD',
     source: 'manual' as const,
     institution: account.plaid_item_id || 'unknown',
-    lastUpdated: account.updated_at ? new Date(account.updated_at) : new Date()
+    lastUpdated: new Date()
   }));
 
   const handleAccountClick = (account: AggregatedAccount) => {
@@ -98,17 +95,17 @@ const AccountsContainer: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
   };
   
-  const aggregatedAccounts = accounts.map((account: Account): AggregatedAccount => ({
+  const aggregatedAccounts = accounts.map((account): AggregatedAccount => ({
     id: account.id,
     name: account.name,
     type: account.type,
     balance: { 
       current: account.balance 
     },
-    currency: account.currency_code,
+    currency: account.currency_code || 'USD',
     source: 'manual' as const,
     institution: account.plaid_item_id || 'unknown',
-    lastUpdated: account.updated_at ? new Date(account.updated_at) : new Date()
+    lastUpdated: new Date()
   }));
 
   const handleAccountClick = (account: AggregatedAccount) => {
@@ -131,14 +128,13 @@ const AppContent: React.FC = () => {
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark' : ''} bg-neutral-50 dark:bg-dark-background transition-colors duration-md`}>
       <ErrorBoundary>
-        <PublicNavbar />
         <main className="flex-grow">
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<LandingPageNew />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/features" element={<LandingPage />} />
+            <Route path="/features" element={<LandingPageNew />} />
             <Route path="/responsive-demo" element={<ResponsiveDemo />} />
             <Route path="/performance-demo" element={<PerformanceComponentsDemo />} />
 
@@ -170,7 +166,6 @@ const AppContent: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        <Footer />
       </ErrorBoundary>
     </div>
   );

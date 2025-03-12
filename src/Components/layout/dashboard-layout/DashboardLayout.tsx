@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
-import Sidebar from '../../navigation/sidebar/Sidebar';
-import Header from '../header/Header';
+import { EnhancedSidebar } from '../../navigation/EnhancedSidebar';
+import { EnhancedHeader } from '../EnhancedHeader';
 import './DashboardLayout.css';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const { user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   // Handle responsive sidebar behavior
   useEffect(() => {
@@ -44,7 +46,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   return (
     <div className="dashboard-layout">
       {showSidebar && (
-        <Sidebar 
+        <EnhancedSidebar 
           collapsed={sidebarCollapsed} 
           onToggle={toggleSidebar}
           className={
@@ -52,16 +54,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               ? `dashboard-sidebar-mobile ${sidebarCollapsed ? 'collapsed' : 'expanded'}` 
               : 'dashboard-sidebar'
           }
-          user={user}
+          user={user as any}
         />
       )}
       
       <div className={`dashboard-content ${sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
         {showHeader && (
-          <Header 
-            toggleSidebar={toggleSidebar} 
-            sidebarCollapsed={sidebarCollapsed}
-            isMobile={isMobile}
+          <EnhancedHeader 
+            theme={theme}
+            onThemeToggle={toggleTheme}
+            className="dashboard-header"
           />
         )}
         

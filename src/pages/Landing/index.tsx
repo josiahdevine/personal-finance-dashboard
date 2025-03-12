@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Header } from '../../components/Landing/Header';
+import { EnhancedHeader } from '../../components/layout/EnhancedHeader';
 import { Hero } from '../../components/Landing/Hero';
 import { Testimonials } from '../../components/Landing/Testimonials';
 import { IntegrationLogos } from '../../components/Landing/IntegrationLogos';
@@ -16,9 +15,10 @@ export const LandingPage: React.FC = () => {
     offset: ['start start', 'end start'],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
-  const y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
+  // These variables are currently unused but may be used in future animation enhancements
+  const _opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const _scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.8]);
+  const _y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
 
   const { theme, toggleTheme } = useTheme();
 
@@ -31,7 +31,7 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-gray-900'}`} ref={containerRef}>
-      <Header theme={theme} onThemeToggle={toggleTheme} />
+      <EnhancedHeader theme={theme} onThemeToggle={toggleTheme} className="landing-page-header" />
       
       {/* Hero Section */}
       <Hero theme={theme} />

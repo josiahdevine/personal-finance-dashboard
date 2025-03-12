@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Card from "../../common/Card";
-import Button from "../../common/button/Button";
+import { Card, CardHeader, CardContent } from "../../ui/card";
+import { Button } from "../../ui/button";
 import { DataTable, Column } from '../../common/data-table';
 import Badge from "../../common/badge/Badge";
 import { formatCurrency, dateFormatter } from '../../../utils/formatters';
@@ -249,7 +249,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   return (
     <Card className={className}>
-      <Card.Header className="flex justify-between items-center">
+      <CardHeader className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">{title}</h2>
         {showViewAll && (
           <Button 
@@ -260,8 +260,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             View All
           </Button>
         )}
-      </Card.Header>
-      <Card.Body className="p-0">
+      </CardHeader>
+      <CardContent className="p-0">
         <DataTable
           data={paginatedData}
           columns={columns}
@@ -303,7 +303,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             </div>
           }
         />
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 };

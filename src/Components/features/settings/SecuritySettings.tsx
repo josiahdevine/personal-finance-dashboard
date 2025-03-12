@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import Card from "../../common/Card";
+import React from 'react';
+import { Card, CardHeader, CardContent, CardFooter } from "../../ui/card";
+import { Input } from "../../ui/input";
+import { Button } from "../../ui/button";
 import { useForm } from '../../../hooks/useForm';
-import { validatePassword } from '../../../utils/validation';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface PasswordFormData {
   currentPassword: string;
@@ -10,145 +12,125 @@ interface PasswordFormData {
 }
 
 export const SecuritySettings: React.FC = () => {
-  const [showTwoFactor, setShowTwoFactor] = useState(false);
-
-  // Mock function for password change
-  const changePassword = async (currentPassword: string, newPassword: string) => {
-    console.log('Changing password:', { currentPassword, newPassword });
-    // In a real app, this would call an API
-    return Promise.resolve();
+  const { updatePassword } = useAuth();
+  
+  const validatePasswords = (values: PasswordFormData) => {
+    const errors: Record<string, string> = {};
+    
+    if (!values.currentPassword) errors.currentPassword = 'Current password is required';
+    if (!values.newPassword) errors.newPassword = 'New password is required';
+    if (values.newPassword && values.newPassword.length < 8) 
+      errors.newPassword = 'Password must be at least 8 characters';
+    if (values.newPassword !== values.confirmPassword) 
+      errors.confirmPassword = 'Passwords do not match';
+    
+    return errors;
   };
 
-  const { values, setFieldValue, handleSubmit, isSubmitting, errors } = useForm<PasswordFormData>({
+  const [formState, formHandlers] = useForm<PasswordFormData>({
     initialValues: {
       currentPassword: '',
       newPassword: '',
       confirmPassword: ''
     },
-    validate: (values) => {
-      const errors: Partial<Record<keyof PasswordFormData, string>> = {};
-      
-      if (!values.currentPassword) {
-        errors.currentPassword = 'Current password is required';
-      }
-      
-      if (!values.newPassword) {
-        errors.newPassword = 'New password is required';
-      } else if (!validatePassword(values.newPassword)) {
-        errors.newPassword = 'Password must be at least 8 characters with a number and special character';
-      }
-      
-      if (values.newPassword !== values.confirmPassword) {
-        errors.confirmPassword = 'Passwords do not match';
-      }
-      
-      return errors;
-    },
+    validate: validatePasswords,
     onSubmit: async (values) => {
-      try {
-        // Use the mock function
-        await changePassword(values.currentPassword, values.newPassword);
-        // Reset form after successful submission
-        values.currentPassword = '';
-        values.newPassword = '';
-        values.confirmPassword = '';
-      } catch (error) {
-        console.error('Failed to change password:', error);
-      }
+      await updatePassword(values.currentPassword, values.newPassword);
     }
   });
+  
+  const { values, errors, isSubmitting } = formState;
+  const { handleSubmit, setFieldValue } = formHandlers;
 
   return (
     <Card>
-      <Card.Header>
+      <CardHeader>
         <h2 className="text-xl font-semibold">Security Settings</h2>
-      </Card.Header>
-      <Card.Body>
-        <div className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Change Password</h3>
+            
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
                 Current Password
               </label>
-              <input
+              <Input
                 type="password"
                 name="currentPassword"
+                id="currentPassword"
                 value={values.currentPassword}
                 onChange={(e) => setFieldValue('currentPassword', e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
-              {errors?.currentPassword && (
+              {errors.currentPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>
               )}
             </div>
-
+            
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
                 New Password
               </label>
-              <input
+              <Input
                 type="password"
                 name="newPassword"
+                id="newPassword"
                 value={values.newPassword}
                 onChange={(e) => setFieldValue('newPassword', e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
-              {errors?.newPassword && (
+              {errors.newPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
               )}
             </div>
-
+            
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                 Confirm New Password
               </label>
-              <input
+              <Input
                 type="password"
                 name="confirmPassword"
+                id="confirmPassword"
                 value={values.confirmPassword}
                 onChange={(e) => setFieldValue('confirmPassword', e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
-              {errors?.confirmPassword && (
+              {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
               )}
             </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Changing Password...' : 'Change Password'}
-              </button>
-            </div>
-          </form>
-
-          <div className="border-t pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
-                <p className="text-sm text-gray-600">
-                  Add an extra layer of security to your account
-                </p>
-              </div>
-              <button
-                onClick={() => setShowTwoFactor(!showTwoFactor)}
-                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-500"
-              >
-                {showTwoFactor ? 'Hide' : 'Setup'}
-              </button>
-            </div>
-
-            {showTwoFactor && (
-              <div className="mt-4">
-                {/* Two-factor authentication setup UI */}
-              </div>
-            )}
           </div>
-        </div>
-      </Card.Body>
+          
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Add an extra layer of security to your account by enabling two-factor authentication.
+            </p>
+            
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {/* TODO: Implement 2FA setup */}}
+              >
+                Set Up Two-Factor Authentication
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button
+            type="submit"
+            variant="default"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Updating...' : 'Update Password'}
+          </Button>
+        </CardFooter>
+      </form>
     </Card>
   );
-}; 
+};

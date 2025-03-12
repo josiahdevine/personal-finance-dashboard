@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../hooks/useTheme';
+import { DisplayMode } from '../../types/enums';
 
 interface IntegrationLogo {
   name: string;
@@ -10,7 +11,7 @@ interface IntegrationLogo {
 
 export const IntegrationLogos: React.FC = () => {
   const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
+  const isDarkMode = theme.mode === DisplayMode.DARK;
 
   const logos: IntegrationLogo[] = [
     {

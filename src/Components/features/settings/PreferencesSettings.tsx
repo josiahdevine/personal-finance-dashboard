@@ -1,44 +1,43 @@
 import React from 'react';
-import Card from "../../common/Card";
+import { Card, CardHeader, CardContent } from "../../ui/card";
+import { Switch } from "../../ui/switch";
 import { useSettings } from '../../../hooks/useSettings';
-import { useTheme } from '../../../hooks/useTheme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export const PreferencesSettings: React.FC = () => {
   const { settings, updateSettings } = useSettings();
-  const { theme, toggleTheme } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
 
   // If settings are null, show a loading state
   if (!settings) {
     return (
       <Card>
-        <Card.Body>
+        <CardContent>
           <div className="animate-pulse space-y-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-10 bg-gray-200 rounded"></div>
             ))}
           </div>
-        </Card.Body>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <Card>
-      <Card.Header>
+      <CardHeader>
         <h2 className="text-xl font-semibold">Display & Preferences</h2>
-      </Card.Header>
-      <Card.Body>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-medium">Theme</h3>
             <div className="mt-2 space-y-2">
               <div className="flex items-center">
-                <input
-                  type="checkbox"
+                <Switch
                   id="theme-toggle"
-                  checked={theme === 'dark'}
-                  onChange={toggleTheme}
-                  className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  checked={isDarkMode}
+                  onCheckedChange={toggleTheme}
                 />
                 <label
                   htmlFor="theme-toggle"
@@ -77,7 +76,7 @@ export const PreferencesSettings: React.FC = () => {
             </select>
           </div>
         </div>
-      </Card.Body>
+      </CardContent>
     </Card>
   );
 }; 

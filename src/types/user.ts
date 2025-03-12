@@ -1,5 +1,23 @@
 // User-related type definitions
 
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified: boolean;
+  phoneNumber: string | null;
+  role?: string;
+  address?: Address;
+}
+
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -58,4 +76,4 @@ export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
-} 
+}

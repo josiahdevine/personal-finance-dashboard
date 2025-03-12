@@ -12,7 +12,7 @@ import { EnhancedSidebar } from './navigation/EnhancedSidebar';
 import { EnhancedFooter } from './layout/EnhancedFooter';
 import { EnhancedHeader } from './layout/EnhancedHeader';
 
-export const LandingPage: React.FC = () => {
+export const LandingPageNew: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,

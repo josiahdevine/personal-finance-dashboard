@@ -88,7 +88,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           {/* Logo/Brand */}
-          <div className="flex items-center">
+          <div className="flex-none">
             <Link to="/" className="flex items-center" onClick={closeMobileMenu}>
               <img 
                 src="/logo.svg" 
@@ -99,38 +99,40 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) =>
             </Link>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <div className={`${windowWidth < 768 ? 'hidden' : 'flex'} items-center space-x-8`}>
-            <Link 
-              to="/features" 
-              className={`${textColor} font-medium ${linkHoverColor} ${location.pathname === '/features' ? 'border-b-2 border-indigo-500' : ''}`}
-            >
-              Features
-            </Link>
-            <Link 
-              to="/pricing" 
-              className={`${textColor} font-medium ${linkHoverColor} ${location.pathname === '/pricing' ? 'border-b-2 border-indigo-500' : ''}`}
-            >
-              Pricing
-            </Link>
-            <Link 
-              to="/about" 
-              className={`${textColor} font-medium ${linkHoverColor} ${location.pathname === '/about' ? 'border-b-2 border-indigo-500' : ''}`}
-            >
-              About
-            </Link>
-            {shouldShowDashboard && (
+          {/* Desktop Navigation Links - Centered */}
+          <div className={`${windowWidth < 768 ? 'hidden' : 'flex'} flex-1 justify-center`}>
+            <div className="flex items-center space-x-8">
               <Link 
-                to="/dashboard" 
-                className={`${textColor} font-medium ${linkHoverColor} ${location.pathname.startsWith('/dashboard') ? 'border-b-2 border-indigo-500' : ''}`}
+                to="/features" 
+                className={`${textColor} font-medium ${linkHoverColor} ${location.pathname === '/features' ? 'border-b-2 border-indigo-500' : ''}`}
               >
-                Dashboard
+                Features
               </Link>
-            )}
+              <Link 
+                to="/pricing" 
+                className={`${textColor} font-medium ${linkHoverColor} ${location.pathname === '/pricing' ? 'border-b-2 border-indigo-500' : ''}`}
+              >
+                Pricing
+              </Link>
+              <Link 
+                to="/about" 
+                className={`${textColor} font-medium ${linkHoverColor} ${location.pathname === '/about' ? 'border-b-2 border-indigo-500' : ''}`}
+              >
+                About
+              </Link>
+              {shouldShowDashboard && (
+                <Link 
+                  to="/dashboard" 
+                  className={`${textColor} font-medium ${linkHoverColor} ${location.pathname.startsWith('/dashboard') ? 'border-b-2 border-indigo-500' : ''}`}
+                >
+                  Dashboard
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Desktop Right Side Buttons */}
-          <div className={`${windowWidth < 768 ? 'hidden' : 'flex'} items-center space-x-4`}>
+          <div className={`${windowWidth < 768 ? 'hidden' : 'flex'} flex-none items-center space-x-4`}>
             <button 
               onClick={toggleTheme} 
               className={`p-2 rounded-full ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}

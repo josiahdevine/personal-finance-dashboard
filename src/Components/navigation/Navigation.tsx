@@ -113,7 +113,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const location = useLocation();
   const { user } = useAuth();
-  const { isDark } = useTheme();
+  const { theme } = useTheme();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -228,7 +228,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 transition={{ duration: 0.2 }}
                 className="mt-1 space-y-1"
               >
-                {item.children.map(child => renderNavItem(child, depth + 1))}
+                {item.children && item.children.map(child => renderNavItem(child, depth + 1))}
               </motion.ul>
             )}
           </AnimatePresence>
@@ -256,7 +256,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         onClick={onMobileMenuToggle}
         className={`
           p-2 rounded-md transition-colors duration-150 ease-in-out
-          ${isDark
+          ${theme === 'dark'
             ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/50'
             : 'text-gray-500 hover:text-gray-600 hover:bg-gray-100'
           }

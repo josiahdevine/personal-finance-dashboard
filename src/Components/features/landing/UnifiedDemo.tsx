@@ -7,9 +7,25 @@ import {
   GoalTrackingChart 
 } from './DemoCharts';
 
+interface FeatureItem {
+  id: number;
+  title: string;
+  description: string;
+  chart: React.ReactNode;
+}
+
+/**
+ * UnifiedDemo - Displays featured functionality in a 2x2 grid layout
+ * 
+ * Features:
+ * - Responsive grid (1 column on mobile, 2 on tablet and desktop)
+ * - Animated entrance with Framer Motion
+ * - Accessible structure with proper ARIA attributes
+ * - Dark mode compatible
+ */
 export const UnifiedDemo: React.FC = () => {
   // Features list for the demo section
-  const features = [
+  const features: FeatureItem[] = [
     {
       id: 1,
       title: 'Smart Budgeting',
@@ -61,7 +77,11 @@ export const UnifiedDemo: React.FC = () => {
         </div>
 
         {/* Grid Layout - 2x2 for larger screens, 1 column for mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center"
+          role="list"
+          aria-label="Finance features"
+        >
           {features.map((feature, index) => (
             <motion.div
               key={feature.id}
@@ -70,15 +90,23 @@ export const UnifiedDemo: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 * index }}
               className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+              role="listitem"
+              aria-labelledby={`feature-heading-${feature.id}`}
             >
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">
+                <h3 
+                  id={`feature-heading-${feature.id}`}
+                  className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center"
+                >
                   {feature.title}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 text-center">
                   {feature.description}
                 </p>
-                <div className="h-52 bg-gray-50 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-center">
+                <div 
+                  className="h-52 bg-gray-50 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-center"
+                  aria-hidden="true" // Charts are visual representations, mark as hidden for screen readers
+                >
                   {feature.chart}
                 </div>
               </div>

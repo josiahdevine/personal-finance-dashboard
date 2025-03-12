@@ -1,8 +1,5 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Testimonials } from './features/landing/Testimonials';
-import { IntegrationLogos } from './features/landing/IntegrationLogos';
-import { UnifiedDemo } from './features/landing/UnifiedDemo';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from "./ui/button";
@@ -12,7 +9,25 @@ import { EnhancedSidebar } from './navigation/EnhancedSidebar';
 import { EnhancedFooter } from './layout/EnhancedFooter';
 import { EnhancedHeader } from './layout/EnhancedHeader';
 
+// Import consolidated landing page feature components
+import { UnifiedDemo } from './features/landing/UnifiedDemo';
+import { Testimonials } from './features/landing/Testimonials';
+import { IntegrationLogos } from './features/landing/IntegrationLogos';
+
+/**
+ * LandingPage - The main landing page for the application
+ * 
+ * Features:
+ * - Responsive design (mobile and desktop layouts)
+ * - AnimatedSidebar integration
+ * - Enhanced header and footer
+ * - Motion animations with Framer Motion
+ * - Dark/light theme support
+ * - Feature showcase in 2x2 grid
+ * - Testimonials and integration logos sections
+ */
 export const LandingPage: React.FC = () => {
+  // Scroll animation setup
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -20,7 +35,6 @@ export const LandingPage: React.FC = () => {
   });
   
   const y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
-
   const { isDarkMode } = useTheme();
 
   return (
@@ -36,21 +50,28 @@ export const LandingPage: React.FC = () => {
         <EnhancedHeader />
         
         {/* Main Content Area */}
-        <main className={`flex-grow ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+        <main className={`flex-grow ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} id="main-content">
           {/* Hero Section */}
-          <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+          <section 
+            aria-labelledby="hero-heading" 
+            className="relative min-h-[80vh] flex items-center justify-center overflow-hidden"
+          >
             {/* Animated gradient background */}
             <div className="absolute inset-0">
-              <div className={`absolute inset-0 ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800' 
-                  : 'bg-gradient-to-br from-blue-400 via-purple-400 to-indigo-600'
-              } animate-gradient-x opacity-90`} />
-              <div className="absolute inset-0 bg-black/20" />
+              <div 
+                className={`absolute inset-0 ${
+                  isDarkMode 
+                    ? 'bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800' 
+                    : 'bg-gradient-to-br from-blue-400 via-purple-400 to-indigo-600'
+                } animate-gradient-x opacity-90`} 
+                aria-hidden="true"
+              />
+              <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
             </div>
             
             <div className="relative z-10 text-center px-4 w-full max-w-7xl mx-auto">
               <motion.h1
+                id="hero-heading"
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
@@ -100,12 +121,26 @@ export const LandingPage: React.FC = () => {
           </section>
 
           {/* Features Section */}
-          <section className="w-full py-20 bg-white dark:bg-gray-900">
+          <section 
+            aria-labelledby="features-heading" 
+            className="w-full py-20 bg-white dark:bg-gray-900"
+          >
+            <div className="text-center mb-8">
+              <h2 
+                id="features-heading" 
+                className="text-3xl font-bold text-gray-900 dark:text-white"
+              >
+                Powerful features for modern finance
+              </h2>
+            </div>
             <UnifiedDemo />
           </section>
 
           {/* Integration Section */}
-          <section className="w-full py-20 bg-gray-100 dark:bg-gray-800">
+          <section 
+            aria-labelledby="integrations-heading" 
+            className="w-full py-20 bg-gray-100 dark:bg-gray-800"
+          >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <motion.div
                 initial={{ y: 40, opacity: 0 }}
@@ -114,7 +149,10 @@ export const LandingPage: React.FC = () => {
                 viewport={{ once: true }}
                 className="text-center mb-16"
               >
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <h2 
+                  id="integrations-heading"
+                  className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white"
+                >
                   Seamlessly integrated with your favorite banks
                 </h2>
               </motion.div>
@@ -123,8 +161,17 @@ export const LandingPage: React.FC = () => {
           </section>
 
           {/* Testimonials Section */}
-          <section className="w-full py-20 bg-white dark:bg-gray-900">
+          <section 
+            aria-labelledby="testimonials-heading" 
+            className="w-full py-20 bg-white dark:bg-gray-900"
+          >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <h2 
+                id="testimonials-heading" 
+                className="sr-only"
+              >
+                Customer Testimonials
+              </h2>
               <Testimonials theme={isDarkMode ? 'dark' : 'light'} />
             </div>
           </section>

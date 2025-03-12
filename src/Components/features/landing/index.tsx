@@ -3,3 +3,4 @@ export { UnifiedDemo } from './UnifiedDemo';
 export { Testimonials } from './Testimonials';
 export { IntegrationLogos } from './IntegrationLogos';
 export { DemoVideo } from './DemoVideo';
+export { Hero } from './Hero';

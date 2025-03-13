@@ -62,12 +62,32 @@ This project uses ES modules for its JavaScript files, as specified by the `"typ
 
 Some tools like CRACO are built with CommonJS and expect to load configuration files using `require()`. When your project uses `"type": "module"`, this creates a conflict. We've implemented a dual-module approach:
 
-1. **craco.config.js**: ES module version (using `import`/`export`)
-2. **craco.config.cjs**: CommonJS version (using `require`/`module.exports`)
+1. **craco.config.cjs**: CommonJS version (using `require`/`module.exports`) that CRACO can load
 
 The `.cjs` extension explicitly tells Node.js to treat the file as CommonJS, regardless of the `"type"` setting in package.json.
 
-When updating configuration, make sure to update both files to keep them in sync.
+To make this work correctly:
+
+1. Make sure you only have a CommonJS version of the config file (craco.config.cjs)
+2. Set the `CRACO_CONFIG_PATH` environment variable to point to this file:
+   ```
+   CRACO_CONFIG_PATH=./craco.config.cjs
+   ```
+3. Update the npm scripts in package.json to include this environment variable:
+   ```json
+   "scripts": {
+     "start": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco start",
+     "build": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco build",
+     "test": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco test"
+   }
+   ```
+4. Configure Netlify to use this environment variable in netlify.toml:
+   ```toml
+   [build.environment]
+     CRACO_CONFIG_PATH = "./craco.config.cjs"
+   ```
+
+When updating configuration, make sure to update the CommonJS version of the file.
 
 ### File Extensions in ES Modules
 

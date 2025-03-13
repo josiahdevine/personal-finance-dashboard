@@ -9,7 +9,7 @@ import { AggregatedAccount } from './services/AccountAggregationService';
 import { Transaction } from './types/Transaction';
 
 // Pages and Components
-import { LandingPage } from './components/LandingPage';
+import { LandingPage } from './lower-components/LandingPage';
 import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';

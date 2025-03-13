@@ -77,6 +77,40 @@ For packages with index files or package.json "exports" configurations, you can 
 import React from 'react';
 ```
 
+### Component Import Extensions
+
+For our component bridge pattern, we need to include extensions when importing components:
+
+```javascript
+// In src/lower-components/index.js
+// Incorrect:
+export { LandingPage } from './LandingPage';
+
+// Correct:
+export { LandingPage } from './LandingPage.js';
+```
+
+And when importing from actual component files, include their correct extension:
+
+```javascript
+// In src/lower-components/LandingPage.js
+// Incorrect:
+export { LandingPage } from '../components/LandingPage';
+
+// Correct:
+export { LandingPage } from '../components/LandingPage.tsx';
+```
+
+When importing from our bridge in App.tsx or other files:
+
+```typescript
+// Incorrect:
+import { LandingPage, ErrorBoundary } from './lower-components';
+
+// Correct:
+import { LandingPage, ErrorBoundary } from './lower-components/index.js';
+```
+
 ### Webpack Configurations
 
 For webpack configurations that reference browser polyfills, make sure to include the file extension:

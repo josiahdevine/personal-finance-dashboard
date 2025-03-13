@@ -9,7 +9,7 @@ import { AggregatedAccount } from './services/AccountAggregationService';
 import { Transaction } from './types/Transaction';
 
 // Pages and Components
-import { LandingPage } from './lower-components/LandingPage';
+import { LandingPage, ErrorBoundary } from './lower-components';
 import { Register } from './components/auth/Register';
 import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -24,7 +24,6 @@ import AskAI from './components/features/ask-ai';
 import Settings from './components/features/dashboard/Settings';
 import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
-import ErrorBoundary from './ErrorBoundary';
 import ResponsiveDemo from './pages/ResponsiveDemo';
 import PerformanceComponentsDemo from './pages/PerformanceComponentsDemo';
 

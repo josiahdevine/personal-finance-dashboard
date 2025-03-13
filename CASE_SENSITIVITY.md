@@ -1,0 +1,103 @@
+# Handling Case Sensitivity in Cross-Environment Development
+
+This document provides guidance on managing case sensitivity issues between Windows and Linux/Unix environments, which is particularly important for our Netlify deployments.
+
+## Background
+
+Windows has a case-insensitive filesystem, while Linux/Unix (including Netlify's build environment) has a case-sensitive filesystem. This can lead to build failures when files are referenced with incorrect casing.
+
+For example, if you have a component `MyComponent.tsx` and import it as:
+
+```javascript
+import { MyComponent } from './components/mycomponent';
+```
+
+This will work on Windows but fail on Linux/Unix because the cases don't match.
+
+## Our Solution
+
+We've implemented three key solutions to address this:
+
+### 1. Component Bridge Pattern
+
+We created a `lower-components` directory that contains bridge files that re-export components with consistent casing:
+
+```
+src/
+├── lower-components/
+│   ├── index.js          // Central export file
+│   ├── ComponentName.js  // Individual bridge files
+```
+
+### 2. Helper Script
+
+We've created a helper script to automate the creation of bridge files:
+
+```bash
+# Basic usage
+node create-component-bridge.js ComponentName
+
+# For components in subdirectories
+node create-component-bridge.js Login auth
+```
+
+### 3. Git Configuration
+
+A `.gitattributes` file has been added to normalize line endings and help with consistency:
+
+```
+* text=auto eol=lf
+```
+
+## How to Fix Case Sensitivity Errors
+
+When you encounter a Netlify build error like:
+
+```
+Module not found: Error: Can't resolve './components/SomeComponent'
+```
+
+Follow these steps:
+
+1. Run the helper script:
+   ```bash
+   # For component directly in components directory
+   node create-component-bridge.js SomeComponent
+   
+   # For component in a subdirectory (e.g., components/auth/SomeComponent)
+   node create-component-bridge.js SomeComponent auth
+   ```
+
+2. Update your imports:
+   ```javascript
+   // Change this:
+   import { SomeComponent } from './components/SomeComponent';
+   
+   // To this:
+   import { SomeComponent } from './lower-components';
+   ```
+
+3. Commit and push your changes:
+   ```bash
+   git add src/lower-components/SomeComponent.js src/lower-components/index.js
+   git add [file with updated import]
+   git commit -m "Add SomeComponent bridge to fix case sensitivity"
+   git push
+   ```
+
+## Best Practices
+
+1. Use consistent naming conventions for files and directories
+2. Prefer lowercase for directory names
+3. For new components, update the imports to use the bridge immediately
+4. When refactoring, consider moving components to a case-consistent structure
+
+## Adding to an Existing Project
+
+If you're adding the case sensitivity solution to an existing project:
+
+1. Create the lower-components directory and index.js
+2. Create bridge files for components that have case sensitivity issues
+3. Update imports in your application
+4. Add the .gitattributes file
+5. Add the create-component-bridge.js helper script 

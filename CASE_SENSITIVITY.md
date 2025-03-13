@@ -58,6 +58,17 @@ This project uses ES modules for its JavaScript files, as specified by the `"typ
 3. Configuration files like `craco.config.js` must use ES module syntax
 4. File extensions are more important in ES modules
 
+### Configuration Files and Module Systems
+
+Some tools like CRACO are built with CommonJS and expect to load configuration files using `require()`. When your project uses `"type": "module"`, this creates a conflict. We've implemented a dual-module approach:
+
+1. **craco.config.js**: ES module version (using `import`/`export`)
+2. **craco.config.cjs**: CommonJS version (using `require`/`module.exports`)
+
+The `.cjs` extension explicitly tells Node.js to treat the file as CommonJS, regardless of the `"type"` setting in package.json.
+
+When updating configuration, make sure to update both files to keep them in sync.
+
 ### File Extensions in ES Modules
 
 When working with ES modules, be careful with imports that reference specific files (like browser polyfills):

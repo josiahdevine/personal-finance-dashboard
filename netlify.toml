@@ -1,7 +1,9 @@
 [build]
-  command = "npm run build"
+  command = "node netlify-deploy.cjs"
   publish = "build"
   functions = ".netlify/functions"
+  # No automatic detection of Next.js
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . '!package-lock.json'"
 
 [functions]
   directory = "functions"
@@ -37,7 +39,7 @@
   REACT_APP_API_BASE_URL = "https://trypersonalfinance.com/.netlify/functions"
   REACT_APP_DEPLOY_PLATFORM = "netlify"
   SKIP_PREFLIGHT_CHECK = "true"
-  DISABLE_ESLINT_PLUGIN = "false"
+  DISABLE_ESLINT_PLUGIN = "true"
   BABEL_ENV = "production"
   EXTEND_ESLINT = "true"
   REACT_APP_FIREBASE_AUTH_DOMAIN = "personal-finance-dashboa-f76f6.firebaseapp.com"

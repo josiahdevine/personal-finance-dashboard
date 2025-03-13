@@ -4,7 +4,7 @@ import Card from "../../common/Card";
 // import { useAnalytics } from '../../../hooks/useAnalytics';
 import { formatCurrency } from '../../../utils/formatters';
 import type { ChartOptions } from 'chart.js';
-import PlaidService from '../../../services/plaidService';
+import PlaidService from '../../../lower-components/plaidService';
 import { useAuth } from '../../../hooks/useAuth';
 
 interface TrendData {

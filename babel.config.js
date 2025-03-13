@@ -25,8 +25,11 @@ module.exports = {
   env: {
     development: {
       plugins: [
-        'react-refresh/babel'
+        ['react-refresh/babel', { skipEnvCheck: true }]
       ]
+    },
+    production: {
+      // No react-refresh in production
     },
     test: {
       plugins: [

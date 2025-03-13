@@ -107,10 +107,10 @@
     "zod": "^3.24.2"
   },
   "scripts": {
-    "start": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco start",
-    "build": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco build",
-    "build:prod": "npx cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false BABEL_ENV=production npx craco build",
-    "test": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco test",
+    "dev": "cross-env PORT=3000 BROWSER=none FAST_REFRESH=false craco start",
+    "start": "cross-env PORT=3000 BROWSER=none craco start",
+    "build": "cross-env FAST_REFRESH=false CRACO_CONFIG_PATH=./craco.config.cjs craco build",
+    "test": "craco test",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
     "test:isolated": "jest --config jest.isolated.config.js \"src/components/common/TimeFrameSelector|ThemeToggle\\.isolated\\.test\\.tsx$\"",

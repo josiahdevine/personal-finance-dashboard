@@ -2,10 +2,13 @@ import { format } from 'date-fns';
 
 /**
  * Format a number as currency
+ * @param amount The amount to format
+ * @param currency The currency code (default: 'USD')
+ * @returns Formatted currency string
  */
-export const currencyFormatter = (value: number | string, currency = 'USD'): string => {
+export function formatCurrency(amount: number | string, currency = 'USD'): string {
   // Convert string to number if needed
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  const numValue = typeof amount === 'string' ? parseFloat(amount) : amount;
   
   // Handle NaN case
   if (isNaN(numValue)) {
@@ -15,11 +18,37 @@ export const currencyFormatter = (value: number | string, currency = 'USD'): str
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(numValue);
-};
+}
 
 // Alias for backward compatibility
-export const formatCurrency = currencyFormatter;
+export const currencyFormatter = formatCurrency;
+
+/**
+ * Format a date
+ * @param date The date to format
+ * @returns Formatted date string
+ */
+export function formatDate(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(dateObj);
+}
+
+/**
+ * Format a percentage
+ * @param value The value to format as percentage
+ * @param decimals Number of decimal places
+ * @returns Formatted percentage string
+ */
+export function formatPercentage(value: number, decimals = 2): string {
+  return `${(value * 100).toFixed(decimals)}%`;
+}
 
 /**
  * Format a number as a percentage
@@ -31,9 +60,6 @@ export const percentFormatter = (value: number): string => {
     maximumFractionDigits: 2,
   }).format(value / 100);
 };
-
-// Alias for backward compatibility
-export const formatPercentage = percentFormatter;
 
 /**
  * Format a date to a string

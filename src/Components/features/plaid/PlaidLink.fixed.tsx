@@ -1,160 +1,126 @@
 import React, { useCallback, useState } from 'react';
-import { usePlaidLink, PlaidLinkOnSuccess, PlaidLinkOnSuccessMetadata, PlaidLinkOnEvent, PlaidLinkOnEventMetadata, PlaidLinkError, PlaidLinkOnExit, PlaidLinkOptions } from 'react-plaid-link';
+import { usePlaidLink, PlaidLinkOnSuccessMetadata, PlaidLinkError, PlaidLinkOnEventMetadata, PlaidLinkOptions } from 'react-plaid-link';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
-import PlaidService from '../../../services/plaidService';
+import PlaidService from '../../../lower-components/plaidService';
 import Button from '../../common/button/Button';
-
-// Add mocks for missing components
-// These will be replaced when we implement the actual components
-const Spinner = ({ size, className }: { size?: string, className?: string }) => (
-  <div className={`spinner ${size || ''} ${className || ''}`}>Loading...</div>
-);
-
-const Alert = ({ 
-  type, 
-  message, 
-  className,
-  onClose
-}: { 
-  type: string, 
-  message: string, 
-  className?: string,
-  onClose?: () => void 
-}) => (
-  <div className={`alert alert-${type} ${className || ''}`}>
-    {message}
-    {onClose && (
-      <button onClick={onClose} className="alert-close-btn">×</button>
-    )}
-  </div>
-);
+import { Alert } from '../../ui/Alert';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
 
 export interface PlaidLinkProps {
-  onSuccess?: (metadata: PlaidLinkOnSuccessMetadata) => void;
-  onExit?: (error: PlaidLinkError | null, metadata: Record<string, unknown>) => void;
+  onSuccess?: () => void;
+  onExit?: () => void;
   buttonText?: string;
+  isButton?: boolean;
   className?: string;
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success' | 'text' | 'ghost';
-  size?: 'xs' | 'sm' | 'md' | 'lg';
-  isFullWidth?: boolean;
-  customButton?: React.ReactNode;
-}
-
-// Define the response type for createLinkToken
-interface LinkTokenResponse {
-  link_token: string;
 }
 
 export const PlaidLink: React.FC<PlaidLinkProps> = ({
   onSuccess,
   onExit,
-  buttonText = 'Connect Bank Account',
-  className,
-  variant = 'primary',
-  size = 'md',
-  isFullWidth = false,
-  customButton,
+  buttonText = 'Link Account',
+  isButton = true,
+  className = '',
 }) => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [error, setError] = useState<string | null>(null);
-  const { execute: createLinkToken, isLoading } = useAsyncAction(PlaidService.createLinkToken);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string>('');
 
-  // Configure Plaid Link
+  const { execute: createLinkToken, isLoading } = useAsyncAction(async () => {
+    try {
+      setError(null);
+      const result = await PlaidService.createLinkToken();
+      setToken(result.link_token);
+      return result;
+    } catch (err) {
+      setError('Failed to create link token. Please try again later.');
+      throw err;
+    }
+  });
+
+  const onPlaidSuccess = useCallback(
+    async (publicToken: string, _metadata: PlaidLinkOnSuccessMetadata) => {
+      try {
+        setError(null);
+        await PlaidService.exchangePublicToken(publicToken, 'current-user');
+        onSuccess?.();
+      } catch (err) {
+        setError('Failed to link account. Please try again later.');
+        console.error('Plaid link error:', err);
+      }
+    },
+    [onSuccess]
+  );
+
+  const onPlaidExit = useCallback(
+    (err: null | PlaidLinkError, metadata: PlaidLinkOnEventMetadata) => {
+      if (err) {
+        console.error('Plaid link exit error:', err);
+      }
+      onExit?.();
+    },
+    [onExit]
+  );
+
   const config: PlaidLinkOptions = {
     token,
-    receivedRedirectUri: window.location.href,
-    onSuccess: (public_token: string, metadata: PlaidLinkOnSuccessMetadata) => {
-      if (!user) return;
-      try {
-        PlaidService.exchangePublicToken(public_token, user.id);
-        setError(null);
-        if (onSuccess) onSuccess(metadata);
-      } catch (err) {
-        console.error('Error exchanging public token:', err);
-        setError('Failed to connect your bank account. Please try again.');
-      }
+    onSuccess: (public_token, metadata) => {
+      onPlaidSuccess(public_token, metadata);
     },
-    onExit: (err?: PlaidLinkError | null, metadata?: any) => {
-      if (err && err.error_code !== 'USER_CLOSED') {
-        setError(`Connection error: ${err.display_message || err.error_message || 'Unknown error'}`);
-      }
-      if (onExit && metadata) onExit(err || null, metadata);
-    },
-    onEvent: (eventName: string, metadata: PlaidLinkOnEventMetadata) => {
-      console.debug('Plaid Link event:', eventName, metadata);
+    onExit,
+    onEvent: (eventName, metadata) => {
+      console.log('Plaid Link event:', eventName, metadata);
     },
   };
 
   const { open, ready } = usePlaidLink(config);
 
-  const handleCreateLinkToken = useCallback(async () => {
-    if (!user) return;
-    try {
-      const result = await createLinkToken([user.id]);
-      if (result && typeof result === 'object' && 'link_token' in result) {
-        const typedResult = result as LinkTokenResponse;
-        setToken(typedResult.link_token || '');
-        open();
-      } else {
-        throw new Error('Invalid token response');
-      }
-    } catch (err) {
-      console.error('Error creating link token:', err);
-      setError('Failed to initialize bank connection. Please try again later.');
+  const handleClick = useCallback(() => {
+    if (!token) {
+      createLinkToken().then(() => {
+        if (ready) open();
+      });
+    } else if (ready) {
+      open();
     }
-  }, [user, createLinkToken, open]);
+  }, [ready, open, token, createLinkToken]);
 
-  // If no user is authenticated, show login message
-  if (!user) {
+  if (isLoading) {
     return (
-      <Alert 
-        type="warning" 
-        message="Please log in to connect your bank account."
-        className={className}
-      />
+      <div className="flex justify-center items-center p-4">
+        <LoadingSpinner size="md" />
+      </div>
     );
   }
 
-  // Show custom button if provided
-  if (customButton) {
-    return React.cloneElement(customButton as React.ReactElement, {
-      onClick: handleCreateLinkToken,
-      disabled: isLoading || !ready,
-    });
+  if (error) {
+    return (
+      <Alert type="error" title="Error">
+        {error}
+      </Alert>
+    );
+  }
+
+  if (isButton) {
+    return (
+      <Button
+        onClick={handleClick}
+        isDisabled={isLoading}
+        className={className}
+        variant="primary"
+      >
+        {buttonText}
+      </Button>
+    );
   }
 
   return (
-    <div className={className}>
-      {error && (
-        <Alert 
-          type="error" 
-          message={error} 
-          className="mb-4"
-          onClose={() => setError(null)}
-        />
-      )}
-      
-      <Button
-        onClick={handleCreateLinkToken}
-        isDisabled={isLoading || !ready}
-        variant={variant}
-        size={size}
-        isFullWidth={isFullWidth}
-        className={typeof theme === 'string' && theme === 'dark' ? 'plaid-button-dark' : 'plaid-button-light'}
-      >
-        {isLoading ? (
-          <span className="flex items-center justify-center">
-            <Spinner size="small" className="mr-2" />
-            Connecting...
-          </span>
-        ) : (
-          buttonText
-        )}
-      </Button>
+    <div onClick={handleClick} className={`cursor-pointer ${className}`}>
+      {buttonText}
     </div>
   );
-}; 
+};
+
+export default PlaidLink; 

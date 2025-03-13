@@ -1,13 +1,20 @@
 import { useCallback, useState } from 'react';
 import { useAuth } from './useAuth';
-import { PlaidLinkOptions, PlaidLinkOnSuccess } from 'react-plaid-link';
+import { 
+  PlaidLinkOptions,
+  PlaidLinkOnSuccessMetadata,
+  PlaidLinkError,
+  PlaidLinkOnEventMetadata,
+  usePlaidLink as usePlaidLinkSDK
+} from 'react-plaid-link';
 
 interface UsePlaidLinkOptions {
-  onSuccess?: PlaidLinkOnSuccess;
-  onExit?: () => void;
+  onSuccess?: (public_token: string, metadata: PlaidLinkOnSuccessMetadata) => void;
+  onExit?: (error: PlaidLinkError | null, metadata: PlaidLinkOnEventMetadata) => void;
+  onEvent?: (eventName: string, metadata: PlaidLinkOnEventMetadata) => void;
 }
 
-export function usePlaidLink({ onSuccess, onExit }: UsePlaidLinkOptions = {}) {
+export function usePlaidLink({ onSuccess, onExit, onEvent }: UsePlaidLinkOptions = {}) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -44,7 +51,8 @@ export function usePlaidLink({ onSuccess, onExit }: UsePlaidLinkOptions = {}) {
     }
   }, [user]);
 
-  const config: PlaidLinkOptions = {
+  // Only create the config object when token is available
+  const config: PlaidLinkOptions | undefined = token ? {
     token,
     onSuccess: async (public_token, metadata) => {
       if (!user) {
@@ -76,19 +84,26 @@ export function usePlaidLink({ onSuccess, onExit }: UsePlaidLinkOptions = {}) {
         setError(err instanceof Error ? err : new Error('Failed to exchange token'));
       }
     },
-    onExit: () => {
+    onExit: (err, metadata) => {
+      if (err) {
+        setError(new Error(err.display_message || err.error_message));
+      }
       setToken(null);
       if (onExit) {
-        onExit();
+        onExit(err, metadata);
       }
     },
-  };
+    onEvent: onEvent,
+  } : undefined;
+
+  // Use the Plaid SDK's hook with our config, only when config is defined
+  const { open, ready, error: plaidError } = usePlaidLinkSDK(config as PlaidLinkOptions);
 
   return {
-    ready: !!token && !isLoading,
-    error,
+    ready: !!token && ready && !isLoading,
+    error: error || plaidError,
     generateToken,
-    config,
+    open,
   };
 }
 

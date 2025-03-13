@@ -92,12 +92,31 @@ const PlaidIntegration: React.FC = () => {
     }
   }, []);
 
-  const config = {
+  // Only create config when we have a token
+  const config = linkToken ? {
     token: linkToken,
     onSuccess,
-  };
+    onExit: (err: any) => {
+      if (err) {
+        setError(`Plaid Error: ${err.display_message || err.error_message || 'Unknown error'}`);
+      }
+    }
+  } : null;
 
-  const { open, ready } = usePlaidLink(config);
+  // Always call the hook, but with a null-safe approach
+  const { open, ready } = usePlaidLink(config || { 
+    token: '', 
+    onSuccess: (_public_token: string) => { /* no-op */ } 
+  });
+
+  // Define a safe open function that only calls Plaid's open when we have a token
+  const handleOpen = useCallback(() => {
+    if (linkToken && ready) {
+      open();
+    } else {
+      setError('Plaid Link is not ready yet. Please try again.');
+    }
+  }, [linkToken, open, ready]);
 
   if (loading) {
     return (
@@ -116,8 +135,8 @@ const PlaidIntegration: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Connected Accounts</h1>
         <button
-          onClick={() => open()}
-          disabled={!ready}
+          onClick={handleOpen}
+          disabled={!linkToken || !ready}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
         >
           Connect New Account

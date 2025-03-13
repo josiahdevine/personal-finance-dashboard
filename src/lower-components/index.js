@@ -5,6 +5,7 @@
 export { default as ErrorBoundary } from './ErrorBoundary.js';
 export { LandingPage } from './LandingPage.js';
 export { Login } from './Login.js';
+export { plaidService } from './plaidService.js';
 
 // Re-export UI components 
 // (ADD MORE AS NEEDED)

@@ -67,4 +67,12 @@ module.exports = {
       return webpackConfig;
     },
   },
+  // Add Babel configuration to address React Refresh error
+  babel: {
+    plugins: [
+      // Add React Refresh with skipEnvCheck to prevent production build errors
+      process.env.NODE_ENV !== 'production' ? 
+        ['react-refresh/babel', { skipEnvCheck: true }] : null
+    ].filter(Boolean),
+  },
 }; 

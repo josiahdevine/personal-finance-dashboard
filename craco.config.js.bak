@@ -1,7 +1,9 @@
+// Import webpack instead of requiring it
 import webpack from 'webpack';
+// Import other dependencies
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
-import cryptoBrowserify from 'crypto-browserify';
+import crypto from 'crypto-browserify';
 import streamBrowserify from 'stream-browserify';
 import assert from 'assert';
 import streamHttp from 'stream-http';
@@ -11,8 +13,10 @@ import url from 'url';
 import util from 'util';
 import buffer from 'buffer';
 import pathBrowserify from 'path-browserify';
-import processBrowser from 'process/browser.js';
+// Fix the process import by using process directly
+import process from 'process';
 
+// Export default config instead of using module.exports
 export default {
   style: {
     postcss: {
@@ -26,7 +30,7 @@ export default {
     configure: (webpackConfig) => {
       webpackConfig.resolve.fallback = {
         ...webpackConfig.resolve.fallback,
-        crypto: cryptoBrowserify,
+        crypto: crypto,
         stream: streamBrowserify,
         assert: assert,
         http: streamHttp,
@@ -36,7 +40,8 @@ export default {
         util: util,
         buffer: buffer,
         path: pathBrowserify,
-        process: processBrowser,
+        // Change to use a string reference for process
+        process: 'process/browser.js',
         fs: false,
         net: false,
         tls: false,
@@ -77,4 +82,4 @@ export default {
       return webpackConfig;
     },
   },
-}; 
+};

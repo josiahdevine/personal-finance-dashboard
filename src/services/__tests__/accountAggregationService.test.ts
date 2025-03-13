@@ -1,5 +1,5 @@
 import { AccountAggregationService } from '../AccountAggregationService';
-import PlaidService from '../plaidService';
+import PlaidService from '../../lower-components/plaidService';
 import { Account } from '../../types/models';
 
 jest.mock('../plaidService', () => ({

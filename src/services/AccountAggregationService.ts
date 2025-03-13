@@ -1,4 +1,4 @@
-import PlaidService from './plaidService';
+import PlaidService from '../lower-components/plaidService';
 
 export interface AccountBalance {
   available: number;
@@ -161,19 +161,19 @@ export class AccountAggregationService {
   private async aggregatePlaidAccounts(): Promise<AggregatedAccount[]> {
     try {
       const plaidAccounts = await PlaidService.getAccounts();
-      return plaidAccounts.map((account) => {
+      return plaidAccounts.map((account: any) => {
         // Create a properly structured AggregatedAccount
         const aggregatedAccount: AggregatedAccount = {
-          id: account.plaid_account_id,
-          name: account.name,
-          type: account.type,
+          id: account.account_id || account.id || `plaid-${Math.random().toString(36).substring(2, 10)}`,
+          name: account.name || 'Unnamed Account',
+          type: account.type || 'depository',
           balance: {
-            current: account.balance || 0,
-            available: account.available_balance !== null ? account.available_balance : account.balance
+            current: account.balance || account.balances?.current || 0,
+            available: account.available_balance || account.balances?.available || account.balance || 0
           },
-          currency: account.currency_code || 'USD',
+          currency: account.currency_code || account.balances?.isoCurrencyCode || 'USD',
           source: 'plaid' as const,
-          institution: account.institution_name,
+          institution: account.institution_name || account.institution || 'Unknown Institution',
           lastUpdated: new Date()
         };
         return aggregatedAccount;

@@ -12,6 +12,17 @@ interface SessionUser {
   image?: string;
 }
 
+// Define types for the balance history records
+interface BalanceHistoryRecord {
+  date: Date;
+  balance: number;
+  account: {
+    id: string;
+    name: string;
+    type: string;
+  };
+}
+
 // Define type for the net worth data
 interface NetWorthData {
   date: string;
@@ -98,7 +109,7 @@ export default async function handler(
       });
       
       // Group by date and calculate net worth
-      const netWorthByDate = balanceHistory.reduce<Record<string, NetWorthData>>((acc, record) => {
+      const netWorthByDate = balanceHistory.reduce((acc: Record<string, NetWorthData>, record: BalanceHistoryRecord) => {
         const dateStr = record.date.toISOString().split('T')[0];
         
         if (!acc[dateStr]) {
@@ -112,20 +123,18 @@ export default async function handler(
         }
         
         // Add balance to the appropriate category
-        const isLiability = record.account?.type === 'CREDIT_CARD' || 
-                           record.account?.type === 'LOAN' || 
-                           record.account?.type === 'MORTGAGE';
+        const isLiability = record.account.type === 'CREDIT_CARD' || 
+                           record.account.type === 'LOAN' || 
+                           record.account.type === 'MORTGAGE';
         
         const balance = isLiability ? -record.balance : record.balance;
         
-        if (record.account) {
-          acc[dateStr].accounts[record.account.id] = {
-            id: record.account.id,
-            name: record.account.name,
-            type: record.account.type,
-            balance: record.balance,
-          };
-        }
+        acc[dateStr].accounts[record.account.id] = {
+          id: record.account.id,
+          name: record.account.name,
+          type: record.account.type,
+          balance: record.balance,
+        };
         
         if (isLiability) {
           acc[dateStr].liabilities += record.balance;

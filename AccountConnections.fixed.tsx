@@ -6,25 +6,12 @@ import { Modal } from '../../components/ui/modal';
 import { PlaidLink } from '../../components/features/plaid/PlaidLink';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
-interface Account {
-  id: string;
-  name: string;
-  balance: number;
-  institutionId: string;
-  lastUpdated: string | Date;
-}
-
-interface Institution {
-  id: string;
-  name: string;
-}
-
 export const AccountConnections: React.FC = () => {
   const [isPlaidModalOpen, setIsPlaidModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch connected accounts
-  const { data: accounts = [], isLoading } = useQuery<Account[]>({
+  const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts'],
     queryFn: async () => {
       const response = await fetch('/api/accounts');
@@ -36,7 +23,7 @@ export const AccountConnections: React.FC = () => {
   });
 
   // Fetch institutions for display
-  const { data: institutions = [] } = useQuery<Institution[]>({
+  const { data: institutions = [] } = useQuery({
     queryKey: ['institutions'],
     queryFn: async () => {
       const response = await fetch('/api/institutions');
@@ -71,7 +58,7 @@ export const AccountConnections: React.FC = () => {
   };
 
   const getInstitutionName = (institutionId: string) => {
-    const institution = institutions.find((i: Institution) => i.id === institutionId);
+    const institution = institutions.find(i => i.id === institutionId);
     return institution?.name || 'Unknown Institution';
   };
 
@@ -95,7 +82,7 @@ export const AccountConnections: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map((account: Account) => (
+          {accounts.map((account) => (
             <Card key={account.id}>
               <div className="p-4">
                 <div className="flex justify-between items-start">
@@ -138,7 +125,9 @@ export const AccountConnections: React.FC = () => {
               <PlaidLink
                 onSuccess={handlePlaidSuccess}
                 buttonText="Connect Bank Account"
-                className="w-full"
+                variant="primary"
+                size="md"
+                isFullWidth
               />
             </div>
           </Card>

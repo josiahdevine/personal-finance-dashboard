@@ -30,6 +30,7 @@
   CI = "false"
   NODE_ENV = "production"
   GENERATE_SOURCEMAP = "false"
+  CRACO_CONFIG_PATH = "./craco.config.cjs"
   REACT_APP_ENV = "production"
   REACT_APP_DOMAIN = "trypersonalfinance.com"
   REACT_APP_API_URL = "https://trypersonalfinance.com/.netlify/functions"

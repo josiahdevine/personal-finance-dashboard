@@ -15,6 +15,7 @@ services:
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true # For hot reloading in a Docker container
+      - CRACO_CONFIG_PATH=./craco.config.cjs # Point to the CommonJS version of the config
     # Keep the container running in interactive mode
     stdin_open: true
     tty: true

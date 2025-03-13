@@ -107,17 +107,18 @@
     "zod": "^3.24.2"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
+    "start": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco start",
+    "build": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco build",
     "build:prod": "npx cross-env NODE_ENV=production CI=false GENERATE_SOURCEMAP=false BABEL_ENV=production npx craco build",
-    "test": "jest --config jest.config.js",
+    "test": "cross-env CRACO_CONFIG_PATH=./craco.config.cjs craco test",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
     "test:isolated": "jest --config jest.isolated.config.js \"src/components/common/TimeFrameSelector|ThemeToggle\\.isolated\\.test\\.tsx$\"",
     "test:isolated:watch": "jest --config jest.isolated.config.js --watch",
     "test:isolated:coverage": "jest --config jest.isolated.config.js --coverage",
     "test:features": "jest --config jest.config.js \"src/components/features/dashboard/SalaryJournal/__tests__/SalaryJournal.test.tsx|src/components/features/bills/__tests__/Bills.test.tsx\"",
-    "test:ci": "jest --config jest.config.js --ci --coverage"
+    "test:ci": "jest --config jest.config.js --ci --coverage",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

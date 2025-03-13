@@ -49,6 +49,26 @@ A `.gitattributes` file has been added to normalize line endings and help with c
 * text=auto eol=lf
 ```
 
+## Module Compatibility
+
+This project uses ES modules for its JavaScript files, as specified by the `"type": "module"` in package.json. This means:
+
+1. All `.js` files are treated as ES modules
+2. Use `import` and `export` syntax instead of `require` and `module.exports`
+3. Configuration files like `craco.config.js` must use ES module syntax
+
+When modifying configuration files or scripts, make sure to use the proper module syntax:
+
+```javascript
+// ES Modules (correct)
+import webpack from 'webpack';
+export default { /* config */ };
+
+// CommonJS (incorrect for this project)
+const webpack = require('webpack');
+module.exports = { /* config */ };
+```
+
 ## How to Fix Case Sensitivity Errors
 
 When you encounter a Netlify build error like:
@@ -91,6 +111,7 @@ Follow these steps:
 2. Prefer lowercase for directory names
 3. For new components, update the imports to use the bridge immediately
 4. When refactoring, consider moving components to a case-consistent structure
+5. Ensure all JS configuration files use ES module syntax
 
 ## Adding to an Existing Project
 

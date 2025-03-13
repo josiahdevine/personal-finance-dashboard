@@ -8,6 +8,10 @@ import { RecentTransactionsWidget } from '../../components/features/dashboard/Re
 import { BudgetOverview } from '../../components/features/dashboard/BudgetOverview';
 import { CashFlowWidget } from '../../components/features/dashboard/CashFlowWidget';
 import { ResponsiveGrid } from '../../components/layout/ResponsiveContainer';
+import { Card, ExpandableCard } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import { cn } from '../../lib/utils';
 import {
   HomeIcon,
   CreditCardIcon,
@@ -27,6 +31,8 @@ import {
   ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { IconType } from 'react-icons';
+import { AnimatePresence, motion } from 'framer-motion';
+import { NavLink } from 'react-router-dom';
 
 // Convert Heroicons to IconType compatible format
 const iconWrapper = (Icon: React.ElementType): IconType => {
@@ -78,6 +84,10 @@ const mockBudgetCategories = [
   { category: 'Healthcare', spent: 150, budgeted: 200, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
   { category: 'Insurance', spent: 120, budgeted: 150, categoryIcon: <CreditCardIcon className="h-4 w-4" /> },
 ];
+
+// Calculate total spent and budgeted
+const totalSpent = mockBudgetCategories.reduce((sum, item) => sum + item.spent, 0);
+const totalBudgeted = mockBudgetCategories.reduce((sum, item) => sum + item.budgeted, 0);
 
 // Mock transaction data
 const mockTransactions = [
@@ -177,79 +187,227 @@ const mockDaysUntilLow = 12;
 const Dashboard: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [timeFrame, setTimeFrame] = useState('all');
+  const [userName, setUserName] = useState('');
 
   if (!isAuthenticated) {
     window.location.href = '/login';
     return null;
   }
 
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const timeFrameOptions = [
+    { value: 'all', label: 'All Time' },
+    { value: 'month', label: 'This Month' },
+    { value: 'year', label: 'This Year' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <EnhancedHeader 
+    <div className="min-h-screen bg-background flex flex-col">
+      <EnhancedHeader
         theme={theme}
         onThemeToggle={toggleTheme}
-        className="w-full"
+        onMenuClick={toggleSidebar}
+        isSidebarCollapsed={sidebarCollapsed}
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       />
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="p-4 lg:p-6 max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Welcome back! Here's an overview of your finances.
-            </p>
+      
+      <div className="flex flex-1">
+        {/* Sidebar with animation */}
+        <AnimatePresence mode="wait">
+          <motion.aside
+            key="sidebar"
+            initial={{ width: sidebarCollapsed ? 70 : 240 }}
+            animate={{ width: sidebarCollapsed ? 70 : 240 }}
+            exit={{ width: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed h-[calc(100vh-4rem)] top-16 left-0 z-40 bg-background border-r"
+          >
+            {navigationItems.map((item) => (
+              <NavLink 
+                key={item.id}
+                to={item.path}
+                className={({ isActive }) => cn(
+                  "flex items-center h-10 px-4 my-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors",
+                  isActive && "bg-muted font-medium text-foreground",
+                  sidebarCollapsed ? "justify-center" : "justify-start"
+                )}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!sidebarCollapsed && (
+                  <span className="ml-3 truncate">{item.title}</span>
+                )}
+              </NavLink>
+            ))}
+          </motion.aside>
+        </AnimatePresence>
+        
+        <main className={cn(
+          "flex-1 min-h-[calc(100vh-4rem)] transition-all duration-300",
+          sidebarCollapsed ? "ml-[70px]" : "ml-[240px]"
+        )}>
+          <div className="p-4 md:p-6 max-w-7xl mx-auto">
+            {/* Dashboard Header */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+              <p className="text-muted-foreground">Welcome back, {userName || 'User'}!</p>
+            </div>
+            
+            {/* Time Frame Selector */}
+            <div className="mb-6 flex justify-end">
+              <Tabs defaultValue="all" className="w-auto">
+                <TabsList>
+                  {timeFrameOptions.map(option => (
+                    <TabsTrigger
+                      key={option.value}
+                      value={option.value}
+                      onClick={() => setTimeFrame(option.value)}
+                    >
+                      {option.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            {/* Main Dashboard Content */}
+            <section className="space-y-6">
+              {/* Accounts Overview */}
+              <ResponsiveGrid columns={{ base: 1, lg: 2 }} gap="6">
+                <AccountSummary 
+                  accounts={mockAccounts} 
+                  totalBalance={totalBalance}
+                  onAccountClick={(id) => console.log('Account clicked:', id)}
+                  onAddAccount={() => console.log('Add account clicked')}
+                />
+                
+                <ExpandableCard
+                  title="Health Score"
+                  description="Overall financial health assessment"
+                  defaultExpanded={true}
+                  headerActions={
+                    <Button variant="ghost" size="sm" onClick={() => console.log('Health details')}>
+                      Details
+                    </Button>
+                  }
+                >
+                  <div className="flex flex-col items-center py-6">
+                    <div className="relative mb-4">
+                      <svg className="w-40 h-40">
+                        <circle
+                          className="text-muted stroke-current"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          fill="transparent"
+                          r="70"
+                          cx="80"
+                          cy="80"
+                        />
+                        <circle
+                          className="text-primary stroke-current"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={440}
+                          strokeDashoffset={440 - (440 * mockHealthScore.score) / 100}
+                          fill="transparent"
+                          r="70"
+                          cx="80"
+                          cy="80"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center flex-col">
+                        <span className="text-4xl font-bold">{mockHealthScore.score}</span>
+                        <span className="text-muted-foreground text-sm">out of 100</span>
+                      </div>
+                    </div>
+                    <div className="text-center space-y-2">
+                      <p className="text-muted-foreground">
+                        {mockHealthScore.score > mockHealthScore.previousScore 
+                          ? `+${mockHealthScore.score - mockHealthScore.previousScore} since last month` 
+                          : `${mockHealthScore.score - mockHealthScore.previousScore} since last month`}
+                      </p>
+                      <div className="border p-3 rounded-md bg-muted/30">
+                        <p className="font-medium">Top Recommendation</p>
+                        <p className="text-sm text-muted-foreground">{mockHealthScore.topRecommendation}</p>
+                      </div>
+                    </div>
+                  </div>
+                </ExpandableCard>
+              </ResponsiveGrid>
+              
+              {/* Budget & Transactions */}
+              <ResponsiveGrid columns={{ base: 1, lg: 2 }} gap="6">
+                <BudgetOverview 
+                  budgets={mockBudgetCategories} 
+                  totalSpent={totalSpent}
+                  totalBudgeted={totalBudgeted}
+                  period={timeFrame === 'month' ? 'This Month' : timeFrame === 'year' ? 'This Year' : 'All Time'}
+                />
+                
+                <RecentTransactionsWidget 
+                  transactions={mockTransactions} 
+                />
+              </ResponsiveGrid>
+              
+              {/* Cash Flow & Goals */}
+              <ResponsiveGrid columns={{ base: 1, lg: 2 }} gap="6">
+                <CashFlowWidget 
+                  data={mockCashFlowData}
+                  currentBalance={mockCurrentBalance}
+                  projectedLow={mockProjectedLow}
+                  projectedHigh={mockProjectedHigh}
+                  daysUntilLow={mockDaysUntilLow}
+                  timeframe={timeFrame === 'month' ? '30d' : timeFrame === 'year' ? '90d' : '7d'}
+                />
+                
+                <ExpandableCard
+                  title="Upcoming Bills"
+                  description="Your scheduled payments"
+                  defaultExpanded={true}
+                  headerActions={
+                    <Button variant="ghost" size="sm" onClick={() => console.log('View all bills')}>
+                      View All
+                    </Button>
+                  }
+                >
+                  <div className="space-y-4 py-2">
+                    {[
+                      { name: 'Rent', amount: 1200, due: '2023-12-01', paid: false },
+                      { name: 'Internet', amount: 75, due: '2023-12-05', paid: false },
+                      { name: 'Phone', amount: 85, due: '2023-12-10', paid: false },
+                    ].map((bill, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-3 border rounded-md"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{bill.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            Due {new Date(bill.due).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">${bill.amount}</span>
+                          <Button 
+                            variant={bill.paid ? "ghost" : "default"} 
+                            size="sm"
+                          >
+                            {bill.paid ? 'Paid' : 'Pay Now'}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ExpandableCard>
+              </ResponsiveGrid>
+            </section>
           </div>
-
-          {/* Main Dashboard Grid */}
-          <div className="space-y-6">
-            {/* Top row - Account Summary */}
-            <AccountSummary 
-              accounts={mockAccounts}
-              totalBalance={totalBalance}
-              isLoading={false} 
-              onAddAccount={() => console.log('Add account clicked')}
-            />
-
-            {/* Middle row - Health Score and Cash Flow */}
-            <ResponsiveGrid columns={{ base: 1, lg: 2 }} gap="6">
-              <HealthScoreWidget
-                score={mockHealthScore.score}
-                previousScore={mockHealthScore.previousScore}
-                topRecommendation={mockHealthScore.topRecommendation}
-                isLoading={false}
-                onViewDetails={() => console.log('View health details clicked')}
-              />
-              <CashFlowWidget
-                data={mockCashFlowData}
-                currentBalance={mockCurrentBalance}
-                projectedLow={mockProjectedLow}
-                projectedHigh={mockProjectedHigh}
-                daysUntilLow={mockDaysUntilLow}
-                isLoading={false}
-                onViewDetails={() => console.log('View cash flow details clicked')}
-              />
-            </ResponsiveGrid>
-
-            {/* Bottom row - Budget Overview and Recent Transactions */}
-            <ResponsiveGrid columns={{ base: 1, lg: 2 }} gap="6">
-              <BudgetOverview
-                budgets={mockBudgetCategories}
-                totalSpent={mockBudgetCategories.reduce((acc, curr) => acc + curr.spent, 0)}
-                totalBudgeted={mockBudgetCategories.reduce((acc, curr) => acc + curr.budgeted, 0)}
-                period="July 2023"
-                isLoading={false}
-                onViewDetails={() => console.log('View budget details clicked')}
-              />
-              <RecentTransactionsWidget
-                transactions={mockTransactions}
-                isLoading={false}
-                onViewAll={() => console.log('View all transactions clicked')}
-              />
-            </ResponsiveGrid>
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

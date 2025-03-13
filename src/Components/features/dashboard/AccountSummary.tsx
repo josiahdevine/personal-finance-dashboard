@@ -1,10 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Card from "../../../components/common/card_component/Card";
-import StatCard from '../../../components/common/stat-card/StatCard';
-import { ResponsiveContainer } from '../../../components/layout/ResponsiveContainer';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Skeleton } from "../../../components/ui/skeleton";
+import { ResponsiveContainer, ResponsiveGrid } from '../../../components/layout/ResponsiveContainer';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { formatCurrency } from '../../../utils/formatters';
+import { cn } from '../../../lib/utils';
 import { 
   PlusCircleIcon, 
   BanknotesIcon,
@@ -34,34 +36,34 @@ export interface AccountSummaryProps {
 // Account type colors and icons for visual distinction
 const accountTypeConfig: Record<string, { color: string; darkColor: string; icon: React.ReactNode }> = {
   checking: { 
-    color: 'bg-blue-100', 
-    darkColor: 'bg-blue-900',
+    color: 'bg-blue-100 text-blue-800', 
+    darkColor: 'bg-blue-900 text-blue-100',
     icon: <BanknotesIcon className="h-5 w-5" />
   },
   savings: { 
-    color: 'bg-green-100', 
-    darkColor: 'bg-green-900',
+    color: 'bg-green-100 text-green-800', 
+    darkColor: 'bg-green-900 text-green-100',
     icon: <ArrowTrendingUpIcon className="h-5 w-5" />
   },
   investment: { 
-    color: 'bg-purple-100', 
-    darkColor: 'bg-purple-900',
+    color: 'bg-purple-100 text-purple-800', 
+    darkColor: 'bg-purple-900 text-purple-100',
     icon: <ArrowTrendingUpIcon className="h-5 w-5" />
   },
   credit: { 
-    color: 'bg-orange-100', 
-    darkColor: 'bg-orange-900',
+    color: 'bg-orange-100 text-orange-800', 
+    darkColor: 'bg-orange-900 text-orange-100',
     icon: <BanknotesIcon className="h-5 w-5" />
   },
   loan: { 
-    color: 'bg-red-100', 
-    darkColor: 'bg-red-900',
+    color: 'bg-red-100 text-red-800', 
+    darkColor: 'bg-red-900 text-red-100',
     icon: <BanknotesIcon className="h-5 w-5" />
   },
   // Default for any other type
   default: { 
-    color: 'bg-gray-100', 
-    darkColor: 'bg-gray-800',
+    color: 'bg-gray-100 text-gray-800', 
+    darkColor: 'bg-gray-800 text-gray-100',
     icon: <BanknotesIcon className="h-5 w-5" />
   }
 };
@@ -78,6 +80,14 @@ export const AccountSummary: React.FC<AccountSummaryProps> = ({
   const { isDarkMode } = useTheme();
   
   // Handle account click with animation
+  const handleKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleAccountClick(id);
+    }
+  };
+  
+  // Handle account click with animation
   const handleAccountClick = (id: string) => {
     if (onAccountClick) {
       onAccountClick(id);
@@ -87,123 +97,128 @@ export const AccountSummary: React.FC<AccountSummaryProps> = ({
   // Loading state with skeleton UI
   if (isLoading) {
     return (
-      <Card className={`overflow-hidden ${className}`}>
-        <Card.Header>
-          <div className="animate-pulse flex justify-between items-center w-full">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+      <Card className={cn("overflow-hidden", className)}>
+        <CardHeader>
+          <div className="flex justify-between items-center w-full">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-8 w-1/4" />
           </div>
-        </Card.Header>
-        <Card.Body>
-          <div className="animate-pulse flex flex-col space-y-4">
-            <div className="h-14 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4">
+            <Skeleton className="h-14 w-full" />
             <div className="flex space-x-4 overflow-x-auto pb-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex-shrink-0 h-28 bg-gray-200 dark:bg-gray-700 rounded w-64"></div>
-              ))}
+              <Skeleton className="h-20 w-48 flex-shrink-0" />
+              <Skeleton className="h-20 w-48 flex-shrink-0" />
+              <Skeleton className="h-20 w-48 flex-shrink-0" />
             </div>
           </div>
-        </Card.Body>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={`overflow-hidden ${className}`}>
-      <Card.Header className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Accounts Summary</h2>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          Total Balance: <span className="font-semibold text-base">{formatCurrency(totalBalance)}</span>
-        </div>
-      </Card.Header>
-      <Card.Body>
-        {/* Total Balance Stat Card */}
-        <div className="mb-4">
-          <StatCard
-            title="Total Balance"
-            value={totalBalance}
-            formatter={formatCurrency}
-            icon={<BanknotesIcon className="h-6 w-6" />}
-            iconBackground="primary"
-          />
-        </div>
-
-        {/* Scrollable Account Cards */}
-        <ResponsiveContainer>
-          <h3 className="text-base font-medium mb-3 text-gray-700 dark:text-gray-300">
-            Your Accounts
-          </h3>
-          
-          <div className="flex space-x-4 overflow-x-auto pb-2">
-            <AnimatePresence>
-              {accounts.map((account) => {
-                const accountType = account.type.toLowerCase();
-                const config = accountTypeConfig[accountType] || accountTypeConfig.default;
-                
-                return (
-                  <motion.div
-                    key={account.id}
-                    className={`
-                      flex-shrink-0 p-4 rounded-lg shadow-sm border cursor-pointer
-                      transition-all duration-200 hover:shadow-md
-                      ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}
-                    `}
-                    style={{ width: '250px' }}
-                    onClick={() => handleAccountClick(account.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    layoutId={`account-card-${account.id}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-start mb-3">
-                      <div className={`p-2 rounded-md mr-3 ${isDarkMode ? config.darkColor : config.color}`}>
-                        {config.icon}
-                      </div>
-                      <div className="flex-1 truncate">
-                        <h4 className="font-medium text-base truncate">{account.name}</h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 capitalize truncate">
-                          {account.institution ? `${account.institution} · ` : ''}
-                          {account.type}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="font-semibold text-lg">{formatCurrency(account.balance)}</div>
-                    {account.lastUpdated && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Updated {account.lastUpdated.toLocaleDateString()}
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-              
-              {/* Add Account Button */}
-              {showAddAccount && (
-                <motion.div
-                  className={`
-                    flex-shrink-0 p-4 rounded-lg border border-dashed cursor-pointer
-                    flex flex-col items-center justify-center
-                    ${isDarkMode 
-                      ? 'border-gray-700 hover:border-gray-500' 
-                      : 'border-gray-300 hover:border-gray-400'
-                    }
-                  `}
-                  style={{ width: '250px', minHeight: '160px' }}
-                  onClick={onAddAccount}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+    <ResponsiveContainer className={cn("p-0", className)}>
+      <Card variant="dashboard" className="w-full h-full">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-xl font-bold">Accounts Summary</CardTitle>
+          <span className="text-2xl font-bold">
+            {formatCurrency(totalBalance)}
+          </span>
+        </CardHeader>
+        
+        <CardContent>
+          {accounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <p className="text-muted-foreground mb-4">No accounts connected yet</p>
+              {showAddAccount && onAddAccount && (
+                <Button 
+                  onClick={onAddAccount} 
+                  className="flex items-center"
                 >
-                  <PlusCircleIcon className="h-10 w-10 mb-2 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-500">Add Account</span>
-                </motion.div>
+                  <PlusCircleIcon className="h-5 w-5 mr-2" />
+                  Connect Account
+                </Button>
               )}
-            </AnimatePresence>
-          </div>
-        </ResponsiveContainer>
-      </Card.Body>
-    </Card>
+            </div>
+          ) : (
+            <>
+              <ResponsiveGrid
+                columns={{ base: 1, md: 2 }}
+                gap="4"
+                className="mb-4"
+              >
+                <AnimatePresence>
+                  {accounts.map((account) => {
+                    const config = accountTypeConfig[account.type.toLowerCase()] || accountTypeConfig.default;
+                    const colorClass = isDarkMode ? config.darkColor : config.color;
+                    
+                    return (
+                      <motion.div
+                        key={account.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className="w-full"
+                      >
+                        <div
+                          className={cn(
+                            "flex items-center rounded-lg p-4 border", 
+                            onAccountClick && "cursor-pointer hover:shadow-md transition-shadow"
+                          )}
+                          onClick={() => onAccountClick && handleAccountClick(account.id)}
+                          onKeyDown={(e) => onAccountClick && handleKeyDown(e, account.id)}
+                          tabIndex={onAccountClick ? 0 : undefined}
+                          role={onAccountClick ? "button" : undefined}
+                          aria-label={onAccountClick ? `View details for ${account.name}` : undefined}
+                        >
+                          <div className={cn(
+                            "flex items-center justify-center p-3 rounded-full mr-4", 
+                            colorClass
+                          )}>
+                            {config.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-medium truncate">{account.name}</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {account.institution || account.type}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-base font-semibold">
+                              {formatCurrency(account.balance)}
+                            </p>
+                            {account.lastUpdated && (
+                              <p className="text-xs text-muted-foreground">
+                                Updated {new Date(account.lastUpdated).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </ResponsiveGrid>
+              
+              {showAddAccount && onAddAccount && (
+                <CardFooter className="justify-center pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={onAddAccount} 
+                    className="flex items-center w-full sm:w-auto"
+                  >
+                    <PlusCircleIcon className="h-5 w-5 mr-2" />
+                    Connect Another Account
+                  </Button>
+                </CardFooter>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </ResponsiveContainer>
   );
 }; 

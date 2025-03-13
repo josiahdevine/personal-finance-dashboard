@@ -60,6 +60,7 @@ export function usePlaidLink({ onSuccess, onExit, onEvent }: UsePlaidLinkOptions
         return;
       }
 
+      setIsLoading(true);
       try {
         const response = await fetch('/api/plaid/exchange-token', {
           method: 'POST',
@@ -82,6 +83,8 @@ export function usePlaidLink({ onSuccess, onExit, onEvent }: UsePlaidLinkOptions
         }
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to exchange token'));
+      } finally {
+        setIsLoading(false);
       }
     },
     onExit: (err, metadata) => {
@@ -104,6 +107,7 @@ export function usePlaidLink({ onSuccess, onExit, onEvent }: UsePlaidLinkOptions
     error: error || plaidError,
     generateToken,
     open,
+    isLoading,
   };
 }
 

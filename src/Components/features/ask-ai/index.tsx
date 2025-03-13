@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { TransactionRepository } from '../../../models/TransactionRepository';
 import { BudgetEntryRepository } from '../../../models/BudgetRepository';
 import { EnhancedInput } from "../../ui/enhanced-input";
+import { AskAIProps } from '../../../types/props';
 
 interface Message {
   id: string;
@@ -31,8 +32,15 @@ interface FinancialInsight {
  * - Financial insights based on user data
  * - Chat history and conversation UI
  * - Suggested questions for quicker interaction
+ * - Keyboard navigation and accessibility support
+ * - Responsive design for all screen sizes
  */
-const AskAI: React.FC = () => {
+const AskAI: React.FC<AskAIProps> = ({ 
+  className = "",
+  isProcessingQuery = false,
+  onQuerySubmit,
+  testId = "ask-ai-component"
+}) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "initial-message",
@@ -42,10 +50,11 @@ const AskAI: React.FC = () => {
     }
   ]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(isProcessingQuery);
   const [insights, setInsights] = useState<FinancialInsight[]>([]);
   const [_insightsLoading, setInsightsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { user: _user } = useAuth();
 
   const transactionRepo = new TransactionRepository();
@@ -66,6 +75,16 @@ const AskAI: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Effect to focus on input field when component mounts
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Effect to update loading state when isProcessingQuery prop changes
+  useEffect(() => {
+    setIsLoading(isProcessingQuery);
+  }, [isProcessingQuery]);
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -113,6 +132,19 @@ const AskAI: React.FC = () => {
     fetchInsights();
   }, []);
 
+  const handleSuggestedQuestionClick = (question: string) => {
+    setInput(question);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Submit form on Enter if not empty
+    if (e.key === 'Enter' && !e.shiftKey && input.trim()) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -125,6 +157,12 @@ const AskAI: React.FC = () => {
     };
     
     setMessages(prev => [...prev, newUserMessage]);
+    
+    // If external handler provided, use it
+    if (onQuerySubmit) {
+      onQuerySubmit(input.trim());
+    }
+    
     setInput('');
     setIsLoading(true);
     
@@ -172,7 +210,8 @@ const AskAI: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className={`space-y-6 ${className}`}
+      data-testid={testId}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AnimatePresence>
@@ -196,7 +235,9 @@ const AskAI: React.FC = () => {
                         insight.impact === 'high' ? 'bg-red-100 text-red-800' :
                         insight.impact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800'
-                      }`}>
+                      }`}
+                      aria-label={`Impact level: ${insight.impact}`}
+                      >
                         {insight.impact}
                       </span>
                     </div>
@@ -213,10 +254,15 @@ const AskAI: React.FC = () => {
 
       <Card>
         <Card.Header>
-          <h2 className="text-xl font-semibold text-gray-900">Ask the AI Assistant</h2>
+          <h2 className="text-xl font-semibold text-gray-900" id="chat-heading">Ask the AI Assistant</h2>
         </Card.Header>
         <Card.Body>
-          <div className="h-96 overflow-y-auto mb-4 space-y-4 p-4 border border-gray-200 rounded-lg">
+          <div 
+            className="h-96 overflow-y-auto mb-4 space-y-4 p-4 border border-gray-200 rounded-lg" 
+            aria-live="polite" 
+            aria-label="Chat messages"
+            role="log"
+          >
             <AnimatePresence initial={false}>
               {messages.map((message) => (
                 <motion.div
@@ -232,6 +278,7 @@ const AskAI: React.FC = () => {
                         ? 'bg-indigo-600 text-white'
                         : 'bg-gray-100 text-gray-800'
                     }`}
+                    role={message.role === 'assistant' ? 'status' : undefined}
                   >
                     <p className="text-sm">{message.content}</p>
                     <p className="text-xs mt-1 opacity-70">
@@ -244,48 +291,54 @@ const AskAI: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSubmit} className="relative">
+          <form 
+            onSubmit={handleSubmit} 
+            className="relative"
+            aria-labelledby="chat-heading"
+          >
             <EnhancedInput
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask me anything about your finances..."
-              className="w-full rounded-lg pr-12 focus:border-indigo-500 focus:ring-indigo-500"
               disabled={isLoading}
+              className="pr-24"
+              aria-label="Type your message"
+              ref={inputRef}
+              onKeyDown={handleKeyDown}
             />
             <button
               type="submit"
-              disabled={isLoading}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              disabled={isLoading || !input.trim()}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors ${
+                isLoading || !input.trim() ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              aria-label="Send message"
             >
               {isLoading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-500" />
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing
+                </span>
               ) : (
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
+                <span>Send</span>
               )}
             </button>
           </form>
-          
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Suggested Questions</h3>
+
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Suggested Questions</h3>
             <div className="flex flex-wrap gap-2">
-              {suggestedQuestions.map((question) => (
-                <button 
-                  key={question}
-                  onClick={() => setInput(question)}
-                  className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+              {suggestedQuestions.map((question, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSuggestedQuestionClick(question)}
+                  className="px-3 py-1 text-sm bg-gray-100 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  aria-label={`Ask suggested question: ${question}`}
+                  tabIndex={0}
                 >
                   {question}
                 </button>

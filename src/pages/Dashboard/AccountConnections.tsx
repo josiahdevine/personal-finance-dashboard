@@ -63,9 +63,8 @@ export const AccountConnections: React.FC = () => {
   });
 
   // This function is called when a bank account is successfully connected via Plaid
-  // We need to remove the metadata parameter to match the PlaidLink component's onSuccess prop type
-  const handlePlaidSuccess = () => {
-    console.log('Successfully connected account');
+  const handlePlaidSuccess = (public_token: string, metadata: any) => {
+    console.log('Successfully connected account', public_token, metadata);
     queryClient.invalidateQueries({ queryKey: ['accounts'] });
     setIsPlaidModalOpen(false);
   };

@@ -29,6 +29,10 @@ interface EnhancedFooterProps extends BaseComponentProps {
   className?: string;
 }
 
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use the Footer component from 'src/components/layout/Footer.tsx' instead.
+ */
 export const EnhancedFooter: React.FC<EnhancedFooterProps> = ({ className }) => {
   const { isDarkMode } = useTheme();
   const currentYear = new Date().getFullYear();

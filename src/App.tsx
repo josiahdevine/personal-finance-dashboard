@@ -25,6 +25,8 @@ import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
 import ResponsiveDemo from './pages/ResponsiveDemo';
 import PerformanceComponentsDemo from './pages/PerformanceComponentsDemo';
+import BreadcrumbDemo from './pages/BreadcrumbDemo';
+import AnimationDemo from './pages/animations-demo';
 
 // Import required styles
 import './styles/animations.css';
@@ -188,6 +190,8 @@ const AppContent: React.FC = () => {
             <Route path="/features" element={<LandingPage />} />
             <Route path="/responsive-demo" element={<ResponsiveDemo />} />
             <Route path="/performance-demo" element={<PerformanceComponentsDemo />} />
+            <Route path="/breadcrumb-demo" element={<BreadcrumbDemo />} />
+            <Route path="/animations-demo" element={<AnimationDemo />} />
 
             {/* Protected Dashboard Routes - User must be authenticated */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
@@ -203,6 +207,7 @@ const AppContent: React.FC = () => {
               <Route path="ask-ai" element={<AskAI />} />
               <Route path="accounts" element={<AccountsContainer />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="animations" element={<AnimationDemo />} />
             </Route>
 
             {/* If authenticated and trying to access login/register, redirect to dashboard */}

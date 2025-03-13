@@ -274,3 +274,55 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Component Architecture
+
+### Navigation Components
+
+The application uses standardized navigation components:
+
+- **EnhancedHeader**: Main header component with theme toggling, search, and user profile features
+- **EnhancedSidebar**: Collapsible sidebar navigation with responsive design
+- **CommandMenu**: Global command palette accessible via ⌘+K/Ctrl+K
+- **DashboardLayout**: Combines these components into a cohesive dashboard experience
+
+These components have been consolidated to reduce duplication and maintain consistent styling.
+
+## Performance Optimization
+
+### Startup Performance Profiling
+
+To address slow development server startup time, profiling tools are included:
+
+#### Using the Profiler
+
+For Windows:
+```
+./profile-startup.bat
+```
+
+For Mac/Linux:
+```
+chmod +x ./profile-startup.sh
+./profile-startup.sh
+```
+
+The profiler will:
+1. Measure the startup time of the development server
+2. Identify slow and large modules
+3. Detect duplicate package versions
+4. Provide recommendations for improvement
+
+#### Performance Recommendations
+
+To improve startup and build performance:
+- Use code splitting with React.lazy() and Suspense
+- Implement dynamic imports for large, infrequently used components
+- Consider alternatives for large dependencies
+- Review duplicate packages identified by the profiler
+
+### Documentation
+
+For more information about the performance optimization and component consolidation, see:
+- `docs/UI/ui-plan-changes-v2.md`: Overview of UI improvement plan
+- `docs/UI/navigation-consolidation.md`: Details about component consolidation

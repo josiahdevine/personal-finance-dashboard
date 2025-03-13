@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { AuthSheet } from './auth/AuthSheet';
 import EnhancedSidebar from './navigation/EnhancedSidebar';
-import { EnhancedFooter } from './layout/EnhancedFooter';
+import { Footer } from './layout/Footer';
 
 // Import consolidated landing page feature components
 import { UnifiedDemo } from './features/landing/UnifiedDemo';
@@ -248,8 +248,8 @@ export const LandingPage: React.FC = () => {
           </section>
         </main>
         
-        {/* Enhanced Footer */}
-        <EnhancedFooter />
+        {/* Footer */}
+        <Footer />
       </div>
     </div>
   );

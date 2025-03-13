@@ -1,8 +1,8 @@
 /**
  * Netlify Function to fetch user data by ID
  */
-const admin = require('firebase-admin');
-const { getUserByFirebaseUid } = require('./utils/user-sync');
+import admin from 'firebase-admin';
+import { getUserByFirebaseUid } from './utils/user-sync';
 
 // Initialize Firebase Admin if not already initialized
 let _app;
@@ -14,7 +14,7 @@ try {
 }
 
 // Handler for user data fetch
-exports.handler = async (event, _context) => {
+export const handler = async (event, _context) => {
   // Set up CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',

@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { usePlaidLink } from 'react-plaid-link';
-import Card from '../../components/common/Card';
+import { motion } from 'framer-motion';
+import Card from '../common/Card';
+import { PlaidLink } from '../features/plaid/PlaidLink';
+
+/**
+ * @deprecated This component is being consolidated. Please use the main PlaidLink component 
+ * from 'src/components/features/plaid/PlaidLink.tsx' for new implementations.
+ * If you need the full dashboard UI, refer to 'src/pages/Dashboard/AccountConnections.tsx'.
+ * This file will be removed in a future update as part of the component consolidation initiative.
+ */
 
 interface PlaidAccount {
   id: string;
@@ -24,99 +32,96 @@ interface PlaidError {
   timestamp: string;
 }
 
+/**
+ * @deprecated Please use the main PlaidLink component for bank connections.
+ * This component will be removed in a future update.
+ */
 const PlaidIntegration: React.FC = () => {
   const [accounts, setAccounts] = useState<PlaidAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [linkToken, setLinkToken] = useState<string | null>(null);
   const [syncErrors, setSyncErrors] = useState<PlaidError[]>([]);
+
+  useEffect(() => {
+    console.warn(
+      'Warning: You are using a deprecated PlaidIntegration component. ' +
+      'Please use the main PlaidLink component from src/components/features/plaid/PlaidLink.tsx for connecting accounts.'
+    );
+  }, []);
 
   const fetchAccounts = async () => {
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/plaid/accounts');
-      const data = await response.json();
-      setAccounts(data);
+      setLoading(true);
+      // Mock data for demo purposes
+      setTimeout(() => {
+        setAccounts([
+          {
+            id: '1',
+            name: 'Main Checking',
+            type: 'depository',
+            subtype: 'checking',
+            mask: '1234',
+            institution: 'Chase',
+            status: 'active',
+            lastSync: new Date().toISOString(),
+            balance: {
+              available: 2543.55,
+              current: 2543.55,
+            }
+          },
+          {
+            id: '2',
+            name: 'Savings Account',
+            type: 'depository',
+            subtype: 'savings',
+            mask: '5678',
+            institution: 'Chase',
+            status: 'active',
+            lastSync: new Date().toISOString(),
+            balance: {
+              available: 10000.00,
+              current: 10000.00,
+            }
+          },
+          {
+            id: '3',
+            name: 'Credit Card',
+            type: 'credit',
+            subtype: 'credit card',
+            mask: '9012',
+            institution: 'Chase',
+            status: 'disconnected',
+            lastSync: new Date().toISOString(),
+            balance: {
+              available: 4500,
+              current: 500,
+            }
+          }
+        ]);
+        setSyncErrors([
+          {
+            accountId: '3',
+            error: 'Connection interrupted. Please reconnect your account.',
+            timestamp: new Date().toISOString()
+          }
+        ]);
+        setLoading(false);
+      }, 1000);
     } catch (err) {
       setError('Failed to fetch accounts');
       console.error('Error fetching accounts:', err);
-    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchSyncErrors = async () => {
-      try {
-        // TODO: Replace with actual API call
-        const response = await fetch('/api/plaid/sync-errors');
-        const data = await response.json();
-        setSyncErrors(data);
-      } catch (err) {
-        console.error('Error fetching sync errors:', err);
-      }
-    };
-
-    fetchSyncErrors();
-  }, []);
-
-  useEffect(() => {
-    const initializePlaid = async () => {
-      try {
-        // TODO: Replace with actual API call
-        const response = await fetch('/api/plaid/create-link-token');
-        const { link_token } = await response.json();
-        setLinkToken(link_token);
-      } catch (err) {
-        setError('Failed to initialize Plaid');
-        console.error('Error initializing Plaid:', err);
-      }
-    };
-
-    initializePlaid();
     fetchAccounts();
   }, []);
 
-  const onSuccess = useCallback(async (public_token: string) => {
-    try {
-      // TODO: Replace with actual API call
-      await fetch('/api/plaid/exchange-public-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ public_token }),
-      });
-      fetchAccounts();
-    } catch (err) {
-      setError('Failed to link account');
-      console.error('Error linking account:', err);
-    }
+  const handlePlaidSuccess = useCallback(() => {
+    console.log('Successfully connected a new account');
+    fetchAccounts();
   }, []);
-
-  // Only create config when we have a token
-  const config = linkToken ? {
-    token: linkToken,
-    onSuccess,
-    onExit: (err: any) => {
-      if (err) {
-        setError(`Plaid Error: ${err.display_message || err.error_message || 'Unknown error'}`);
-      }
-    }
-  } : null;
-
-  // Always call the hook, but with a null-safe approach
-  const { open, ready } = usePlaidLink(config || { 
-    token: '', 
-    onSuccess: (_public_token: string) => { /* no-op */ } 
-  });
-
-  // Define a safe open function that only calls Plaid's open when we have a token
-  const handleOpen = useCallback(() => {
-    if (linkToken && ready) {
-      open();
-    } else {
-      setError('Plaid Link is not ready yet. Please try again.');
-    }
-  }, [linkToken, open, ready]);
 
   if (loading) {
     return (
@@ -131,16 +136,19 @@ const PlaidIntegration: React.FC = () => {
   const disconnectedAccounts = accounts.filter(account => account.status === 'disconnected');
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6"
+    >
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Connected Accounts</h1>
-        <button
-          onClick={handleOpen}
-          disabled={!linkToken || !ready}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-        >
-          Connect New Account
-        </button>
+        <PlaidLink
+          onSuccess={handlePlaidSuccess}
+          buttonText="Connect New Account"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        />
       </div>
 
       {error && (
@@ -241,7 +249,7 @@ const PlaidIntegration: React.FC = () => {
           </div>
         </Card.Body>
       </Card>
-    </div>
+    </motion.div>
   );
 };
 

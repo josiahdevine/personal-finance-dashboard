@@ -1,32 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 /**
- * @deprecated This component is deprecated. Please use the version from 
- * src/components/features/plaid/PlaidLink.tsx instead.
- * 
- * This will be removed in a future release.
+ * @deprecated This component is deprecated and will be removed in future releases.
+ * Please use the main PlaidLink component from src/components/features/plaid/PlaidLink.tsx instead.
  */
-export const PlaidLink: React.FC<any> = (props) => {
-  console.warn('Using deprecated PlaidLink component. Please import from src/components/features/plaid/PlaidLink.tsx instead.');
-  
-  // Use state to hold the dynamically imported component
-  const [CorrectComponent, setCorrectComponent] = useState<React.ComponentType<any> | null>(null);
 
+// Show a warning in the console to help developers migrate
+console.warn('Using deprecated PlaidLink component. Please import from src/components/features/plaid/PlaidLink.tsx instead.');
+
+// Lazy load the main implementation to avoid breaking existing code
+let PlaidLinkComponent: any = null;
+import('../features/plaid/PlaidLink')
+  .then(module => {
+    PlaidLinkComponent = module.default;
+  })
+  .catch(error => {
+    console.error('Error importing PlaidLink:', error);
+  });
+
+export const PlaidLink = (props: any) => {
   useEffect(() => {
-    // Dynamically import the correct component
-    import('../features/plaid/PlaidLink')
-      .then(module => {
-        setCorrectComponent(() => module.PlaidLink);
-      })
-      .catch(error => {
-        console.error('Error importing PlaidLink:', error);
-      });
+    console.warn(
+      'Warning: You are using a deprecated PlaidLink component. ' +
+      'Please migrate to the primary implementation at src/components/features/plaid/PlaidLink.tsx.'
+    );
   }, []);
 
-  if (!CorrectComponent) {
-    // Return loading state or fallback while importing
-    return <div>Loading Plaid Component...</div>;
+  if (!PlaidLinkComponent) {
+    return (
+      <div className="px-4 py-2 bg-red-100 text-red-800 rounded-md">
+        Failed to load PlaidLink component. Please check the console for errors.
+      </div>
+    );
   }
 
-  return <CorrectComponent {...props} />;
+  return <PlaidLinkComponent {...props} />;
 };
+
+export default PlaidLink;

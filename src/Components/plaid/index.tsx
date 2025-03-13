@@ -1,6 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { usePlaidLink } from 'react-plaid-link';
+import { PlaidLink } from '../features/plaid/PlaidLink';
+
+/**
+ * @deprecated This component is deprecated. Please use the main PlaidLink component from 
+ * 'src/components/features/plaid/PlaidLink.tsx' for new implementations.
+ * If you need the full dashboard UI, refer to 'src/pages/Dashboard/AccountConnections.tsx'.
+ * For the consolidated PlaidIntegration, use 'src/components/plaid-integration/index.tsx'.
+ * This file will be removed in a future update as part of the component consolidation initiative.
+ */
 
 interface PlaidAccount {
   id: string;
@@ -18,6 +26,10 @@ interface PlaidAccount {
   lastSync?: string;
 }
 
+/**
+ * @deprecated Please use the main PlaidLink component for bank connections.
+ * This component will be removed in a future update.
+ */
 const PlaidIntegration: React.FC = () => {
   const [accounts, _setAccounts] = useState<PlaidAccount[]>([
     {
@@ -65,26 +77,17 @@ const PlaidIntegration: React.FC = () => {
     },
   ]);
 
-  // In a real app, you would get this token from your backend
-  const { open, ready } = usePlaidLink({
-    token: 'link-sandbox-123', // Replace with actual link token
-    onSuccess: (public_token, metadata) => {
-      console.log('Success:', public_token, metadata);
-      // Send public_token to your backend to exchange for access_token
-    },
-    onExit: (err, metadata) => {
-      console.log('Exit:', err, metadata);
-    },
-    onEvent: (eventName, metadata) => {
-      console.log('Event:', eventName, metadata);
-    },
-  });
+  useEffect(() => {
+    console.warn(
+      'Warning: You are using a deprecated PlaidIntegration component. ' +
+      'Please use the main PlaidLink component from src/components/features/plaid/PlaidLink.tsx for connecting accounts ' +
+      'or the consolidated PlaidIntegration component from src/components/plaid-integration/index.tsx.'
+    );
+  }, []);
 
-  const handleAddAccount = useCallback(() => {
-    if (ready) {
-      open();
-    }
-  }, [ready, open]);
+  const handlePlaidSuccess = useCallback(() => {
+    console.log('Successfully connected a new account');
+  }, []);
 
   const getStatusColor = (status: PlaidAccount['status']) => {
     switch (status) {
@@ -108,15 +111,11 @@ const PlaidIntegration: React.FC = () => {
       >
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Connected Accounts</h1>
-          <motion.button
-            onClick={handleAddAccount}
+          <PlaidLink
+            onSuccess={handlePlaidSuccess}
+            buttonText="Connect Account"
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={!ready}
-          >
-            Connect Account
-          </motion.button>
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -197,15 +196,11 @@ const PlaidIntegration: React.FC = () => {
           >
             <h3 className="text-lg font-medium text-gray-900 mb-2">No accounts connected</h3>
             <p className="text-gray-500 mb-4">Connect your bank accounts to get started</p>
-            <motion.button
-              onClick={handleAddAccount}
+            <PlaidLink
+              onSuccess={handlePlaidSuccess}
+              buttonText="Connect Your First Account"
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              disabled={!ready}
-            >
-              Connect Your First Account
-            </motion.button>
+            />
           </motion.div>
         )}
       </motion.div>

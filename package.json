@@ -109,7 +109,7 @@
     "zod": "^3.24.2"
   },
   "scripts": {
-    "dev": "cross-env PORT=3000 BROWSER=none FAST_REFRESH=false craco start",
+    "dev": "cross-env PORT=3000 BROWSER=none FAST_REFRESH=true craco start",
     "start": "cross-env PORT=3000 BROWSER=none craco start",
     "build": "cross-env FAST_REFRESH=false CRACO_CONFIG_PATH=./craco.config.cjs craco build",
     "netlify-build": "cross-env NODE_ENV=production DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false npm run build",

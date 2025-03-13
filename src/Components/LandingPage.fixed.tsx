@@ -15,6 +15,9 @@ import { Testimonials } from './features/landing/Testimonials';
 import { IntegrationLogos } from './features/landing/IntegrationLogos';
 
 /**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use the LandingPage component from 'src/components/LandingPage.tsx' instead.
+ * 
  * LandingPage - The main landing page for the application
  * 
  * Features:

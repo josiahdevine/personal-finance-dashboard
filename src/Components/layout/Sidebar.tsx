@@ -15,8 +15,9 @@ export type SidebarProps = {
 };
 
 /**
- * @deprecated This component is deprecated. Please use EnhancedSidebar from "../navigation/EnhancedSidebar" instead.
- * This component will be removed in a future version.
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use the Sidebar component from 'src/components/navigation/Sidebar.tsx' 
+ * or EnhancedSidebar from 'src/components/navigation/EnhancedSidebar' instead.
  */
 export const Sidebar: React.FC<SidebarProps> = ({ 
   className = "", 

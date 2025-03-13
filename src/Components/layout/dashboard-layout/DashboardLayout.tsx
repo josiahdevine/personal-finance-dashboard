@@ -4,17 +4,25 @@ import EnhancedSidebar from '../../navigation/EnhancedSidebar';
 import { EnhancedHeader } from '../EnhancedHeader';
 import './DashboardLayout.css';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { CommandMenu } from '../../navigation/CommandMenu';
+import { cn } from '../../../lib/utils';
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
   showSidebar?: boolean;
   showHeader?: boolean;
+  showCommandMenu?: boolean;
+  className?: string;
+  contentClassName?: string;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
   showSidebar = true,
-  showHeader = true
+  showHeader = true,
+  showCommandMenu = true,
+  className,
+  contentClassName
 }) => {
   const { user } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -44,7 +52,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   return (
-    <div className="dashboard-layout">
+    <div className={cn("dashboard-layout", className)}>
       {showSidebar && (
         <EnhancedSidebar 
           collapsed={sidebarCollapsed} 
@@ -58,12 +66,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         />
       )}
       
-      <div className={`dashboard-content ${sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
+      <div className={`dashboard-content ${sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'} ${contentClassName}`}>
         {showHeader && (
           <EnhancedHeader 
             theme={theme}
             onThemeToggle={toggleTheme}
+            onMenuClick={toggleSidebar}
             className="dashboard-header"
+            showThemeToggle={true}
+            showSearchCommand={true}
           />
         )}
         
@@ -79,6 +90,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           onClick={toggleSidebar}
         />
       )}
+
+      {/* Global Command Menu */}
+      {showCommandMenu && <CommandMenu />}
     </div>
   );
 };

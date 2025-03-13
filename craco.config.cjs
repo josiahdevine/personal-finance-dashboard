@@ -2,6 +2,7 @@
 const webpack = require('webpack');
 const tailwindcss = require('tailwindcss');
 const autoprefixer = require('autoprefixer');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 
 module.exports = {
   style: {
@@ -14,6 +15,18 @@ module.exports = {
   },
   webpack: {
     configure: (webpackConfig) => {
+      // Add React Refresh Webpack Plugin in development
+      if (process.env.NODE_ENV === 'development') {
+        webpackConfig.plugins = [
+          ...(webpackConfig.plugins || []),
+          new ReactRefreshWebpackPlugin({
+            overlay: {
+              sockIntegration: 'wds',
+            },
+          }),
+        ];
+      }
+      
       webpackConfig.resolve.fallback = {
         ...webpackConfig.resolve.fallback,
         crypto: require.resolve('crypto-browserify'),

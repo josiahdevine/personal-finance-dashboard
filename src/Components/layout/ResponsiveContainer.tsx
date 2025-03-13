@@ -1,8 +1,57 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { ResponsiveValue, responsiveClass, hideShow } from '../../styles/responsive';
 import { useTheme } from '../../contexts/ThemeContext';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '../../lib/utils';
 
-export interface ResponsiveContainerProps {
+// Define container variants using cva for consistent styling
+const containerVariants = cva(
+  "transition-all", // Base styles applied to all variants
+  {
+    variants: {
+      variant: {
+        default: "bg-card text-card-foreground",
+        outline: "border border-border bg-transparent",
+        ghost: "bg-transparent",
+        primary: "bg-primary text-primary-foreground",
+        secondary: "bg-secondary text-secondary-foreground",
+      },
+      size: {
+        sm: "p-2",
+        default: "p-4",
+        lg: "p-6",
+        xl: "p-8",
+        none: "",
+      },
+      shadow: {
+        none: "",
+        sm: "shadow-sm",
+        default: "shadow",
+        md: "shadow-md", 
+        lg: "shadow-lg",
+      },
+      rounded: {
+        none: "rounded-none",
+        sm: "rounded-sm",
+        default: "rounded",
+        md: "rounded-md",
+        lg: "rounded-lg",
+        xl: "rounded-xl",
+        full: "rounded-full",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+      shadow: "none",
+      rounded: "default",
+    }
+  }
+);
+
+export interface ResponsiveContainerProps 
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof containerVariants> {
   children: React.ReactNode;
   padding?: ResponsiveValue<string> | string;
   margin?: ResponsiveValue<string> | string;
@@ -16,10 +65,11 @@ export interface ResponsiveContainerProps {
   hideBelow?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   hideAbove?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   bgColor?: string;
-  className?: string;
+  asChild?: boolean;
+  as?: React.ElementType;
 }
 
-export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
+export const ResponsiveContainer = forwardRef<HTMLDivElement, ResponsiveContainerProps>(({
   children,
   padding,
   margin,
@@ -34,16 +84,25 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   hideAbove,
   bgColor,
   className = '',
-}) => {
+  variant,
+  size,
+  shadow,
+  rounded,
+  as: Component = 'div',
+  ...props
+}, ref) => {
   const { isDarkMode } = useTheme();
 
   // Combine all classes
-  const combinedClasses = [
+  const combinedClasses = cn(
+    // Apply container variants
+    containerVariants({ variant, size, shadow, rounded }),
+    
     // Base styling
     isDarkMode ? 'text-white' : 'text-gray-900',
     
-    // Responsive padding
-    padding && responsiveClass('p', padding),
+    // Responsive padding (if not using size variant)
+    padding && size === "none" && responsiveClass('p', padding),
     
     // Responsive margin
     margin && responsiveClass('m', margin),
@@ -85,21 +144,25 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
     
     // Additional className
     className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  );
 
   return (
-    <div className={combinedClasses}>
+    <Component 
+      ref={ref}
+      className={combinedClasses}
+      {...props}
+    >
       {children}
-    </div>
+    </Component>
   );
-};
+});
+
+ResponsiveContainer.displayName = 'ResponsiveContainer';
 
 /**
  * A responsive grid component that changes column count at different breakpoints
  */
-export interface ResponsiveGridProps {
+export interface ResponsiveGridProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   columns: ResponsiveValue<number>;
   gap?: ResponsiveValue<string> | string;
@@ -108,9 +171,13 @@ export interface ResponsiveGridProps {
   className?: string;
   padding?: ResponsiveValue<string> | string;
   autoRows?: string;
+  container?: boolean;
+  variant?: VariantProps<typeof containerVariants>['variant'];
+  shadow?: VariantProps<typeof containerVariants>['shadow'];
+  rounded?: VariantProps<typeof containerVariants>['rounded'];
 }
 
-export const ResponsiveGrid: React.FC<ResponsiveGridProps> = ({
+export const ResponsiveGrid = forwardRef<HTMLDivElement, ResponsiveGridProps>(({
   children,
   columns,
   gap,
@@ -119,8 +186,13 @@ export const ResponsiveGrid: React.FC<ResponsiveGridProps> = ({
   className = '',
   padding,
   autoRows,
-}) => {
-  const gridClasses = [
+  container = false,
+  variant,
+  shadow,
+  rounded,
+  ...props
+}, ref) => {
+  const gridClasses = cn(
     'grid',
     // Responsive columns
     responsiveClass('grid-cols', columns),
@@ -140,23 +212,30 @@ export const ResponsiveGrid: React.FC<ResponsiveGridProps> = ({
     // Auto rows
     autoRows && `auto-rows-${autoRows}`,
     
+    // Container variants if enabled
+    container && containerVariants({ variant, shadow, rounded, size: 'none' }),
+    
     // Additional className
     className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  );
 
   return (
-    <div className={gridClasses}>
+    <div 
+      ref={ref}
+      className={gridClasses}
+      {...props}
+    >
       {children}
     </div>
   );
-};
+});
+
+ResponsiveGrid.displayName = 'ResponsiveGrid';
 
 /**
  * A responsive flex container that changes layout at different breakpoints
  */
-export interface ResponsiveFlexProps {
+export interface ResponsiveFlexProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   direction?: ResponsiveValue<'row' | 'col' | 'row-reverse' | 'col-reverse'>;
   wrap?: ResponsiveValue<'wrap' | 'nowrap' | 'wrap-reverse'> | string;
@@ -165,9 +244,13 @@ export interface ResponsiveFlexProps {
   gap?: ResponsiveValue<string> | string;
   className?: string;
   padding?: ResponsiveValue<string> | string;
+  container?: boolean;
+  variant?: VariantProps<typeof containerVariants>['variant'];
+  shadow?: VariantProps<typeof containerVariants>['shadow'];
+  rounded?: VariantProps<typeof containerVariants>['rounded'];
 }
 
-export const ResponsiveFlex: React.FC<ResponsiveFlexProps> = ({
+export const ResponsiveFlex = forwardRef<HTMLDivElement, ResponsiveFlexProps>(({
   children,
   direction,
   wrap,
@@ -176,8 +259,13 @@ export const ResponsiveFlex: React.FC<ResponsiveFlexProps> = ({
   gap,
   className = '',
   padding,
-}) => {
-  const flexClasses = [
+  container = false,
+  variant,
+  shadow,
+  rounded,
+  ...props
+}, ref) => {
+  const flexClasses = cn(
     'flex',
     
     // Responsive direction
@@ -198,15 +286,22 @@ export const ResponsiveFlex: React.FC<ResponsiveFlexProps> = ({
     // Responsive padding
     padding && responsiveClass('p', padding),
     
+    // Container variants if enabled
+    container && containerVariants({ variant, shadow, rounded, size: 'none' }),
+    
     // Additional className
     className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  );
 
   return (
-    <div className={flexClasses}>
+    <div 
+      ref={ref}
+      className={flexClasses}
+      {...props}
+    >
       {children}
     </div>
   );
-}; 
+});
+
+ResponsiveFlex.displayName = 'ResponsiveFlex'; 

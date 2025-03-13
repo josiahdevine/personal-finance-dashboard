@@ -9,6 +9,11 @@ interface PublicNavbarProps {
   className?: string;
 }
 
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use the Header component from 'src/components/navigation/Header.tsx' with 
+ * appropriate conditional rendering for public routes instead.
+ */
 export const PublicNavbar: React.FC<PublicNavbarProps> = ({ className = '' }) => {
   const location = useLocation();
   const navigate = useNavigate();

@@ -103,6 +103,11 @@ const defaultNavItems: NavItem[] = [
   }
 ];
 
+/**
+ * @deprecated This component is deprecated and will be removed in a future version.
+ * Please use the Header component from 'src/components/navigation/Header.tsx' for navigation bar
+ * and Sidebar component from 'src/components/navigation/Sidebar.tsx' for side navigation.
+ */
 export const Navigation: React.FC<NavigationProps> = ({
   items = defaultNavItems,
   className = '',
@@ -301,3 +306,5 @@ export const Navigation: React.FC<NavigationProps> = ({
     </>
   );
 };
+
+export default Navigation;

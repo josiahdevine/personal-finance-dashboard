@@ -2,6 +2,8 @@ import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import useDeviceDetect from '../../utils/useDeviceDetect';
 import { EnhancedHeader } from './EnhancedHeader';
+import { Footer } from './Footer';
+import DashboardLayout from './DashboardLayout';
 
 /**
  * @deprecated This Layout component is deprecated and will be removed in a future version.
@@ -39,8 +41,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className={`container mx-auto ${verticalPadding}`}>
         {children}
       </main>
+      <Footer />
     </div>
   );
 };
 
+export { EnhancedHeader, Footer, DashboardLayout };
 export default Layout;

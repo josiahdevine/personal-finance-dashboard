@@ -1,140 +1,214 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useTheme } from '../../hooks/useTheme';
-import { useTimeFrame } from '../../contexts/TimeFrameContext';
-import { useAuth } from '../../hooks/useAuth';
-import type { TimeFrame } from '../../types/common';
-import { EnhancedHeader } from './EnhancedHeader';
-import EnhancedSidebar from '../navigation/EnhancedSidebar';
-import { EnhancedFooter } from './EnhancedFooter';
-import { AnimatePresence, motion } from 'framer-motion';
-import type { ThemeMode } from '../../types/theme';
-import { validateUser } from '../../types/guards';
+import { useAuth } from '../../contexts/AuthContext';
+import { Navbar } from '../navigation/Navbar';
+import { Sidebar, NavigationSection } from '../navigation/Sidebar';
+import { CommandMenu } from '../navigation/CommandMenu';
+import { cn } from '../../lib/utils';
+import type { User } from '../../types';
+import type { User as ModelUser } from '../../types/models';
 
-interface TimeFrameOption {
-  label: string;
-  value: TimeFrame;
-}
+// Import icons
+import {
+  LayoutDashboard,
+  CreditCard,
+  Wallet,
+  Clock,
+  BarChart3,
+  Bell,
+  Settings,
+  PieChart,
+  Building,
+  HelpCircle,
+} from 'lucide-react';
 
-const timeFrameOptions: TimeFrameOption[] = [
-  { label: 'All Time', value: 'all' },
-  { label: '1D', value: '1d' },
-  { label: '1W', value: '1w' },
-  { label: '1M', value: '1m' },
-  { label: '3M', value: '3m' },
-  { label: '6M', value: '6m' },
-  { label: '1Y', value: '1y' },
-  { label: '5Y', value: '5y' },
-];
-
-interface DashboardLayoutProps {
+export interface DashboardLayoutProps {
   children?: React.ReactNode;
+  title?: string;
+  subtitle?: string;
+  showNavbar?: boolean;
   showSidebar?: boolean;
-  showHeader?: boolean; 
-  showFooter?: boolean;
+  showCommandMenu?: boolean;
+  className?: string;
+  contentClassName?: string;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
+  title,
+  subtitle,
+  showNavbar = true,
   showSidebar = true,
-  showHeader = true,
-  showFooter = true,
+  showCommandMenu = true,
+  className,
+  contentClassName,
 }) => {
-  const { theme, toggleTheme } = useTheme();
-  const { timeFrame, setTimeFrame } = useTimeFrame();
-  const { user } = useAuth();
-  
+  const { currentUser: modelUser } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const themeMode: ThemeMode = theme as unknown as ThemeMode;
-
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile && !sidebarCollapsed) {
-        setSidebarCollapsed(true);
-      }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
     
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [sidebarCollapsed]);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
+  const handleSidebarToggle = (collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
   };
 
-  // Validate user object before passing to components
-  const validUser = user && validateUser(user) ? user : undefined;
+  // Map the model User to the index User
+  const currentUser: User | undefined = modelUser ? {
+    uid: modelUser.id,
+    email: modelUser.email,
+    displayName: modelUser.name || '',
+    photoURL: modelUser.photoURL,
+    emailVerified: true,
+    createdAt: modelUser.createdAt,
+    updatedAt: modelUser.updatedAt,
+  } : undefined;
+
+  // Navbar expects a ModelUser, so convert back for the Navbar component
+  const navbarUser: ModelUser | undefined = currentUser ? {
+    id: currentUser.uid,
+    email: currentUser.email,
+    name: currentUser.displayName,
+    photoURL: currentUser.photoURL,
+    createdAt: currentUser.createdAt,
+    updatedAt: currentUser.updatedAt,
+  } : undefined;
+
+  // Default navigation sections for the sidebar
+  const navigationSections: NavigationSection[] = [
+    {
+      title: 'Main',
+      items: [
+        {
+          title: 'Dashboard',
+          path: '/dashboard',
+          icon: <LayoutDashboard className="h-5 w-5" />,
+        },
+        {
+          title: 'Bills & Expenses',
+          path: '/dashboard/bills',
+          icon: <CreditCard className="h-5 w-5" />,
+          badge: 2,
+        },
+        {
+          title: 'Transactions',
+          path: '/dashboard/transactions',
+          icon: <Wallet className="h-5 w-5" />,
+        },
+        {
+          title: 'Bank Accounts',
+          path: '/dashboard/accounts',
+          icon: <Building className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      title: 'Analytics',
+      items: [
+        {
+          title: 'Analytics',
+          path: '/dashboard/analytics',
+          icon: <BarChart3 className="h-5 w-5" />,
+        },
+        {
+          title: 'Salary Journal',
+          path: '/dashboard/salary-journal',
+          icon: <Clock className="h-5 w-5" />,
+        },
+      ],
+    },
+    {
+      title: 'Other',
+      items: [
+        {
+          title: 'Ask AI',
+          path: '/dashboard/ask-ai',
+          icon: <PieChart className="h-5 w-5" />,
+          badge: 1,
+        },
+        {
+          title: 'Notifications',
+          path: '/dashboard/notifications',
+          icon: <Bell className="h-5 w-5" />,
+          badge: 3,
+        },
+        {
+          title: 'Settings',
+          path: '/dashboard/settings',
+          icon: <Settings className="h-5 w-5" />,
+        },
+        {
+          title: 'Help & Support',
+          path: '/dashboard/help',
+          icon: <HelpCircle className="h-5 w-5" />,
+        },
+      ],
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-900">
-      {showHeader && (
-        <EnhancedHeader 
-          theme={themeMode}
-          onThemeToggle={toggleTheme}
-          className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-          onMenuClick={toggleSidebar}
-          isSidebarCollapsed={sidebarCollapsed}
+    <div className={cn("min-h-screen bg-background flex flex-col", className)}>
+      {/* Global command menu */}
+      {showCommandMenu && <CommandMenu />}
+      
+      {/* Navbar */}
+      {showNavbar && (
+        <Navbar
+          user={navbarUser}
+          showThemeToggle={true}
+          showSearchCommand={true}
+          onMenuClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="sticky top-0 z-40"
         />
       )}
       
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Sidebar */}
         {showSidebar && (
-          <AnimatePresence mode="wait">
-            <motion.aside
-              key="sidebar"
-              initial={{ width: sidebarCollapsed ? 70 : 240 }}
-              animate={{ width: sidebarCollapsed ? 70 : 240 }}
-              exit={{ width: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed h-[calc(100vh-4rem)] top-16 left-0 z-40 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700"
-            >
-              <EnhancedSidebar
-                className="h-full"
-                user={validUser}
-                collapsed={sidebarCollapsed}
-                onToggle={toggleSidebar}
-                mobile={isMobile}
-              />
-            </motion.aside>
-          </AnimatePresence>
+          <div className={cn(
+            "h-[calc(100vh-4rem)] sticky top-16 left-0 z-30",
+            sidebarCollapsed ? "w-[70px]" : "w-64"
+          )}>
+            <Sidebar
+              user={currentUser}
+              sections={navigationSections}
+              state={sidebarCollapsed ? 'collapsed' : 'expanded'}
+              onToggle={handleSidebarToggle}
+              mobile={isMobile}
+              isFixed={false}
+            />
+          </div>
         )}
         
-        <main className={`flex-1 min-h-[calc(100vh-4rem)] ${showSidebar ? (sidebarCollapsed ? 'ml-[70px]' : 'ml-[240px]') : ''} transition-all duration-300`}>
-          <div className="p-4 md:p-6 max-w-7xl mx-auto">
-            {validUser && (
-              <div className="mb-6 flex justify-end">
-                <div className="inline-flex rounded-md shadow-sm bg-white dark:bg-gray-800 p-1">
-                  {timeFrameOptions.map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => setTimeFrame(option.value)}
-                      className={`px-3 py-2 text-sm font-medium transition-colors rounded-md
-                        ${timeFrame === option.value 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }
-                      `}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+        {/* Main Content */}
+        <main 
+          className={cn(
+            "flex-1 transition-all duration-300 overflow-auto",
+            contentClassName
+          )}
+        >
+          <div className="p-4 md:p-6 max-w-7xl mx-auto h-full">
+            {/* Add title and subtitle if provided */}
+            {(title || subtitle) && (
+              <div className="mb-6">
+                {title && <h1 className="text-2xl font-bold">{title}</h1>}
+                {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
               </div>
             )}
-            
             {children || <Outlet />}
           </div>
         </main>
       </div>
-      
-      {showFooter && (
-        <EnhancedFooter className="mt-auto" />
-      )}
     </div>
   );
 };
+
+export default DashboardLayout;

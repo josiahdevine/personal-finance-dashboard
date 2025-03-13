@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { cva, type VariantProps } from "class-variance-authority";
 import { 
   SunIcon, 
   MoonIcon, 
@@ -11,7 +12,10 @@ import {
 import {
   Search as SearchIcon,
   User as UserIcon,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  LayoutDashboard,
+  CreditCard,
+  Settings
 } from 'lucide-react';
 import type { ThemeMode } from '../../types/theme';
 import { Button } from '../ui/button';
@@ -29,18 +33,50 @@ import { Separator } from '../ui/separator';
 import { cn } from '../../lib/utils';
 import { BaseComponentProps } from '../../types/components';
 
-export interface EnhancedHeaderProps extends BaseComponentProps {
+// Define navbar variants
+const navbarVariants = cva(
+  "sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+  {
+    variants: {
+      variant: {
+        default: "",
+        elevated: "shadow-sm",
+        transparent: "bg-transparent backdrop-blur-none border-transparent supports-[backdrop-filter]:bg-transparent",
+      },
+      width: {
+        default: "w-full",
+        constrained: "max-w-screen-xl mx-auto",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      width: "default",
+    },
+  }
+);
+
+export interface EnhancedHeaderProps extends BaseComponentProps, VariantProps<typeof navbarVariants> {
   theme?: ThemeMode;
   onThemeToggle?: () => void;
   onMenuClick?: () => void;
   isSidebarCollapsed?: boolean;
+  logo?: React.ReactNode;
+  showThemeToggle?: boolean;
+  showSearchCommand?: boolean;
+  actions?: React.ReactNode;
 }
 
 export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({ 
   theme = 'light', 
   onThemeToggle,
   className,
-  onMenuClick
+  onMenuClick,
+  variant,
+  width,
+  logo,
+  showThemeToggle = true,
+  showSearchCommand = true,
+  actions
 }) => {
   const navigate = useNavigate();
   const { isAuthenticated, user, signInWithEmail, signInWithGoogle, signOut } = useAuth();
@@ -48,6 +84,30 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   const [password, setPassword] = useState('');
   const [showCommandMenu, setShowCommandMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Track scrolling for elevated effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Handle keyboard shortcut for command menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandMenu(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,20 +146,17 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
   const getNavigationItems = () => {
     // Common navigation items for all users
     const commonItems = [
-      { label: 'Home', value: '/' },
-      { label: 'Features', value: '/features' },
-      { label: 'Pricing', value: '/pricing' },
-      { label: 'Demo', value: '/demo' },
+      { label: 'Home', value: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
+      { label: 'Features', value: '/features', icon: <CreditCard className="h-4 w-4" /> },
+      { label: 'Pricing', value: '/pricing', icon: <CreditCard className="h-4 w-4" /> },
     ];
 
     // Items only for authenticated users
     const authenticatedItems = [
-      { label: 'Dashboard', value: '/dashboard' },
-      { label: 'Accounts', value: '/accounts' },
-      { label: 'Transactions', value: '/transactions' },
-      { label: 'Budgets', value: '/budgets' },
-      { label: 'Reports', value: '/reports' },
-      { label: 'Settings', value: '/settings' },
+      { label: 'Dashboard', value: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+      { label: 'Accounts', value: '/accounts', icon: <CreditCard className="h-4 w-4" /> },
+      { label: 'Transactions', value: '/transactions', icon: <CreditCard className="h-4 w-4" /> },
+      { label: 'Settings', value: '/settings', icon: <Settings className="h-4 w-4" /> },
     ];
 
     return isAuthenticated 
@@ -236,9 +293,25 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
     );
   };
 
+  // Default logo if none is provided
+  const defaultLogo = (
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="hsl(var(--primary))" />
+          <path d="M22 12H10C9.44772 12 9 12.4477 9 13V19C9 19.5523 9.44772 20 10 20H22C22.5523 20 23 19.5523 23 19V13C23 12.4477 22.5523 12 22 12Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16C15 16.5523 15.4477 17 16 17Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M20 12V10C20 9.46957 19.7893 8.96086 19.4142 8.58579C19.0391 8.21071 18.5304 8 18 8H14C13.4696 8 12.9609 8.21071 12.5858 8.58579C12.2107 8.96086 12 9.46957 12 10V12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M12 20V22C12 22.5304 12.2107 23.0391 12.5858 23.4142C12.9609 23.7893 13.4696 24 14 24H18C18.5304 24 19.0391 23.7893 19.4142 23.4142C19.7893 23.0391 20 22.5304 20 22V20" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <span className="hidden md:inline-block text-lg font-bold">FinanceDash</span>
+    </div>
+  );
+
   return (
     <header className={cn(
-      "flex h-16 items-center justify-between px-4 w-full border-b border-border bg-background",
+      navbarVariants({ variant: isScrolled ? 'elevated' : variant, width }),
       className
     )}>
       <div className="flex items-center gap-4">
@@ -248,81 +321,110 @@ export const EnhancedHeader: React.FC<EnhancedHeaderProps> = ({
             size="icon"
             onClick={onMenuClick}
             className="md:hidden"
+            aria-label="Toggle menu"
           >
             <MenuIcon className="h-5 w-5" />
-            <span className="sr-only">Toggle menu</span>
           </Button>
         )}
-
+        
+        {/* Logo section */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="hsl(var(--primary))" />
-              <path d="M22 12H10C9.44772 12 9 12.4477 9 13V19C9 19.5523 9.44772 20 10 20H22C22.5523 20 23 19.5523 23 19V13C23 12.4477 22.5523 12 22 12Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M16 17C16.5523 17 17 16.5523 17 16C17 15.4477 16.5523 15 16 15C15.4477 15 15 15.4477 15 16C15 16.5523 15.4477 17 16 17Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M20 12V10C20 9.46957 19.7893 8.96086 19.4142 8.58579C19.0391 8.21071 18.5304 8 18 8H14C13.4696 8 12.9609 8.21071 12.5858 8.58579C12.2107 8.96086 12 9.46957 12 10V12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M12 20V22C12 22.5304 12.2107 23.0391 12.5858 23.4142C12.9609 23.7893 13.4696 24 14 24H18C18.5304 24 19.0391 23.7893 19.4142 23.4142C19.7893 23.0391 20 22.5304 20 22V20" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <span className="hidden md:inline-block text-lg font-bold">FinanceDash</span>
+          {logo || defaultLogo}
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-4">
-        <Popover open={showCommandMenu} onOpenChange={setShowCommandMenu}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={showCommandMenu}
-              className="w-full max-w-sm justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <SearchIcon className="h-4 w-4" />
-                <span className="hidden sm:inline-block">Search...</span>
-              </div>
-              <kbd className="hidden sm:inline-block pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium opacity-100">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full max-w-sm p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Type a command or search..." value={searchQuery} onValueChange={setSearchQuery} />
-              <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup>
-                  {filteredItems.map((item) => (
-                    <CommandItem
-                      key={item.value}
-                      value={item.value}
-                      onSelect={handleCommandSelect}
-                    >
-                      {item.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+      {/* Center section with navigation if needed */}
+      <div className="hidden md:flex items-center space-x-4">
+        {navigationItems.slice(0, 3).map((item) => (
+          <Button
+            key={item.value}
+            variant="ghost"
+            className="text-sm font-medium"
+            onClick={() => navigate(item.value)}
+          >
+            {item.label}
+          </Button>
+        ))}
       </div>
 
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onThemeToggle}
-          className="hidden md:flex"
-        >
-          {isDark ? (
-            <SunIcon className="h-5 w-5" />
-          ) : (
-            <MoonIcon className="h-5 w-5" />
-          )}
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+      {/* Right section with search, theme toggle, and auth */}
+      <div className="ml-auto flex items-center gap-2">
+        {showSearchCommand && (
+          <Popover open={showCommandMenu} onOpenChange={setShowCommandMenu}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden md:flex gap-2 w-[200px] justify-between"
+              >
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <SearchIcon className="h-4 w-4" />
+                  <span className="text-sm">Search...</span>
+                </div>
+                <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium opacity-100 sm:flex">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[300px]" align="end">
+              <Command>
+                <CommandInput 
+                  placeholder="Search navigation..."
+                  onValueChange={setSearchQuery}
+                />
+                <CommandList>
+                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandGroup heading="Navigation">
+                    {filteredItems.map((item) => (
+                      <CommandItem
+                        key={item.value}
+                        onSelect={() => handleCommandSelect(item.value)}
+                        className="flex items-center gap-2"
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )}
+        
+        {/* Mobile search button */}
+        {showSearchCommand && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowCommandMenu(true)}
+            className="md:hidden"
+            aria-label="Search"
+          >
+            <SearchIcon className="h-5 w-5" />
+          </Button>
+        )}
 
+        {/* Theme toggle button */}
+        {showThemeToggle && onThemeToggle && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onThemeToggle}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? (
+              <SunIcon className="h-5 w-5" />
+            ) : (
+              <MoonIcon className="h-5 w-5" />
+            )}
+          </Button>
+        )}
+
+        {/* Custom actions if provided */}
+        {actions}
+
+        {/* Authentication section */}
         {renderAuthSection()}
       </div>
     </header>

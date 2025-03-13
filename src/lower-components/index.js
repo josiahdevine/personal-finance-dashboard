@@ -4,6 +4,7 @@
 // Re-export core components
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { LandingPage } from './LandingPage';
+export { Login } from './Login';
 
 // Re-export UI components 
 // (ADD MORE AS NEEDED)

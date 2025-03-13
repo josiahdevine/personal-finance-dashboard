@@ -9,9 +9,8 @@ import { AggregatedAccount } from './services/AccountAggregationService';
 import { Transaction } from './types/Transaction';
 
 // Pages and Components
-import { LandingPage, ErrorBoundary } from './lower-components';
+import { LandingPage, ErrorBoundary, Login } from './lower-components';
 import { Register } from './components/auth/Register';
-import { Login } from './components/auth/Login';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import Overview from './components/features/dashboard/Overview';
 import { TransactionSummary } from './components/features/transactions';

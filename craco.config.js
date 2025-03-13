@@ -13,7 +13,8 @@ import url from 'url';
 import util from 'util';
 import buffer from 'buffer';
 import pathBrowserify from 'path-browserify';
-import process from 'process/browser';
+// Fix the process import by using process directly
+import process from 'process';
 
 // Export default config instead of using module.exports
 export default {
@@ -39,7 +40,8 @@ export default {
         util: util,
         buffer: buffer,
         path: pathBrowserify,
-        process: process,
+        // Change to use a string reference for process
+        process: 'process/browser.js',
         fs: false,
         net: false,
         tls: false,
@@ -51,7 +53,7 @@ export default {
       webpackConfig.plugins = [
         ...(webpackConfig.plugins || []),
         new webpack.ProvidePlugin({
-          process: ['process/browser'],
+          process: ['process/browser.js'],
           Buffer: ['buffer', 'Buffer'],
         }),
         new webpack.DefinePlugin({
@@ -61,7 +63,7 @@ export default {
 
       webpackConfig.resolve.alias = {
         ...webpackConfig.resolve.alias,
-        process: 'process/browser',
+        process: 'process/browser.js',
       };
 
       webpackConfig.module = {

@@ -56,6 +56,42 @@ This project uses ES modules for its JavaScript files, as specified by the `"typ
 1. All `.js` files are treated as ES modules
 2. Use `import` and `export` syntax instead of `require` and `module.exports`
 3. Configuration files like `craco.config.js` must use ES module syntax
+4. File extensions are more important in ES modules
+
+### File Extensions in ES Modules
+
+When working with ES modules, be careful with imports that reference specific files (like browser polyfills):
+
+```javascript
+// Incorrect: Missing file extension
+import process from 'process/browser';
+
+// Correct: Include the file extension
+import process from 'process/browser.js';
+```
+
+For packages with index files or package.json "exports" configurations, you can still import without extensions:
+
+```javascript
+// This works because "react" has a package.json that defines its exports
+import React from 'react';
+```
+
+### Webpack Configurations
+
+For webpack configurations that reference browser polyfills, make sure to include the file extension:
+
+```javascript
+// Incorrect
+webpackConfig.resolve.alias = {
+  process: 'process/browser',
+};
+
+// Correct
+webpackConfig.resolve.alias = {
+  process: 'process/browser.js',
+};
+```
 
 When modifying configuration files or scripts, make sure to use the proper module syntax:
 

@@ -2,9 +2,9 @@
 // This file acts as a bridge between case-sensitive environments
 
 // Re-export core components
-export { default as ErrorBoundary } from './ErrorBoundary';
-export { LandingPage } from './LandingPage';
-export { Login } from './Login';
+export { default as ErrorBoundary } from './ErrorBoundary.js';
+export { LandingPage } from './LandingPage.js';
+export { Login } from './Login.js';
 
 // Re-export UI components 
 // (ADD MORE AS NEEDED)

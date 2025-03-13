@@ -5,10 +5,10 @@
  * between Windows development and Linux deployments
  * 
  * Usage: 
- * node create-component-bridge.js ComponentName [SubDirectory]
+ * node create-component-bridge.js ComponentName [SubDirectory] [Extension]
  * 
  * Example:
- * node create-component-bridge.js Login auth
+ * node create-component-bridge.js Login auth tsx
  */
 
 import fs from 'fs';
@@ -22,10 +22,11 @@ const __dirname = path.dirname(__filename);
 // Get the component name and optional subdirectory from command line arguments
 const componentName = process.argv[2];
 const subDirectory = process.argv[3] || '';
+const fileExtension = process.argv[4] || 'tsx'; // Default to tsx
 
 if (!componentName) {
   console.error('Please provide a component name!');
-  console.log('Usage: node create-component-bridge.js ComponentName [SubDirectory]');
+  console.log('Usage: node create-component-bridge.js ComponentName [SubDirectory] [Extension]');
   process.exit(1);
 }
 
@@ -41,8 +42,8 @@ if (!fs.existsSync(bridgeDir)) {
 
 // Determine the correct import path based on subdirectory
 const importPath = subDirectory 
-  ? `../components/${subDirectory}/${componentName}`
-  : `../components/${componentName}`;
+  ? `../components/${subDirectory}/${componentName}.${fileExtension}`
+  : `../components/${componentName}.${fileExtension}`;
 
 // Content for the bridge file
 const bridgeContent = `// Case sensitivity bridge for ${componentName}
@@ -69,13 +70,13 @@ if (fs.existsSync(indexFile)) {
       const beforeInsert = indexContent.substring(0, endOfSection).trimEnd();
       const afterInsert = indexContent.substring(endOfSection);
       indexContent = `${beforeInsert}
-export { ${componentName} } from './${componentName}';
+export { ${componentName} } from './${componentName}.js';
 
 ${afterInsert}`;
     }
   } else {
     // If the file doesn't have the expected structure, just append the export
-    indexContent += `\nexport { ${componentName} } from './${componentName}';\n`;
+    indexContent += `\nexport { ${componentName} } from './${componentName}.js';\n`;
   }
 } else {
   // Create a new index file if it doesn't exist
@@ -83,7 +84,7 @@ ${afterInsert}`;
 // This file acts as a bridge between case-sensitive environments
 
 // Re-export core components
-export { ${componentName} } from './${componentName}';
+export { ${componentName} } from './${componentName}.js';
 
 // Re-export UI components 
 // (ADD MORE AS NEEDED)
@@ -112,4 +113,4 @@ fs.writeFileSync(indexFile, indexContent);
 console.log(`Updated index file: ${indexFile}`);
 
 console.log('\nNow update your imports to use:');
-console.log(`import { ${componentName} } from './lower-components';`); 
+console.log(`import { ${componentName} } from './lower-components/index.js';`); 

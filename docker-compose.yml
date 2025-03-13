@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance-dashboard-dev
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    ports:
+      - "3000:3000" # React app
+      - "3001:3001" # Optional API port if needed
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true # For hot reloading in a Docker container
+    # Keep the container running in interactive mode
+    stdin_open: true
+    tty: true
+    # Enable reading environment variables from .env file
+    env_file:
+      - .env
+
+volumes:
+  node_modules: # Named volume for node_modules to avoid overwriting with local node_modules 

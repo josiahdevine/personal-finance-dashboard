@@ -11,6 +11,19 @@
 *.scss text eol=lf
 *.html text eol=lf
 *.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+
+# Shell scripts should use LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows batch scripts should retain CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
 
 # Denote all files that are truly binary and should not be modified
 *.png binary

@@ -180,5 +180,6 @@
     "source-map-explorer": "^2.5.3",
     "supertest": "^6.3.3",
     "ts-jest": "^29.2.6"
-  }
+  },
+  "type": "module"
 }

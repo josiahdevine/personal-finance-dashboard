@@ -24,7 +24,7 @@ import AskAI from './components/features/ask-ai';
 import Settings from './components/features/dashboard/Settings';
 import CashFlowPredictionPage from './pages/CashFlowPredictionPage';
 import { InvestmentPortfolioPage } from './pages/InvestmentPortfolioPage';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary from './ErrorBoundary';
 import ResponsiveDemo from './pages/ResponsiveDemo';
 import PerformanceComponentsDemo from './pages/PerformanceComponentsDemo';
 

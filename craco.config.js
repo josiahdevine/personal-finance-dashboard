@@ -1,11 +1,22 @@
 // Import webpack instead of requiring it
-const webpack = require('webpack');
+import webpack from 'webpack';
 // Import other dependencies
-const tailwindcss = require('tailwindcss');
-const autoprefixer = require('autoprefixer');
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
+import crypto from 'crypto-browserify';
+import streamBrowserify from 'stream-browserify';
+import assert from 'assert';
+import streamHttp from 'stream-http';
+import httpsBrowserify from 'https-browserify';
+import osBrowserify from 'os-browserify';
+import url from 'url';
+import util from 'util';
+import buffer from 'buffer';
+import pathBrowserify from 'path-browserify';
+import process from 'process/browser';
 
-// Use module.exports instead of export default
-module.exports = {
+// Export default config instead of using module.exports
+export default {
   style: {
     postcss: {
       plugins: [
@@ -18,17 +29,17 @@ module.exports = {
     configure: (webpackConfig) => {
       webpackConfig.resolve.fallback = {
         ...webpackConfig.resolve.fallback,
-        crypto: require.resolve('crypto-browserify'),
-        stream: require.resolve('stream-browserify'),
-        assert: require.resolve('assert'),
-        http: require.resolve('stream-http'),
-        https: require.resolve('https-browserify'),
-        os: require.resolve('os-browserify'),
-        url: require.resolve('url'),
-        util: require.resolve('util'),
-        buffer: require.resolve('buffer'),
-        path: require.resolve('path-browserify'),
-        process: require.resolve('process/browser'),
+        crypto: crypto,
+        stream: streamBrowserify,
+        assert: assert,
+        http: streamHttp,
+        https: httpsBrowserify,
+        os: osBrowserify,
+        url: url,
+        util: util,
+        buffer: buffer,
+        path: pathBrowserify,
+        process: process,
         fs: false,
         net: false,
         tls: false,

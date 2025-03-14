@@ -114,6 +114,7 @@
     "build": "cross-env FAST_REFRESH=false CRACO_CONFIG_PATH=./craco.config.cjs craco build",
     "netlify-build": "cross-env NODE_ENV=production DISABLE_ESLINT_PLUGIN=true GENERATE_SOURCEMAP=false npm run build",
     "netlify-deploy": "node netlify-deploy.js",
+    "docker-netlify-deploy": "node docker-netlify-deploy.cjs",
     "test": "craco test",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
